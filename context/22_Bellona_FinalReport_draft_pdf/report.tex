@@ -1,0 +1,245 @@
+ \documentclass{tudelft-report}
+
+
+
+
+\usepackage[sorting=none, giveninits=true, maxnames=500]{biblatex}
+\DeclareNameAlias{author}{family-given}
+\addbibresource{references/references.bib}
+\addbibresource{references/references.bib}
+\addbibresource{references/references_fred.bib}
+
+
+
+% Preamble
+\usepackage[table]{xcolor}
+\usepackage{pdflscape}
+\usepackage{adjustbox}
+\usepackage{array}
+
+\usepackage{diagbox}
+\usepackage{xurl}
+\urlstyle{same}
+\usepackage{standalone} % Allows you to 'input' files that have their own preamble
+\usepackage{tikz}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{makecell}
+\usepackage{pdflscape}
+\usepackage{tabularray}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{comment}
+\usepackage{tabularx}
+\usepackage{xltabular}
+\usepackage{wrapfig}
+\usepackage{pdfpages}
+\usepackage{rotating}
+\usepackage[dvipsnames]{xcolor} % To access some named colors used with \highLight
+\usepackage{blindtext}
+\usepackage{listings}
+\usepackage{soul} % For highlighting
+\usepackage{todonotes} % For \todo comments
+\usepackage{multicol}
+\usepackage{multicol}
+
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{siunitx}
+\usepackage{eurosym}
+\usepackage[hidelinks]{hyperref}
+\usepackage{amsmath,amssymb}
+\usepackage{forest}
+\usepackage{tikz}
+\usepackage[utf8]{inputenc}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{svg}
+\usepackage{diagbox}
+\usepackage[table]{xcolor}
+\usepackage{caption}
+\usepackage{ragged2e}
+
+\geometry{a4paper, margin=1in}
+\usetikzlibrary{arrows.meta,patterns}
+
+\definecolor{dotroot}{RGB}{120,170,220}
+\definecolor{dotl1}{RGB}{255,196,130}
+\definecolor{dotl2}{RGB}{255,236,170}
+\definecolor{dotl3}{RGB}{240,240,240}
+\definecolor{dotelim}{RGB}{239,154,154}
+\definecolor{dotsel}{RGB}{174,213,129}
+
+\forestset{
+  dotstyle/.style={
+    for tree={
+      draw,
+      rounded corners,
+      align=center,
+      font=\scriptsize,
+      edge={-Stealth, thick, black!60},
+      l sep=7mm,
+      s sep=3mm,
+      anchor=north,
+      parent anchor=south,
+      child anchor=north,
+      inner sep=2pt,
+    },
+    where level=0{fill=dotroot, font=\scriptsize\bfseries}{},
+    where level=1{fill=dotl1, font=\scriptsize\bfseries}{},
+    where level=2{fill=dotl2}{},
+    where level=3{fill=dotl3}{},
+  },
+  elim/.style={fill=dotelim},
+  sel/.style={fill=dotsel, very thick},
+}
+\setlist{itemsep=-2pt} % Reducing white space in lists slightly
+\renewcommand{\deg}{\si{\degree}\xspace} % Use \deg easily, everywhere
+\setlength{\parindent}{0pt}
+\hbadness=99999
+\hfuzz=9999pt
+\setcounter{tocdepth}{1}
+
+\let\orgautoref\autoref
+\renewcommand{\autoref}[1]{%
+\def\sectionautorefname{Section}%
+\def\chapterautorefname{Chapter}%
+\def\subsectionautorefname{Subsection}%
+\orgautoref{#1}}%
+
+
+
+%% ----------------------------------------------------------------------
+%%    Begin of document + Frontmatter (Roman page numbering)
+%% ----------------------------------------------------------------------
+
+%===================
+\makeatletter
+\patchcmd{\chapter}{\if@openright\cleardoublepage\else\clearpage\fi}{}{}{}
+\makeatother
+%===================
+
+%start chapters without new page
+
+\begin{document}
+\frontmatter
+
+%% Define the main parameters
+\title{Final Report}
+
+\subtitle{BELLONA}
+
+\author{Group 22}
+
+\subject{AE3200 Design Synthesis} % Cover only
+\affiliation{Delft University of Technology} % Cover only
+\coverimage{figures/stratospheric_clouds.jpg} % Aspect ratio of 2:3 (portrait) recommended
+\definecolor{title}{HTML}{4884d6} % Color for cover title
+\makecover
+
+
+%% --- INSERT BLANK PAGE HERE ---
+\clearpage
+\thispagestyle{empty} % Removes headers and footers from this page
+\vspace*{\fill}
+\begin{center}
+    \textit{This page is intentionally left blank.}
+\end{center}
+\vspace*{\fill}
+\clearpage
+%% ------------------------------
+
+
+
+\input{frontmatter/title-report}
+% \input{frontmatter/preface}
+%\input{frontmatter/summary}
+
+
+\input{mainmatter/01-Executive}
+\newpage
+\begin{multicols}{2}
+    \tableofcontents
+\end{multicols}
+% \listoffigures
+% \addcontentsline{toc}{chapter}{List of Figures}
+%\listoftables
+% \addcontentsline{toc}{chapter}{List of Tables}
+
+% \input{frontmatter/list-of-symbols}
+
+%% ----------------------------------------------------------------------
+%%    Mainmatter (Arabic page numbering)
+%% ----------------------------------------------------------------------
+
+\mainmatter
+\bgroup
+\renewcommand{\arraystretch}{0.95}
+
+
+\input{mainmatter/Structures, Materials and Manufacturing}
+
+
+% \input{mainmatter/00-Project_plan}
+% \input{mainmatter/02-Project_objectives}
+% \input{mainmatter/03-Requirements & Design Drivers Revised}
+% %\input{mainmatter/04-System Level Design Option}
+% \input{mainmatter/4-Trade-off_summary}
+% \input{mainmatter/05-Concept Analysis Revised}
+% \input{mainmatter/Structures, Materials and Manufacturing}
+% \input{mainmatter/07-Trade-off Results and Selected Concept}
+% \input{mainmatter/08-Conceptual Configuration Definition}
+% \input{mainmatter/10-Risk Assessment and Risk Map}
+% \input{mainmatter/11-Verification & Validation Plan}
+% \input{mainmatter/12-Sustainability Strategy}
+% \input{mainmatter/13-ROI}
+
+
+
+
+
+
+\egroup
+
+% Prevent urls running into margins in bibliography
+\setcounter{biburlnumpenalty}{9000}
+\setcounter{biburllcpenalty}{9000}
+\setcounter{biburlucpenalty}{9000}
+
+% Spacing Adjustments
+\setlength{\bibitemsep}{-2.5pt}
+\setlength{\bibparsep}{0pt}
+
+% Add bibliography
+\newpage
+\begingroup
+\renewcommand*{\bibfont}{\small}
+\sloppy
+\setlength{\emergencystretch}{3em}
+\setlength{\bibitemsep}{-3pt}
+\setlength{\bibparsep}{0pt}
+\printbibliography[heading=bibintoc, title=References]
+\endgroup
+%\renewcommand{\bibname}{References}
+%\bibliographystyle{new-aiaa}  % Use the AIAA bibliography style
+%\bibliography{references/maria,references/daris,references/camille}  % Your bibliography file
+%\addcontentsline{toc}{chapter}{References}
+%% ----------------------------------------------------------------------
+%%    Appendix (Letters for chapters)
+%% ----------------------------------------------------------------------
+
+\appendix
+
+\input{appendix/appendix-a}
+\input{appendix/appendix-b}
+% \input{appendix/appendix-c}
+
+%\input{appendix/appendix-c} % Create file to add
+
+\end{document}

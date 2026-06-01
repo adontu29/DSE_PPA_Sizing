@@ -1,0 +1,129 @@
+\chapter{Concept Generation}
+\todo{kind of the explanation of our DOT and how we arrived at the concepts below, then we can specifically desribe the systems in the system level design options}
+
+
+\section{Design Space Overview}
+
+The design space was structured through three main Design Option
+Trees (DOTs): aerial platform, detection and tracking, and balloon
+interaction strategy. These three areas are strongly coupled and
+together define the concepts carried into the conceptual design
+phase. The full DOT is provided in the Baseline Report
+(Appendix~A.4).
+
+\subsection*{DOT 1 — Aerial Platform}
+The aerial platform determines payload capacity,
+controllability near the target, range, altitude capability,
+energy demand, acoustic performance, and reusability.
+\textbf{Rotary-wing} platforms are identified as the strongest
+baseline option due to their hover capability, low-speed
+controllability, and precedent in counter-UAS and aerial
+manipulation systems. \textbf{Hybrid VTOL} configurations
+(tilt-rotor, tail-sitter) are retained because of their
+improved range and endurance, at the cost of increased
+mechanical complexity. \textbf{Conventional fixed-wing}
+platforms are retained for their endurance advantage.
+Tilt-wing, rocket, flapping-wing, and coaxial helicopter
+configurations were pruned for reasons of cost, complexity,
+or certification risk.
+
+\subsection*{DOT 2 — Detection and Tracking}
+The detection and tracking architecture must acquire a
+slow-moving, low radar-cross-section target and hand it to a
+terminal tracker with sufficient accuracy for close-range
+interaction. The most promising architecture is a
+\textbf{hybrid-cued} approach: coarse target information from
+a ground observer or external monitoring source is handed over
+to onboard optical and/or thermal sensing for terminal
+interception. RGB cameras (YOLO-family algorithms) are retained
+as the primary onboard sensor for target confirmation and
+tracking in favourable conditions. LWIR thermal imaging is
+retained as a complementary sensor for low-light operation.
+LiDAR is retained as an optional terminal sensor only.
+Onboard radar\todo{double check}, IRST, and sonar were pruned on grounds of cost,
+weight, or insufficient performance against a latex balloon
+envelope.
+
+\subsection*{DOT 3 — Balloon Interaction Strategy}
+The interaction DOT is structured around three sequential
+decision nodes: (1)~first contact and handling,
+(2)~method to initiate descent, and (3)~method to manage
+descent.
+
+\paragraph{Node 1 — First contact.}
+Net-based approaches (cooperative multi-UAV net, radially
+deployed net, hanging-net sweep) and tether/lasso approaches
+(line-snag V-yoke, cooperative tether closure) are retained
+as the primary non-direct contact options. Direct contact
+options retained include enveloping soft grippers, rigid
+clamps for tether engagement, gecko-pad arrays, regular
+adhesive pads, and active pneumatic suction. Options pruned
+include talon/pincer claws (uncontrolled deflation risk),
+articulated robotic arms (cost/complexity), cooperative
+clamping (bladestrike risk), passive suction cups (insufficient grip force), and electromagnetic approaches (no guaranteed ferromagnetic target material).
+
+\paragraph{Node 2 — Descent initiation.}
+Retained options include integrated thrust (bi-directional
+propeller or throttle-below-hover), ground-connected tether, controlled venting via an active venting module or insert valve. Uncontrolled deflation methods (directed energy, projectile, propeller puncture) were screened out for violating the non-pyrotechnic and debris constraints. Solid ballast was pruned for uncontrolled descent risk.
+
+\paragraph{Node 3 — Descent management.}
+No options are pruned at this node as all are dependent on
+the selected platform and interaction concept. Options
+retained include parachutes, drag surfaces, active drag
+orientation, increased rotor thrust (UAS tow), lifting
+surfaces (parafoil), gas envelope, and variable buoyancy
+systems.
+
+
+\section{Overview of the five selected concepts}
+
+
+Table~\ref{tab:strawman_concept_overview} gives a compact overview of the candidate concepts selected from the retained design-option-tree branches. Each concept is described as a complete mission architecture combining an aerial platform, interaction method, and descent or recovery strategy. The descriptions provide a consistent basis for comparing the concepts in the trade-off. 
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Candidate straw-man concepts entering the trade-off.}
+    \label{tab:strawman_concept_overview}
+    \begin{tabularx}{\textwidth}{@{}p{0.04\textwidth} p{0.18\textwidth} X X X@{}}
+        \toprule
+        \textbf{ID} 
+        & \textbf{Concept name} 
+        & \textbf{Aerial platform} 
+        & \textbf{Interaction principle} 
+        & \textbf{Descent/recovery principle} \\
+        \midrule
+
+        A 
+        & Bottom Fishing
+        & Four-propeller tail-sitter VTOL UAV with cruise and hover capability.
+        & The UAV hovers below the payload and launches an upward capture net that closes around the payload through a tethered pouch mechanism.
+        & The UAV tows the captured balloon-payload system downward using thrust and vehicle weight, with emergency breakaway and parachute backup. \\
+
+        B 
+        & Pick and drop
+        & Carrier eVTOL deploys a team of net-carrier multirotors and one helper drone near the target.
+        & The net-carrier drones envelop the balloon-payload system using a two-stage cinching net.
+        & The secured bundle separates from the drones and descends under a guided parafoil. \\
+
+        C 
+        & Mechanical Clamping
+        & Lift-and-cruise eVTOL UAV station-keeping beneath the payload.
+        & Deployable aluminium beams extend and pivot upward to mechanically secure the payload or its attachment.
+        & The coupled system descends under UAV weight, with directed thrust used for descent control, stabilization, and landing guidance. \\
+
+        D 
+        & Cooperative Variable-Weight Payload Net
+        & Three heavy-lift multirotors carrying a shared payload-capture net on long tethers.
+        & The UAV team positions a net below the target and closes it around the payload.
+        & Ballast and net hardware provide downward force, while the UAV formation stabilises and steers the captured system during descent. \\
+
+        E 
+        & Kinetic Bolas
+        & Lift-and-cruise hybrid UAV with hover capability for close-range engagement.
+        & A pneumatic launcher fires two weighted projectiles connected by a leader line, wrapping around the suspension line.
+        & The UAV reels out a tow line and uses vehicle weight and thrust to guide the balloon-payload system toward recovery. \\
+
+        \bottomrule
+    \end{tabularx}
+\end{table}

@@ -1,0 +1,167 @@
+\vspace{-15pt}
+\chapter{Sustainable Development Strategy}
+\label{ch:sustainability}
+
+Sustainability in the Bellona project is treated as a mission-level design constraint rather than a final material-selection check. A solution is only considered sustainable if it does not create additional environmental hazards. Consequently, a concept that fragments the balloon envelope or leaves recovery hardware behind is considered a "weak" solution, even if the UAS platform itself is fully reusable.
+
+This strategy serves as both a requirement flowdown tool and a concept pruning gate. During the baseline phase, sustainability defines the criteria used to eliminate concepts incompatible with the mission philosophy, focusing on debris prevention, electric energy storage, low acoustic impact, and controlled recovery.
+
+Sustainability is interpreted through three linked dimensions. Environmental sustainability concerns debris prevention, electric operation, material reuse, and end-of-life handling. Social sustainability concerns public safety, low noise, reduced disruption to airport or border operations, and predictable recovery behaviour. Economic sustainability concerns whether the system can be reused, reset, repaired, and deployed at acceptable cost over multiple missions.
+\vspace{-12pt}
+\section{Scope and Core Drivers}
+The assessment covers all elements within the mission system boundary: the airborne UAS, interaction mechanisms, ground systems, and the operational procedures required for safe balloon neutralizing. While broader infrastructure impacts (e.g., external emergency logistics) are outside this scope, the UAS must remain compatible with these actors by avoiding uncontrolled debris or unsafe recovery conditions.
+
+Five dominant sustainability drivers guide the design and concept pruning. Together, these cover environmental, social, and economic sustainability:
+
+% \begin{itemize}
+%     \item Debris Prevention: The mission must not convert a single airborne hazard into multiple ground hazards. Concepts that fragment the envelope or drop unrecovered hardware are penalized. Interaction strategies such as net capture, restraint, or gradual deflation are prioritized over destructive disabling.
+%     \item Post-Interaction Recoverability: Mission success is only achieved when the balloon, payload, and UAS have reached safe, predictable end states. Concepts are favored if they simplify retrieval and reduce the need for external cleanup or emergency response.
+%     \item Operational Reusability: The UAS is a deployable response system, not a single-use device. The platform, sensors, and major interaction components must remain reusable. Any single-use elements, such as tethers or valves, must be justified by their specific contribution to safety or mission reliability.
+%     \item Energy Efficiency and Noise: Electric propulsion satisfies the energy-source constraint, but platform choice and flight duration determine the total battery demand. Additionally, the propulsion concept must minimize acoustic disturbance ($\le 65\,\mathrm{dB}$ at $50\,\mathrm{m}$), especially near airports or populated infrastructure.
+%     \item Modularity and Repairability: To reduce material waste, designs must allow for the inspection and replacement of modules. A design that requires large assembly replacement after minor contact damage is considered unsustainable.
+% \end{itemize}
+
+
+
+\begin{itemize}
+    \item \textbf{Debris Prevention:} The mission must not convert a single airborne hazard into multiple ground hazards. This is mainly an environmental and social driver, since falling debris can create both waste and public safety risks.  
+
+    \item \textbf{Post-Interaction Recoverability:} Mission success is only achieved when the balloon, payload, and UAS have reached safe, predictable end states. This supports environmental sustainability through material retrieval, social sustainability through reduced third-party risk, and economic sustainability through reduced cleanup and response effort.
+
+    \item \textbf{Operational Reusability:} The UAS is a deployable response system, not a single-use device. The platform, sensors, and major interaction components must remain reusable. Any single-use elements, such as tethers or valves (if broken after the mission, or deemed unusable), must be justified by their specific contribution to safety or mission reliability. This mainly supports economic and environmental sustainability.
+
+    \item \textbf{Energy Efficiency and Noise:} Electric propulsion satisfies the energy-source constraint, but platform choice and flight duration determine the total battery demand. Additionally, the propulsion concept must minimize acoustic disturbance ($\le 65\,\mathrm{dB}$ at $50\,\mathrm{m}$), especially near airports or populated infrastructure. This links environmental impact to social acceptance.
+
+    \item \textbf{Modularity and Repairability:} To reduce material waste and life-cycle cost, designs must allow for the inspection and replacement of modules. A design that requires large assembly replacement after minor contact damage is considered unsustainable from both an environmental and economic perspective.
+\end{itemize}
+
+\vspace{-20pt}
+\section{Integration into Concept Selection} \label{sec:sus-integration-into-concept-selection}
+Sustainability is integrated into the selection process through two distinct phases. First, concepts that violate mandatory limits, such as those using combustion propulsion, pyrotechnic mechanisms, or destructive methods that generate uncontrolled debris, are pruned entirely. 
+
+Second, the remaining viable concepts are compared using the criteria in \autoref{tab:sustainability_criteria}. These indicators are included alongside safety, performance, and cost in the midterm trade-off analysis.
+
+\begin{longtable}{p{0.22\textwidth} p{0.30\textwidth} p{0.18\textwidth} p{0.20\textwidth}}
+
+\caption{Sustainability criteria and baseline indicators for concept development.}
+\label{tab:sustainability_criteria} \\
+
+\hline
+\textbf{Criterion} & \textbf{Design relevance} & \textbf{Baseline indicator} & \textbf{Use in design process} \\
+\hline
+\endfirsthead
+
+\hline
+\textbf{Criterion} & \textbf{Design relevance} & \textbf{Baseline indicator} & \textbf{Use in design process} \\
+\hline
+\endhead
+\hline
+\endfoot
+
+Mission waste & Penalises concepts that create balloon fragments, payload debris, or unrecovered hardware. & No uncontrolled debris above $50\,\mathrm{g}$. & Mandatory pruning limit for interaction concepts. \\
+
+Balloon and payload recoverability & Rewards concepts that keep the balloon and payload controlled after interaction. & Defined post-interaction end state. & Used to compare capture, restraint, deflation, and guided descent concepts. \\
+
+Electric operation & Eliminates direct combustion emissions during operation. & Electric-only energy storage. & Mandatory pruning limit for platform concepts. \\
+
+Energy use & Penalises concepts with high battery demand, long hover time, or repeated failed attempts. & Mission energy demand, endurance penalty, and $10\,\mathrm{min}$.intercept window & Used in platform and mission-profile comparison. \\
+
+Noise impact & Addresses acoustic disturbance near populated or controlled areas. & $65\,\mathrm{dB}$ at $50\,\mathrm{m}$. & Used to compare platform and propulsion concepts. \\
+
+Consumable hardware & Penalises concepts requiring disposable nets, tethers, patches, valves, or recovery bags. & Disposable mass and cost per mission. & Used to assess per-deployment cost and waste. \\
+
+Modularity and repairability & Reduces replacement cost and material waste after routine operation or minor damage. & Reset effort, inspection access, and replaceable modules & Used to compare maintainability of concepts. \\
+
+Life-cycle considerations & Keeps manufacturing, operation, maintenance, and disposal visible during design. & Reuse, recycling, or disposal route for major components. & Refined during final design once the configuration is selected. \\
+
+
+% Public exposure during recovery & Prefer controlled descent paths, predictable landing zones, and abort logic before interaction. \\
+% High reset or repair burden & Favor reusable, modular mechanisms with short post-mission inspection and reset procedures. \\
+% Operational disruption & Prefer concepts that remove the balloon quickly without requiring large exclusion zones or extended airspace closure. \\
+
+\end{longtable}
+
+\subsection*{Sustainability Risks and Design Implications}
+
+The primary sustainability risks are linked to the post-interaction state of the balloon. If control is lost, the mission generates environmental waste. %These risks are translated into the design implications summarized in \autoref{tab:sustainability_risks}, supporting the later derivation of system requirements.
+
+
+
+
+At baseline level, these risks are used as early design warnings rather than final quantitative assessment results. They indicate which design features must be considered during the Midterm trade-off and later detailed design. Concepts that rely on uncontrolled rupture, large amounts of disposable hardware, long hover times or difficult post-mission reset procedures are therefore penalised. Conversely, concepts that maintain containment, support controlled descent, reduce consumables and allow quick inspection and reuse are preferred.
+
+The main sustainability risks and their resulting design implications are summarised in \autoref{tab:sustainability_risks}. These implications support the later derivation of system requirements and trade-off criteria.
+
+
+
+\begin{table}[H]
+\centering
+\small
+\caption{Sustainability risks and resulting design implications.}
+\label{tab:sustainability_risks}
+\begin{tabularx}{\textwidth}{p{4cm} X}
+\toprule
+\textbf{Sustainability Risk} & \textbf{Design Implication} \\
+\midrule
+Uncontrolled debris & Prefer containment and restraint over destructive methods. \\
+Lost single-use hardware & Minimize consumables; justify any unavoidable waste. \\
+Excessive mission energy & Include loiter and battery demand in platform trade-offs. \\
+Acoustic disturbance & Optimize propulsion for noise-sensitive environments. \\
+Maintenance waste & Favor modular, inspectable, and replaceable components. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+
+\vspace{-10pt}
+These risks show that the most sustainable concept is not necessarily the one with the lowest material footprint, but the one that prevents secondary hazards while remaining reusable and operationally practical. For this reason, the Midterm concept trade-off should include sustainability criteria alongside safety, performance, cost, and technical feasibility.
+
+\vspace{-10pt}
+\subsection{Sustainability Key Performance Indicators}
+\label{sec:sustainability_kpis}
+
+To make sustainability usable in the Midterm trade-off, the qualitative sustainability drivers are translated into measurable key performance indicators (KPIs). At baseline level, a full life-cycle assessment is not yet meaningful because the final platform, interaction mechanism, materials, and mission profile have not been selected. Instead, the KPIs in \autoref{tab:sustainability_kpis} are used to compare concepts at mission level and drone-design level.
+
+Mandatory sustainability limits, such as electric-only operation and the prevention of uncontrolled debris above $50\,\mathrm{g}$, are treated as pruning constraints. Concepts that violate these limits are not carried forward. The remaining concepts are scored from 1 to 10 for each KPI, where 1 represents poor sustainability performance and 10 represents strong sustainability performance.
+
+
+\begin{table}[H]
+\centering
+\small
+\caption{Sustainability KPIs for concept comparison during the Midterm trade-off.}
+\label{tab:sustainability_kpis}
+\begin{tabularx}{0.85\textwidth}{p{0.45\textwidth} X}
+\toprule
+\textbf{KPI} & \textbf{Unit / scale} \\
+\midrule
+
+Unrecovered material mass 
+& $\mathrm{kg/mission}$ \\
+
+Consumable mass per sortie 
+& $\mathrm{kg/mission}$ \\
+
+Mission energy demand 
+& $\mathrm{Wh}$ or $\mathrm{kWh/mission}$ \\
+
+Noise level 
+& $\mathrm{dB}$ at $50\,\mathrm{m}$ \\
+
+Repair and reset effort 
+& min or h \\
+
+Reusable system fraction 
+& \% of system mass or cost \\
+
+Recoverability score 
+& 1--10 \\
+
+End-of-life handling score 
+& 1--10 \\
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The KPIs in \autoref{tab:sustainability_kpis} translate the sustainability drivers into measurable inputs for the Midterm trade-off. Quantitative KPIs are used where early estimates are possible, such as energy demand, consumable mass, unrecovered material mass, noise level, and reset effort. For aspects that cannot yet be calculated accurately at baseline level, such as recoverability and end-of-life handling, a 1--10 scoring scale is used. Mandatory sustainability limits, such as electric-only operation and prevention of uncontrolled debris above $50\,\mathrm{g}$, remain pruning constraints rather than scoring criteria.

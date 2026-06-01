@@ -1,0 +1,182 @@
+\chapter{Sustainability Strategy}
+
+The Baseline Report defined sustainability for BELLONA as the ability to remove the balloon hazard without creating additional environmental, social, or operational hazards. This strategy is applied to the concept trade-off and to the selected Concept A architecture. The main sustainability drivers are debris prevention, recoverability, reusability, energy and noise impact, modular repair, and controlled end-of-life handling.
+
+\section{Development of the Sustainability Strategy}
+
+The Baseline sustainability drivers are retained, but they are now interpreted as design constraints for Concept A and as comparison criteria for the candidate architectures. Table~\ref{tab:sustainability_midterm_development} summarizes the resulting design consequences.
+
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Development of baseline sustainability drivers into Midterm design actions.}
+\label{tab:sustainability_midterm_development}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}X X@{}}
+\toprule
+\textbf{Driver} & \textbf{Design consequence} & \textbf{Required evidence in final design} \\
+\midrule
+Debris prevention 
+& The interaction system shall not fragment the balloon, release the payload, or lose mission hardware. 
+& Failure-mode analysis for the net, tether, hardpoint, breakaway device, and parachute. \\
+
+Recoverability 
+& The balloon, payload, UAS, and deployed hardware shall reach a predictable recoverable state. 
+& Descent-path estimate, recovery-zone logic, and post-landing recovery procedure. \\
+
+Reusability 
+& The aircraft, sensors, launcher, reel, propulsion system, and hardpoints shall be reusable after inspection. 
+& Post-flight inspection checklist and replacement limits for high-wear parts. \\
+
+Energy and noise 
+& Battery demand, hover time, and acoustic disturbance shall be limited during the mission. 
+& Updated energy budget and noise estimate at 50 m. \\
+
+Modularity and repair 
+& High-wear or highly loaded parts shall be inspectable and replaceable without replacing large airframe sections. 
+& Modular CAD layout and maintenance sequence. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Integration into Concept Selection}
+
+Sustainability was included as a separate criterion, but it was evaluated together with safety, reliability, cost, and performance. %A concept with low material mass is not automatically sustainable if it creates uncontrolled debris, loses hardware, or requires major repair after each sortie. 
+Table~\ref{tab:sustainability_concept_comparison} summarises the sustainability reasoning used to support the concept-selection logic.
+
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Sustainability comparison of the candidate concepts.}
+\label{tab:sustainability_concept_comparison}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}p{0.08\textwidth}X X@{}}
+\toprule
+\textbf{Concept} & \textbf{Main sustainability advantage} & \textbf{Main sustainability concern} \\
+\midrule
+A 
+& Single reusable UAS, no intentional balloon rupture, and limited mission hardware. 
+& High energy demand and risk of hazardous tethered-load failure. \\
+
+B 
+& Strong containment of balloon and payload through net capture, controlled deflation, and parafoil descent. 
+& Multiple vehicles, release devices, and parafoil hardware increase reset complexity and lifecycle cost. \\
+
+C 
+& Reusable clamping hardware and no intentional envelope damage. 
+& Heavy mechanism and uncertain payload geometry may increase repair needs. \\
+
+D 
+& Avoids envelope damage and captures the lower payload system. 
+& Added ballast and cooperative net hardware increase the risk of unrecovered material. \\
+
+E 
+& Low hardware mass and simple mechanism. 
+& Poor post-contact containment and higher risk of losing control of the balloon-payload system. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Concept A was selected because it offers a compact reusable architecture with limited deployed hardware and no intentional balloon rupture. Its sustainability weakness is mainly operational: it must prove that the tethered-load case, emergency breakaway, and backup parachute can prevent uncontrolled debris or loss of hardware.
+
+\section{Noise and Operational Exposure}
+
+Noise is treated as both a sustainability and social-acceptance driver because BELLONA may operate near airports, infrastructure, rural communities, or residential areas. The current design target is \(65~\mathrm{dB(A)}\) at 50 m. This is treated as a preliminary design KPI rather than as a certification claim.
+
+The expected noise impact is considered tolerable at concept level because the mission is short, intermittent, and safety-driven rather than a continuous source of community exposure. European environmental-noise assessment commonly relies on long-term indicators such as \(L_{\mathrm{den}}\) and \(L_{\mathrm{night}}\), which are averaged over extended day, evening, night, or yearly periods \cite{EuropeanUnion2002EnvironmentalNoiseDirective}. These indicators are therefore not directly equivalent to a short emergency UAS sortie. From an occupational-exposure perspective, OSHA permits 90~dBA for 8~h and 100~dBA for 2~h, showing that allowable exposure depends strongly on duration \cite{OccupationalSafetyHealthAdministration2026NoiseExposure}. Since the BELLONA target of \(65~\mathrm{dB(A)}\) at 50~m is far below these occupational exposure levels and the ground-level exposure is expected to last only a limited part of the mission, the noise impact is considered acceptable for preliminary design, provided that hover or flight time over sensitive areas is minimised.
+
+The first-order decrease of sound with distance is estimated using the free-field point-source relation, corresponding to approximately a 6 dB reduction for every doubling of distance \cite{OccupationalSafety2026OSHANoise}. Real outdoor propagation may differ due to wind, reflections, terrain, and atmospheric absorption. For Concept A, the dominant noise phases are take-off, landing and general hover. The detailed design shall therefore minimise hover or flight time over sensitive areas and verify the 65 dB(A) at 50 m target through analysis or representative testing.
+
+\section{Selected Concept Sustainability Strategy}
+
+For Concept A, sustainability mainly depends on repeated recovery without hardware loss or major repair after each sortie. The airframe, propulsion system, sensors, flight computer, battery pack, net launcher, tether reel, and structural hardpoint are treated as reusable mission hardware. The net, tether, corner weights, and backup parachute are treated as controlled high-wear or replacement-prone items. Their mass, cost, and recovery shall remain visible in the per-sortie model. The emergency breakaway and parachute are therefore not only safety features, but also sustainability features because they reduce the probability of uncontrolled falling debris or loss of the complete aircraft.
+
+\section{Material Sustainability and LCA Approach}
+\label{sec:material_sustainability_lca}
+
+The material strategy for Concept A is based on using each material only where its properties are needed. Lightweight composites are used for mass-sensitive aerodynamic structures, metals are used at concentrated load paths and replaceable interfaces, and fibre or polymer materials are used for nets, tethers, covers, pads, and secondary parts. The main sustainability objective is not only recyclability, but whether each part can be inspected, repaired, reused, recovered, or safely disposed of.
+
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Preliminary material sustainability assessment for Concept A.}
+\label{tab:material_sustainability_conceptA}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}p{0.23\textwidth}p{0.32\textwidth}X@{}}
+\toprule
+\textbf{Material group} & \textbf{Main use} & \textbf{Sustainability assessment} \\
+\midrule
+CFRP/epoxy and CFRP/PMI sandwich
+& Wing, tail/canard, fuselage panels
+& Low mass and long service life, but limited conventional recyclability. Design should prioritise inspection and local repair. \\
+
+Aluminium and steel
+& Motor mounts, brackets, shafts, pins, inserts, hardpoints
+& Good recyclability and inspectability. Preferred for bolted interfaces and highly loaded replaceable fittings. \\
+
+UHMWPE/Dyneema and aramid fibres
+& Net, tether, closure line, emergency line, local abrasion protection
+& High strength-to-mass ratio, but recycling is limited. Sustainability depends mainly on recovery and controlled replacement. \\
+
+Printed polymers and rubber
+& Covers, sensor housings, cable guides, landing pads, vibration isolation
+& Acceptable for small replaceable parts. Wear items should be tracked in the per-sortie waste budget. \\
+
+Batteries and electronics
+& Energy storage, power management, avionics, sensing, communication
+& High lifecycle impact. Components should be modular, protected, removable and sent to certified recycling streams. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+A full life-cycle assessment is not meaningful at this stage because the final suppliers, layups, manufacturing routes, replacement intervals and operational lifetime are not fixed. Instead, the final design will use a screening-level LCA with two functional units: one complete Concept A system over its service life, and one representative recovery sortie. This captures manufacturing, maintenance, mission energy, consumable mass, unrecovered material risk and end-of-life handling.
+
+\section{Sustainability Key Performance Indicators for Detailed Design}
+\label{sec:sustainability_kpis_detailed_design}
+
+The KPIs in Table~\ref{tab:sustainability_kpis_concept_a} are limited to indicators with a current numerical basis or a clear design target. They shall be updated once the propulsion system, battery sizing, capture mechanism, parachute backup, maintenance procedure and material inventory are frozen.
+
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Sustainability KPIs for tracking Concept A during detailed design.}
+\label{tab:sustainability_kpis_concept_a}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}p{0.24\textwidth}X@{}}
+\toprule
+\textbf{KPI} & \textbf{Current Midterm basis} & \textbf{Detailed-design use} \\
+\midrule
+Mission energy demand
+& \(3.28~\mathrm{kWh}\) installed battery capacity
+& The reference mission shall remain within the installed battery capacity including reserve. \\
+
+Power-source mass fraction
+& \(18.2~\mathrm{kg}\) battery mass in a \(50~\mathrm{kg}\) system, equal to \(36.4\%\)
+& A higher fraction shall be justified by verified endurance, reserve, or safety requirements. \\
+
+
+
+Operational noise
+& \(65~\mathrm{dB(A)}\) at \(50~\mathrm{m}\)
+& The value shall be checked through noise analysis or representative hover/flyover measurement. \\
+
+Controlled replacement mass
+& \(2~\mathrm{kg}\) for net, corner weights, and tether; backup parachute not yet sized
+& Routine replacement mass shall remain visible in the per-sortie cost and waste model. \\
+
+
+
+
+
+% Reusable primary-system fraction
+% & \((50-2)/50 = 96\%\), excluding the controlled replaceable net/tether group
+% & A lower value shall be justified by improved safety or recovery reliability. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The KPI values are not final validated performance claims. They are design control values for the next phase. If subsystem sizing changes one value, the coupled sustainability effects shall also be updated. For example, increasing battery capacity may improve endurance but also increases battery mass, cost, and end-of-life burden. Similarly, adding a larger parachute may improve failure containment, but it must be reflected in the replacement-mass estimate and recovery procedure.

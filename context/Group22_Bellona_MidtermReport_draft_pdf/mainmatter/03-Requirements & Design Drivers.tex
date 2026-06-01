@@ -1,0 +1,285 @@
+\chapter{Requirements \& Design Drivers}
+
+The requirements for the BELLONA system were derived through a
+three-level flowdown from stakeholder needs to mission requirements
+to system requirements.
+
+The key design drivers are summarised in Table~\ref{tab:key_reqs}.
+Several requirements contain TBD values that are intentionally
+kept open pending a more detailed literature study and feasibility
+assessment.
+
+% \begin{table}[H]
+% \centering
+% \caption{BELLONA key system requirements}
+% \label{tab:key_reqs}
+% \begin{tabular}{p{5.5cm} p{8cm}}
+% \toprule
+% \textbf{ID} & \textbf{Requirement} \\
+% \midrule
+% REQ-STK-01-MSN-01-SYS-01 &
+%   The system shall take less than 25 minutes time from the balloon
+%   entering the covered airspace to the balloon being removed
+%   from the endangered airspace. \\
+% \addlinespace
+% REQ-STK-03-MSN-04-SYS-07 &
+%   The system shall be capable of autonomously intercepting
+%   the detected balloon. \\
+% \addlinespace
+% REQ-STK-03-MSN-04-SYS-08 &
+%   The system shall be capable of intercepting the detected
+%   balloon at an altitude of 6000 meters. \\
+% \addlinespace
+% REQ-STK-05-MSN-06-SYS-11 &
+%   The system shall be capable of controlling an intercepted
+%   balloon with a payload mass up to 50 kilograms. \\
+% \addlinespace
+% REQ-STK-05-MSN-06-SYS-13 &
+%   The system shall be capable of autonomously delivering
+%   payload to the defined landing zone within 10 meters. \\
+% \addlinespace
+% % \todo{a landing zone has not been defined anywhere}
+% REQ-STK-10-MSN-12-SYS-22 &
+%   The system shall cost less than EUR~5000, adjusted to
+%   01/01/2026, for all flying components. \\
+% \addlinespace
+% % \todo{we need to address this requirement probably in the market analysis before this section}
+% REQ-STK-11-MSN-13-SYS-23 &
+%   The system shall cost less than EUR~500, adjusted to
+%   01/01/2026, per use. \\
+% \addlinespace
+% REQ-STK-12-MSN-15-SYS-27 &
+%   The system shall operate in compliance with all applicable
+%   aviation regulations in the operating airspace. \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
+
+\begingroup
+\small
+\setlength{\LTpre}{0pt}
+\setlength{\LTpost}{0pt}
+
+\begin{xltabular}{\textwidth}{@{}p{0.28\textwidth} p{0.14\textwidth} X@{}}
+\caption{BELLONA key system requirements}
+\label{tab:key_reqs}\\
+
+\toprule
+\textbf{ID} & \textbf{Change} & \textbf{Requirement} \\
+\midrule
+\endfirsthead
+
+\caption[]{BELLONA key system requirements (continued)}\\
+\toprule
+\textbf{ID} & \textbf{Change} & \textbf{Requirement} \\
+\midrule
+\endhead
+
+\midrule
+\multicolumn{3}{r}{\textit{Continued on next page}}\\
+\endfoot
+
+\bottomrule
+\endlastfoot
+
+REQ-STK-01-MSN-01-SYS-01 &
+Existing &
+The system shall take less than 25 minutes from the balloon
+entering the covered airspace to the balloon being removed
+from the endangered airspace. \\
+
+\addlinespace
+REQ-TBD &
+\textbf{Added} &
+The system shall be capable of operating on an uncooperative
+balloon with a diameter between 2 m and 6 m. \\
+
+\addlinespace
+REQ-TBD &
+\textbf{Added} &
+The system shall be capable of safely interacting with
+balloon-payload configurations with a payload-to-balloon tether
+length between 2 m and 35 m. \\
+
+\addlinespace
+REQ-STK-03-MSN-04-SYS-07 &
+Existing &
+The system shall be capable of autonomously intercepting
+the detected balloon. \\
+
+\addlinespace
+REQ-STK-03-MSN-04-SYS-08 &
+Existing &
+The system shall be capable of intercepting the detected
+balloon at an altitude of up to 6000 m. \\
+
+\addlinespace
+REQ-TBD &
+\textbf{Added} &
+The system shall be capable of intercepting the detected
+balloon at a horizontal ground range of up to 6000 m from the
+launch or deployment location. \\
+
+\addlinespace
+REQ-TBD &
+\textbf{Added} &
+The system shall be capable of performing the interception and
+recovery mission in sustained winds up to 13 m/s and gusts up
+to 21 m/s. \\
+
+\addlinespace
+REQ-STK-05-MSN-06-SYS-11 &
+Existing &
+The system shall be capable of controlling an intercepted
+balloon with a payload mass up to 50 kg. \\
+
+\addlinespace
+REQ-STK-05-MSN-06-SYS-13 &
+Existing &
+The systsem shall be capable of autonomously delivering
+the payload to the selected safe landing zone within 10 m. \\
+
+\addlinespace
+REQ-TBD &
+\textbf{Added} &
+The system shall be capable of selecting or updating a safe
+recovery zone during the mission based on the descent-start
+location, weather conditions, and ground-risk constraints. \\
+
+\addlinespace
+REQ-STK-10-MSN-12-SYS-22 &
+Existing &
+The system shall cost less than EUR~TBD, adjusted to
+01/01/2026, for all flying components. \\
+
+\addlinespace
+REQ-STK-11-MSN-13-SYS-23 &
+Existing &
+The system shall cost less than EUR~500, adjusted to
+01/01/2026, per use. \\
+
+\addlinespace
+REQ-STK-12-MSN-15-SYS-27 &
+Existing &
+The system shall operate in compliance with all applicable
+aviation regulations in the operating airspace. \\
+
+\end{xltabular}
+\endgroup
+
+
+
+\noindent The main feasibility challenge is the combination of
+a low-cost unmanned aerial platform with controlled interaction
+and recovery of a large, uncertain, and possibly heavy
+balloon-payload system. The requirements containing TBD values
+will be resolved during the Midterm design phase as subsystem
+analyses converge.
+
+
+
+% \subsection*{Radar Detection Range}
+% The detection range plays important role in the requirements development for this phase. The threat of an uncooperative balloon entering restricted airspace exists for various altitudes but if the system is unable to detect the object, mission will have no reason to start. The easiest, and widely available option that does not depend on visible light for detection, which would be unfeasible non-optimal atmospheric conditions, is using existing radar devices at the airports and mobile bird radars working at smaller range but with higher accuracy. Standardized radars used at airports in the United States, ASR 11, will be used, as it can be easily compared to varying radars in other countries. Detection depends mainly on the Radar Cross-Section (RCS) $\sigma$ which is object's parameter which represents how much of the electromagnetic wave is reflected back to its source. Small weather balloons of around $1.5 \, \text{m}$ diameter can be characterized by the data in \autoref{tab:rcs_values}. Additionally, important radar characteristics are presented in \autoref{tab:asr11_parameters}, with the wavelength $\lambda$ represented by the speed of light divided by band frequency, and minimum detectable signal $S_{min}$ set to $10 \, \text{dB}$ over the noise.
+
+
+% \begin{table}[ht]
+%     \centering
+%     % Left Side: Air Balloon RCS
+%     \begin{minipage}{0.45\textwidth}
+%         \centering
+%         \caption{Average RCS values of air balloon \cite{HUANG2024DetectionRadar.}.}
+%         \label{tab:rcs_values}
+%         \begin{tabular}{lc}
+%             \toprule
+%             Band & Average RCS ($m^2$) \\
+%             \midrule
+%             L  & $4.4618 \times 10^{-5}$ \\
+%             S  & $3.0878 \times 10^{-4}$ \\
+%             C  & $6.1819 \times 10^{-4}$ \\
+%             X  & $9.8522 \times 10^{-4}$ \\
+%             Ku & $1.6000 \times 10^{-3}$ \\
+%             \bottomrule
+%         \end{tabular}
+%     \end{minipage}
+%     \hfill % Adds spacing between the two minipages
+%     % Right Side: ASR-11 Parameters
+%     \begin{minipage}{0.5\textwidth}
+%         \centering
+%         \caption{ASR-11 System Parameters \cite{ASR}.}
+%         \label{tab:asr11_parameters}
+%         \begin{tabular}{lcc}
+%             \toprule
+%             \textbf{Parameter} & \textbf{Sym.} & \textbf{Value} \\
+%             \midrule
+%             Peak Power & $P_t$ & $25 \times 10^3$ W \\
+%             Antenna Gain & $G$ & 34 dB \\
+%             Wavelength (S band) & $\lambda$ & $\approx 0.1034$ m \\
+%             Min. Signal Power& $S_{min}$ & $1 \times 10^{-13}$ W \\
+%             \bottomrule
+%         \end{tabular}
+%     \end{minipage}
+% \end{table}
+
+% The radar detection range can be estimated by determining if the reflected signal is strong enough for the threshold. The standard range equation can be expressed as
+
+% \begin{equation}
+%     R_{max}=\sqrt[4]{\frac{P_tG^2\lambda^2\sigma}{(4\pi)^3S_{min}}}
+% \end{equation}
+% This results in the value of \todo{fill after Junzi Sun} for the non-disturbed detection in good weather conditions and no noisy objects in the proximity of the balloon. 
+
+% Similar approach can be used for mobile radars used to detect birds and drones in less protected airspace with no airports. The system can be integrated with military and civilian network and work to detect smuggling balloons crossing borders. Example of such radar is Robin Iris Radar working using more sensible X band for shorter range \cite{BirdRadar}. Preliminary calculation confirms the performance characteristics provided by the manufacturer which gives the detection range of 3700 meters for small drones that can be described by similar cross section area.
+
+
+\subsection*{Radar Detection Range}
+
+Radar detection range drives the early mission requirements, since interception can only begin after the balloon has been detected and tracked. Uncooperative balloons may enter restricted airspace at different altitudes, so external detection infrastructure is relevant for initial target acquisition.
+
+A practical first option is existing airport surveillance radar, complemented where available by mobile bird- or drone-detection radar for shorter-range monitoring. These systems operate independently of visible light, improving robustness in poor optical visibility. The ASR-11 airport surveillance radar is used here as a representative reference system because its parameters are well documented.
+
+Balloon detectability depends strongly on radar cross-section, $\sigma$, which represents the effective area reflecting energy back to the radar. Representative RCS values for a $1.5\,\text{m}$ air balloon are given in \autoref{tab:rcs_values}, while the ASR-11 parameters are summarised in \autoref{tab:asr11_parameters}. The wavelength $\lambda$ is obtained from the radar frequency, and $S_{min}$ is assumed to correspond to $10\,\text{dB}$ above the noise floor.
+
+\begin{table}[ht]
+    \centering
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \caption{Average RCS values of air balloon \cite{HUANG2024DetectionRadar.}.}
+        \label{tab:rcs_values}
+        \begin{tabular}{lc}
+            \toprule
+            Band & Average RCS ($m^2$) \\
+            \midrule
+            L  & $4.4618 \times 10^{-5}$ \\
+            S  & $3.0878 \times 10^{-4}$ \\
+            C  & $6.1819 \times 10^{-4}$ \\
+            X  & $9.8522 \times 10^{-4}$ \\
+            Ku & $1.6000 \times 10^{-3}$ \\
+            \bottomrule
+        \end{tabular}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \caption{ASR-11 System Parameters \cite{ASR}.}
+        \label{tab:asr11_parameters}
+        \begin{tabular}{lcc}
+            \toprule
+            \textbf{Parameter} & \textbf{Sym.} & \textbf{Value} \\
+            \midrule
+            Peak Power & $P_t$ & $25 \times 10^3$ W \\
+            Antenna Gain & $G$ & 34 dB \\
+            Wavelength (S band) & $\lambda$ & $\approx 0.1034$ m \\
+            Min. Signal Power & $S_{min}$ & $1 \times 10^{-13}$ W \\
+            \bottomrule
+        \end{tabular}
+    \end{minipage}
+\end{table}
+
+The maximum radar detection range is estimated by requiring the received reflected power to exceed the minimum detectable threshold. Using the monostatic radar range equation,
+
+\begin{equation}
+    R_{max}=\sqrt[4]{\frac{P_tG^2\lambda^2\sigma}{(4\pi)^3S_{min}}},
+\end{equation}
+
+the resulting value is \todo{fill after Junzi Sun} for an undisturbed clear-weather case with limited clutter or interference. This is an idealised first-order estimate for early sizing.
+
+The same method can be applied to mobile bird- and drone-detection radars in areas without permanent airport radar coverage. One representative example is the Robin Iris radar, an X-band system for shorter-range small-target detection \cite{BirdRadar}. A preliminary calculation gives a detection range consistent with the manufacturer-stated value of approximately $3700\,\text{m}$ for small drones, which is comparable in radar cross-section order of magnitude to the balloon target considered here.

@@ -1,0 +1,61 @@
+\begin{tikzpicture}[
+    >=Stealth,
+    font=\sffamily\small,
+    scale = 1.0, 
+    every node/.style={align=center},
+    dot/.style={circle, fill=black, inner sep=1.5pt}
+]
+
+    % --- Coordinates for Mission Phases ---
+    \coordinate (A) at (0,0);     
+    \coordinate (B) at (1.8,0);   % increased spacing
+    \coordinate (C) at (3.6,0);   % increased spacing
+    \coordinate (D) at (3.6,1.2);
+    \coordinate (E) at (4.7,1.5);
+    \coordinate (F) at (7.2,4.0); % shifted right
+    \coordinate (G) at (10.0,4.0); % shifted right
+    \coordinate (H) at (11.0,0);
+
+    % --- Ground/Baseline ---
+    \draw[thick] (-0.5,0) -- (11.8,0);
+    %\node[anchor=north east] at (11.8,-0.1) {Ground};
+
+    % --- Flight Path ---
+    \draw[thick, ->] (A) -- (B)
+        node[midway, below=5pt] {1. Mission\\Trigger};
+
+    \draw[thick, ->] (B) -- (C)
+        node[midway, below=5pt] {2. Safety\\Checks};
+
+    \draw[thick, ->] (C) -- (D)
+        node[midway, left=4pt] {3. Vert.\\Take-off};
+
+    \draw[thick, ->] (D) to[out=60, in=210] (E)
+        node[above left=1pt] {4. Transition};
+
+    \draw[thick, ->] (E) -- (F)
+        node[midway, above left=2pt] {5. Cruise Climb\\to Target};
+
+    \draw[thick, ->] (F) -- (G)
+        node[midway, above=8pt] {6. Hover \&\\Alignment};
+
+    \draw[thick, ->] (G) -- (H)
+        node[midway, above right=2pt] {8. Dragging Target\\to Ground};
+
+    % --- Visual Markers ---
+    \foreach \p in {A,B,C,D,E,F,G,H}
+        \node[dot] at (\p) {};
+
+    % --- Inline Phase Labels ---
+    \node[above=8pt] at (G) {7. Net\\Shot};
+
+    \node[anchor=north, below=3pt] at (H) {9. Grounded};
+
+    % --- Altitude Reference Lines ---
+    \draw[dashed, thin] (F) -- (-0.5,4.0)
+        node[left] {6 km Ceiling\\(Interception Alt)};
+
+    \draw[dashed, thin] (D) -- (-0.5,1.2)
+        node[left] {Transition Alt};
+\label{fig:flight_profile}
+\end{tikzpicture}

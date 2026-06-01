@@ -1,0 +1,300 @@
+\chapter{Structures, Materials and Manufacturing}
+\label{StructuresCHapter}
+
+%\section{Structural Design Objective}
+
+
+% The purpose of this chapter is to define the structural concept, material allocation, manufacturing approach, and preliminary sizing logic for the selected BELLONA configuration. 
+The selected concept is a tail-sitter VTOL UAV that captures the suspended payload from below using an upward-launched net and then guides the coupled balloon-payload system toward a safe recovery zone. The structure must therefore support both conventional aircraft loads and the additional loads introduced by the capture and tethered-descent phase. \\
+
+The structural design has three main objectives. First, the airframe shall provide sufficient stiffness and strength during vertical take-off, transition, cruise, hover, descent and landing. Second, the capture load path shall transfer the loads from the net and tether into the main fuselage frame without relying on weak local skin attachments. Third, the structure shall remain inspectable and repairable after a mission, since the system is intended to be reusable rather than disposable. \\
+
+% The main output of this chapter is a preliminary structural baseline for the final design phase. This includes the identification of critical load paths, structural load cases, material choices, sizing methods, margins of safety, and verification actions. Detailed finite-element modelling and coupon-level material testing are outside the scope of the present design stage, but the analytical sizing and parametric calculations provide the basis for later CAD refinement and structural verification. \\
+\section{Structural Requirements and Design Drivers}
+
+The structural design is driven by both conventional flight loads and the loads introduced by payload capture. For Concept A, the most important structural feature is the capture load path, since the net, tether, reel, hardpoint, and central fuselage frame are responsible for transferring the captured payload loads into the airframe. The relevant requirements are therefore translated into structural design drivers in Table~\ref{tab:structural_req_traceability}. Detailed sizing is treated later through the structural load cases and margin-of-safety checks.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Traceability from system requirements to structural design drivers.}
+\label{tab:structural_req_traceability}
+\begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}p{0.34\textwidth}X@{}}
+\toprule
+\textbf{Requirement basis} & \textbf{Structural interpretation} & \textbf{Handled by} \\
+\midrule
+
+REQ-STK-05-MSN-06-SYS-11:
+control payload up to 50 kg
+&
+The capture load path must carry the payload-related tether loads.
+&
+Capture load model; tether, reel, hardpoint, and frame sizing. \\
+
+REQ-STK-05-MSN-06-SYS-13:
+deliver payload to safe landing zone
+&
+The structure must remain intact and controllable after capture.
+&
+Post-capture load cases; tethered-descent load path. \\
+
+REQ-STK-01-MSN-01-SYS-45:
+safe interaction for tether lengths between 0.1 m and 35 m
+&
+The capture system must tolerate different payload positions and off-axis tether loads.
+&
+Hardpoint placement; clearance checks; failed-capture load case. \\
+
+REQ-STK-07-MSN-09-SYS-46:
+operation in wind and gusts
+&
+The airframe and capture system must tolerate gust-induced loads and payload swing.
+&
+Dynamic amplification factor; gust/swing sensitivity analysis. \\
+
+REQ-STK-04-MSN-05-SYS-09:
+no pyrotechnic or explosive components
+&
+The launcher and capture mechanism must use non-pyrotechnic actuation.
+&
+Launcher reaction loads; mechanical attachment sizing. \\
+
+REQ-STK-05-MSN-07-SYS-16:
+no structural damage to payload casing
+&
+Contact loads must be distributed rather than applied through rigid local impact points.
+&
+Net geometry; compliant contact features; capture interface design. \\
+
+REQ-STK-06-MSN-08-SYS-17:
+no loose system debris above 50 g
+&
+Highly loaded parts must remain attached under off-nominal loading.
+&
+Positive margins for fittings; controlled breakaway logic. \\
+
+REQ-STK-06-MSN-08-SYS-18:
+recover deployed hardware
+&
+Mission hardware should remain attached or be traceable after deployment.
+&
+Recoverable net, tether, reel, and backup-device architecture. \\
+
+REQ-STK-17-MSN-22-SYS-38:
+replaceable modular hardware
+&
+High-wear parts must be inspectable and replaceable.
+&
+Modular tether, net, reel interface, landing supports, and fittings. \\
+
+REQ-STK-16-MSN-20-SYS-36 /
+REQ-STK-16-MSN-21-SYS-37:
+material sustainability
+&
+Material choices must be justified by function, recyclability, or performance need.
+&
+Material allocation; LCA and end-of-life discussion. \\
+
+REQ-STK-19-MSN-24-SYS-41:
+system mass limit
+&
+Structural reinforcement must be sufficient but not excessively conservative.
+&
+Mass tracking; margin-of-safety sizing; material trade-off. \\
+
+REQ-STK-12-MSN-15-SYS-27 /
+REQ-STK-19-MSN-24-SYS-43:
+regulatory and maintenance compliance
+&
+Safety-critical structural items need inspection and replacement criteria.
+&
+Structural V\&V; maintenance and inspection plan. \\
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The table shows that no single requirement fully defines the structural design. Instead, the structural layout follows from the combination of payload-control, safety, debris-prevention, reusability, mass, and sustainability requirements. These drivers are converted into explicit structural load cases in the next section.
+
+\section{Structural Architecture and Load Paths}
+
+
+
+% \begin{table}[H]
+% \centering
+% \small
+% \caption{Structural load cases derived from the requirement traceability.}
+% \label{tab:structural_load_cases}
+% \begin{tabularx}{\textwidth}{@{}p{0.12\textwidth}p{0.28\textwidth}p{0.30\textwidth}X@{}}
+% \toprule
+% \textbf{Load case} & \textbf{Situation} & \textbf{Main affected elements} & \textbf{Analysis output} \\
+% \midrule
+
+% LC1 & Hover and climb at maximum mass &
+% Motor mounts, wing supports, fuselage frame &
+% Thrust loads and mount margins. \\
+
+% LC2 & Cruise and transition manoeuvre &
+% Wing root, spars, fuselage frame &
+% Root bending moment and spar stress. \\
+
+% LC3 & Nominal payload capture &
+% Net, tether, reel, hardpoint, central frame &
+% Design tether load and hardpoint sizing. \\
+
+% LC4 & Partial or failed capture &
+% Tether, reel, launcher, propeller clearance &
+% Off-axis load and interference check. \\
+
+% LC5 & Tethered descent after capture &
+% Hardpoint, fuselage frame, control interfaces &
+% Post-capture structural load margins. \\
+
+% LC6 & Landing or hard landing &
+% Landing supports, lower fuselage, battery bay &
+% Landing load and battery restraint check. \\
+
+% \bottomrule
+% \end{tabularx}
+% \end{table}
+
+\subsection{Primary Airframe Load Path}
+\subsection{Capture Load Path}
+\subsection{Landing and Ground-Handling Load Path}
+\subsection{Subsystem Mounting Interfaces}
+
+
+
+\section{Design Assumptions and Baseline Geometry}
+
+
+\section{Design Assumptions and Baseline Geometry}
+\label{sec:structural_assumptions_baseline_geometry}
+
+This section defines the structural baseline used for the first sizing iteration. The values are treated as design inputs for the analytical calculations and parametric sizing tool. Parameters marked as TBD shall be updated after the aerodynamic layout, CAD geometry, propulsion sizing, and interaction-system sizing are frozen.
+
+\subsection{Reference Coordinate System}
+
+A body-fixed coordinate system is used for structural sizing. The \(x\)-axis is positive from nose to tail, the \(y\)-axis is positive toward the right wing, and the \(z\)-axis is positive upward in cruise orientation. In tail-sitter hover, the same body axes are retained, but the thrust axis is approximately aligned with the inertial vertical direction. All structural interfaces are referenced relative to the aircraft centre of gravity.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Reference coordinate system used for structural sizing.}
+\label{tab:structural_coordinate_system}
+\begin{tabularx}{\textwidth}{@{}p{0.18\textwidth}p{0.30\textwidth}X@{}}
+\toprule
+\textbf{Axis} & \textbf{Positive direction} & \textbf{Structural use} \\
+\midrule
+\(x\) & Tail to nose & Longitudinal position of battery, reel, tether hardpoint, wing root, and propulsion mounts. \\
+\(y\) & Left to right wing & Wing bending, motor lateral placement, and off-axis tether loading. \\
+\(z\) & Top  to Bottom in cruise orientation & Vertical placement of battery, landing supports, launcher, and tether load introduction. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Baseline Mass and System Inputs}
+
+
+
+
+\subsection{Aerodynamic and Propulsion Inputs}
+
+The structural model uses the propulsion and aerodynamic inputs in Table~\ref{tab:aero_prop_inputs_structures}. These values are required to estimate wing-root bending, motor-mount loading, landing loads, and thrust-load transfer into the fuselage.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Baseline aerodynamic and propulsion inputs for structural sizing.}
+\label{tab:aero_prop_inputs_structures}
+\begin{tabularx}{\textwidth}{@{}p{0.34\textwidth}p{0.22\textwidth}X@{}}
+\toprule
+\textbf{Parameter} & \textbf{Baseline value} & \textbf{Use in structural sizing} \\
+\midrule
+Maximum take-off mass, \(m_{\mathrm{UAS}}\) & \(50~\mathrm{kg}\) & Reference mass for manoeuvre, landing, and restraint loads. \\
+Weight, \(W\) & \(490.5~\mathrm{N}\) & Calculated using \(W=m_{\mathrm{UAS}}g\). \\
+Number of rotors, \(N_r\) & 4 & Defines propulsion-load introduction points. \\
+Maximum thrust per rotor, \(T_{r,\max}\) & \(35~\mathrm{kg_f}\approx343~\mathrm{N}\) & Motor-mount axial load and local reinforcement sizing. \\
+Total maximum thrust & \(1373~\mathrm{N}\) & Used for hover and climb structural load cases. \\
+Wing reference area, \(S\) & \(7.4~\mathrm{m^2}\) & Used for wing loading and root bending estimates. \\
+Cruise lift coefficient, \(C_{L,\mathrm{cruise}}\) & 0.5 & Reference aerodynamic loading condition. \\
+Cruise speed, \(V_{\mathrm{cruise}}\) & \(20~\mathrm{m/s}\) & Used for cruise dynamic-pressure and wing-load estimates. \\
+Battery capacity & \(3.28~\mathrm{kWh}\) & Drives battery mass, restraint design, and internal packaging. \\
+Mean climb rate & \(10~\mathrm{m/s}\) & Used for propulsion and climb-load consistency checks. \\
+Terminal hover allowance & \(300~\mathrm{s}\) & Affects thermal, propulsion, and hover-load assumptions. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Preliminary Structural Geometry}
+
+The structural geometry in Table~\ref{tab:baseline_structural_geometry} defines the minimum set of dimensions required for the first structural calculations. Values marked as TBD are not yet fixed and shall be updated from the final CAD model.
+
+
+
+
+\subsection{Capture-System Baseline Inputs}
+
+The capture subsystem is treated as a primary structural interface because it introduces the largest uncertain loads into the airframe. The initial capture-system assumptions are listed in Table~\ref{tab:capture_inputs_structures}.
+
+
+
+\section{Structural Load Cases}
+
+
+The wing is treated as a primary structural assembly because it does not only generate aerodynamic lift, but also carries the propulsion units and landing supports. Consequently, the wing must transfer aerodynamic lift, propeller thrust, motor torque, landing reactions, vibration loads and off-nominal descent loads into the fuselage. The critical wing interfaces are the motor mounts, landing-leg attachments, spar caps, spar web, torsion box skins, local ribs, inserts and wing-root fittings.
+
+Four preliminary wing load cases are considered. The first case is landing and ground support. During ground contact, the aircraft weight and touchdown deceleration are transferred from the landing legs into the wing structure. This mainly challenges the landing-leg fittings, local ribs, lower skin, spar web and wing-root joint. Even for a nominal landing velocity of approximately \(1~\mathrm{m/s}\), asymmetric touchdown can introduce local torsion and should therefore be included in the design check.
+
+The second case is hover. In this case, the propellers generate the thrust required to support the vehicle weight. The load path runs from the propellers through the motor mounts into the wing spar or torsion box, and then into the wing root and fuselage. This case mainly challenges the motor-mount fittings, spar caps near the motor stations, torsion box skins, fasteners and inserts. Motor torque and propeller-induced vibration are also relevant.
+
+The third case is cruise and climb. During wing-borne flight, the distributed aerodynamic lift produces shear force and bending moment along the span, with the maximum bending moment occurring near the wing root. Climb also increases propulsive loading compared with steady cruise. This case mainly drives spar-cap sizing, spar-web shear sizing, skin buckling checks, torsional stiffness and control-surface attachment loads.
+
+The fourth case is controlled descent after payload capture. In this phase, the wing is loaded by the coupled balloon-payload-UAV dynamics rather than by conventional aerodynamic flight loads alone. Tether tension, payload swing, balloon drag, residual lift and propeller thrust may introduce reverse bending, torsion and asymmetric loads into the wing roots and motor mounts. This case is especially important because the aircraft may operate in an unusual or inverted attitude while maintaining control of the captured balloon-payload system.
+
+
+
+\section{Structural Sizing Methodology}
+\subsection{Analytical Sizing Approach}
+\subsection{Parametric Python Sizing Tool}
+\subsection{Margin of Safety Definition}
+\subsection{Uncertainty and Sensitivity Treatment}
+
+
+\section{Capture Load Path Sizing}
+\subsection{Capture Load Model}
+\subsection{Tether Sizing}
+\subsection{Reel and Tension-Management Loads}
+\subsection{Hardpoint, Pin and Lug Sizing}
+\subsection{Central Fuselage Load Introduction}
+\subsection{Sensitivity Analysis of Capture Loads}
+
+
+\section{Primary Airframe Sizing}
+\subsection{Wing-Root Bending Estimate}
+\subsection{Fuselage Frame Loads}
+\subsection{Motor Mount Loads}
+\subsection{Battery Bay and Internal Equipment Restraint}
+\subsection{Landing Support Loads}
+
+
+\section{Material Selection and Properties}
+\subsection{Material Selection Criteria}
+\subsection{Material Allocation by Component}
+\subsection{Material Property Table}
+\subsection{Allowables Used for Structural Sizing}
+
+
+\section{Manufacturing and Assembly Approach}
+\subsection{Modular Assembly Philosophy}
+\subsection{Commercial-Off-The-Shelf and Custom Parts}
+\subsection{Composite Manufacturing Approach}
+\subsection{Metallic Fittings and Inserts}
+\subsection{Assembly Sequence}
+
+
+\section{Inspection, Maintenance and Repairability}
+
+
+% \section{Structural Verification and Validation}
+% \section{Structural Risks and Limitations}

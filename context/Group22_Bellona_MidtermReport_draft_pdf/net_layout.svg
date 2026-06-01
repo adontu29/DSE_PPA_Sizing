@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" width="520" height="520">
+  <title>Net flat layout — inner and outer lace</title>
+
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#E8593C"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrB" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#555"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <clipPath id="circ">
+      <circle cx="260" cy="265" r="218"/>
+    </clipPath>
+  </defs>
+
+  <!-- white background -->
+  <rect width="520" height="520" fill="white"/>
+
+
+
+  <!-- ── MESH grid lines (reduced, clipped to outer circle) ── -->
+  <g clip-path="url(#circ)" stroke="#bbb" stroke-width="0.5" stroke-dasharray="5 6" fill="none">
+    <!-- horizontal -->
+    <line x1="42" y1="225" x2="478" y2="225"/>
+    <line x1="42" y1="265" x2="478" y2="265"/>
+    <line x1="42" y1="305" x2="478" y2="305"/>
+    <line x1="42" y1="185" x2="478" y2="185"/>
+    <line x1="42" y1="345" x2="478" y2="345"/>
+    <line x1="80" y1="145" x2="440" y2="145"/>
+    <line x1="80" y1="385" x2="440" y2="385"/>
+    <!-- vertical -->
+    <line x1="220" y1="42" x2="220" y2="488"/>
+    <line x1="260" y1="42" x2="260" y2="488"/>
+    <line x1="300" y1="42" x2="300" y2="488"/>
+    <line x1="180" y1="75" x2="180" y2="455"/>
+    <line x1="340" y1="75" x2="340" y2="455"/>
+    <line x1="140" y1="120" x2="140" y2="410"/>
+    <line x1="380" y1="120" x2="380" y2="410"/>
+  </g>
+
+  <!-- ── OUTER CIRCLE perimeter (dashed boundary) ── -->
+  <circle cx="260" cy="265" r="218"
+          fill="none" stroke="#aaa" stroke-width="1" stroke-dasharray="6 4"/>
+
+  <!-- ── OUTER LACE — bold blue ring ── -->
+  <circle cx="260" cy="265" r="218"
+          fill="none" stroke="#3B8BD4" stroke-width="3" stroke-dasharray="12 5"/>
+
+  <!-- ── INNER CIRCLE — crate pouch ── -->
+  <circle cx="260" cy="265" r="44"
+          fill="#f5f5f5" stroke="#E8593C" stroke-width="2.5"/>
+
+  <!-- inner circle labels -->
+  <text x="260" y="261" text-anchor="middle"
+        font-family="Helvetica,Arial,sans-serif" font-size="11" font-weight="bold" fill="#993C1D">
+    inner circle
+  </text>
+  <text x="260" y="275" text-anchor="middle"
+        font-family="Helvetica,Arial,sans-serif" font-size="10" fill="#993C1D">
+    ø ≈ 1.94 m
+  </text>
+
+  <!-- ── INNER LACE — dashed red ring just outside inner circle ── -->
+  <circle cx="260" cy="265" r="50"
+          fill="none" stroke="#E8593C" stroke-width="2" stroke-dasharray="6 3"/>
+
+  <!-- lace tails running to balloon base -->
+  <line x1="260" y1="215" x2="260" y2="162"
+        stroke="#E8593C" stroke-width="2" stroke-dasharray="6 3"/>
+  <circle cx="260" cy="155" r="7" fill="none" stroke="#E8593C" stroke-width="2"/>
+  <circle cx="260" cy="155" r="3" fill="#E8593C"/>
+
+  <!-- ── DRONE attachment points at 120° spacing ── -->
+  <!-- D1: top  (90°): x=260, y=265-218=47 -->
+  <rect x="246" y="33" width="28" height="16" rx="3"
+        fill="#eee" stroke="#888" stroke-width="1.2"/>
+  <circle cx="249" cy="36" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <circle cx="271" cy="36" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <circle cx="249" cy="45" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <circle cx="271" cy="45" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <text x="260" y="29" text-anchor="middle"
+        font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="bold" fill="#555">D1</text>
+  <line x1="260" y1="49" x2="260" y2="47" stroke="#888" stroke-width="1"/>
+
+  <!-- D2: bottom-left (210°): x=260+218*cos(210°)=260-189=71, y=265+218*sin(210°)=265+109=374 -->
+  <rect x="57" y="374" width="28" height="16" rx="3"
+        fill="#eee" stroke="#888" stroke-width="1.2"/>
+  <circle cx="60" cy="377" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <circle cx="82" cy="377" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <circle cx="60" cy="387" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <circle cx="82" cy="387" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <text x="71" y="370" text-anchor="middle"
+        font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="bold" fill="#555">D2</text>
+  <line x1="85" y1="382" x2="99" y2="374" stroke="#888" stroke-width="1"/>
+
+  <!-- D3: bottom-right (330°): x=260+218*cos(330°)=260+189=449, y=265+218*sin(330°)=265+109=374 -->
+  <rect x="435" y="374" width="28" height="16" rx="3"
+        fill="#eee" stroke="#888" stroke-width="1.2"/>
+  <circle cx="438" cy="377" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <circle cx="460" cy="377" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <circle cx="438" cy="387" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <circle cx="460" cy="387" r="3.5" fill="none" stroke="#888" stroke-width="1"/>
+  <text x="449" y="370" text-anchor="middle"
+        font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="bold" fill="#555">D3</text>
+  <line x1="435" y1="382" x2="421" y2="374" stroke="#888" stroke-width="1"/>
+
+  <!-- ── DIMENSION ANNOTATIONS ── -->
+  <!-- outer radius: centre to right edge -->
+  <line x1="260" y1="290" x2="478" y2="290"
+        stroke="#555" stroke-width="0.8" stroke-dasharray="3 3"/>
+  <line x1="260" y1="285" x2="260" y2="295" stroke="#555" stroke-width="0.8"/>
+  <line x1="478" y1="285" x2="478" y2="295" stroke="#555" stroke-width="0.8"/>
+  <text x="369" y="307" text-anchor="middle"
+        font-family="Helvetica,Arial,sans-serif" font-size="10" fill="#555">r = 12 m</text>
+
+  <!-- inner radius label (arrow from outside inner circle) -->
+  <line x1="260" y1="290" x2="304" y2="290"
+        stroke="#555" stroke-width="0.8" stroke-dasharray="3 3"/>
+  <text x="312" y="307" text-anchor="middle"
+        font-family="Helvetica,Arial,sans-serif" font-size="10" fill="#993C1D">r = 0.97 m</text>
+
+  <!-- ── OUTER LACE LABEL (bottom centre) ── -->
+  <text x="260" y="500" text-anchor="middle"
+        font-family="Helvetica,Arial,sans-serif" font-size="11" font-weight="bold" fill="#185FA5">
+    outer lace — ø≈24 m → length ≈ 75 m (π×24)
+  </text>
+
+  <!-- ── INNER LACE LABEL (left side, with arrow) ── -->
+  <text x="12" y="206" text-anchor="start"
+        font-family="Helvetica,Arial,sans-serif" font-size="11" font-weight="bold" fill="#993C1D">inner lace</text>
+  <text x="12" y="220" text-anchor="start"
+        font-family="Helvetica,Arial,sans-serif" font-size="10" fill="#993C1D">threads inner circle</text>
+  <line x1="95" y1="213" x2="207" y2="258"
+        stroke="#E8593C" stroke-width="0.8" marker-end="url(#arr)"/>
+
+  <!-- balloon-base label (right of lace tail) -->
+  <text x="270" y="152" text-anchor="start"
+        font-family="Helvetica,Arial,sans-serif" font-size="10" fill="#993C1D">ties to balloon base</text>
+  <text x="270" y="164" text-anchor="start"
+        font-family="Helvetica,Arial,sans-serif" font-size="10" fill="#993C1D">when closed</text>
+
+</svg>

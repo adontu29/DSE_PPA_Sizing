@@ -1,0 +1,1227 @@
+\chapter{Propulsion, Performance and Aerodynamics Sizing Workflow}
+\label{ch:ppa_methodology}
+
+This chapter documents the propulsion, performance and aerodynamics sizing workflow used for the Bellona Concept A canard tail-sitter. The workflow is implemented in \texttt{code\_outline.py} as a traceable phase-by-phase sizing scaffold. The present code has completed the fixed-MTOW propulsion, performance, aerodynamics and preliminary canard static-stability chain through Phase 10. Phases 11--16 are defined as the downstream control, mass and convergence interfaces and will be implemented after the current methodology and assumptions are reviewed.
+
+The workflow is built around a dependency graph. Propeller sizing and hover power are evaluated before the mission trajectory is optimized. The mission trajectory then sets the fixed-wing operating point, which determines Reynolds number, airfoil data, wing area, canard geometry and preliminary CG limits. The constraint diagram is used as a verification output after these values have been derived. This sequencing avoids using a guessed stall speed or a constraint-diagram point as a hidden design driver before the actual wing and airfoil model exist.
+
+\section{Scope and Modelling Boundary}
+\label{sec:ppa_scope_boundary}
+
+The sizing model covers the airborne UAV only. The external balloon payload is not included in the UAV maximum take-off weight. The onboard net launcher, relevant sensors, avionics and capture support hardware are included through the mission equipment mass. The current implementation therefore uses \texttt{mission\_equipment\_mass\_kg}; it does not use a separate \texttt{capture\_mass\_kg}. External tow load may be represented later as a force or power requirement, but it does not become part of the UAV MTOW unless a future mission case explicitly requires the UAV to carry additional hardware.
+
+The model is intentionally first order. It gives a readable dependency chain, not a final certification model. The outputs are suitable for preliminary sizing, interface control and sensitivity studies. Final acceptance requires CAD geometry, component datasheets, airfoil validation, propeller data, mass-property measurements and flight-dynamics analysis.
+
+\subsection{Mission Inputs}
+\label{subsec:ppa_mission_inputs}
+
+The mission input class contains the quantities that define the reference sizing case:
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mission inputs used by the PPA sizing workflow.}
+\label{tab:ppa_mission_inputs}
+\begin{tabularx}{\textwidth}{@{}p{0.30\textwidth}p{0.20\textwidth}X@{}}
+\toprule
+\textbf{Input} & \textbf{Default} & \textbf{Meaning} \\
+\midrule
+Intercept altitude, \(h_{\mathrm{tar}}\) & \(6000~\mathrm{m}\) & Target altitude for the outbound mission and terminal hover. \\
+Ground range, \(R\) & \(6000~\mathrm{m}\) & Horizontal range from launch to interception point. \\
+Outbound time budget, \(t_{\mathrm{out}}\) & \(600~\mathrm{s}\) & Time available to reach the intercept point. This sets a reference climb rate of \(h_{\mathrm{tar}}/t_{\mathrm{out}}=10~\mathrm{m/s}\). \\
+Terminal hover time, \(t_{\mathrm{hover}}\) & \(300~\mathrm{s}\) & Hover and capture allowance at the target altitude. \\
+Mission equipment mass & \(7.3~\mathrm{kg}\) & Onboard netgun, relevant sensors and mission hardware used in the later mass model. \\
+External tow load & \(0~\mathrm{N}\) & Optional external force for tow or descent estimates. It is not part of UAV MTOW. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Shared Assumptions}
+\label{subsec:ppa_shared_assumptions}
+
+The current code collects first-cut assumptions in one data class so that sensitivity studies can be run from the command line. The main defaults are listed in \autoref{tab:ppa_assumptions}. These values are traceable placeholders; they shall be updated with measured data or selected component datasheets as the design matures.
+
+\begin{longtable}{@{}p{0.31\textwidth}p{0.18\textwidth}p{0.43\textwidth}@{}}
+\caption{Shared assumptions in the current PPA implementation.}
+\label{tab:ppa_assumptions}\\
+\toprule
+\textbf{Assumption} & \textbf{Default} & \textbf{Use in the workflow} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Assumption} & \textbf{Default} & \textbf{Use in the workflow} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Gravity, \(g\) & \(9.80665~\mathrm{m/s^2}\) & Weight conversion. \\
+Number of rotors, \(N_r\) & 4 & Tail-sitter propulsion layout. \\
+Design thrust-to-weight ratio, \(T/W\) & 1.30 & Total static thrust sizing and hover margin. The transition floor is checked separately. \\
+Vertical climb rate in Phase 2, \(V_c\) & \(0~\mathrm{m/s}\) & Phase 2 is currently evaluated as hover at altitude. The mission climb rate is handled by Phase 3 fixed-wing climb. \\
+Target disc loading, \(DL_{\mathrm{target}}\) & \(170~\mathrm{N/m^2}\) & First-cut rotor diameter sizing. The actual disc loading changes if a diameter cap is applied. \\
+Optional propeller diameter cap, \(D_{\max}\) & None & CAD or packaging cap. If active, the model recomputes actual disc loading. \\
+Tip Mach limit, \(M_{\mathrm{tip,max}}\) & 0.72 & Conservative propeller tip-speed limit. \\
+Target cruise advance ratio, \(J\) & 0.60 & Cruise RPM coupling. The accepted band is \(0.40 \leq J \leq 0.80\). \\
+Zero-lift drag coefficient, \(C_{D0}\) & 0.040 & Initial parabolic drag polar. \\
+Wing aspect ratio, \(AR\) & 7.0 & Wing planform and induced drag. \\
+Oswald efficiency, \(e\) & 0.78 & Induced drag factor \(K=1/(\pi AR e)\). \\
+Preliminary wing area seed, \(S_0\) & \(5.0~\mathrm{m^2}\) & Initial Phase 3 area before the Phase 8 area loop closes. \\
+Maximum stall-speed target & \(15.0~\mathrm{m/s}\) & Wing loading limit in Phase 8. In the current default run this is applied at the target-altitude density. \\
+Wing stall margin & 0.80 & Design wing loading is \(80\%\) of the stall wing-loading limit. \\
+Wing taper ratio & 0.40 & Main-wing geometry. \\
+Canard volume coefficient, \(\bar{V}_c\) & 0.375 & First-cut canard area sizing. \\
+Canard arm ratio, \(l_c/\bar{c}_w\) & 2.50 & Canard moment arm until CAD geometry is available. \\
+Canard aspect ratio & 5.0 & Canard planform and lift-curve slope. \\
+Canard taper ratio & 0.50 & Canard geometry. \\
+Canard downwash gradient at wing, \(\epsilon_{\alpha,c}\) & 0.0 & Phase 10 neutral-point model. To be replaced by VLM, DATCOM or CFD data. \\
+Wing upwash gradient at canard, \(\epsilon_{\alpha,w}\) & 0.0 & Phase 10 neutral-point model. To be replaced by VLM, DATCOM or CFD data. \\
+Figure of merit, \(FoM\) & 0.70 & Actuator-disc hover power correction. \\
+Motor efficiency, \(\eta_m\) & 0.90 & Electrical power estimate. \\
+ESC efficiency, \(\eta_{\mathrm{ESC}}\) & 0.95 & Electrical power estimate. \\
+Propeller efficiency in fixed-wing mode, \(\eta_p\) & 0.75 & Fixed-wing power estimate. \\
+Battery discharge efficiency, \(\eta_b\) & 0.95 & Installed energy sizing. \\
+Usable battery fraction, \(f_{\mathrm{use}}\) & 0.85 & Reserve and usable capacity margin. \\
+Pack specific energy & \(200~\mathrm{Wh/kg}\) & Battery mass estimate. \\
+Minimum static margin, \(SM_{\min}\) & 0.10 MAC & Aft CG limit in Phase 10. \\
+\end{longtable}
+
+\section{Atmosphere and Reference Quantities}
+\label{sec:ppa_atmosphere}
+
+The atmospheric model is the 1976 standard atmosphere restricted to the troposphere, \(0 \leq h \leq 11000~\mathrm{m}\) \cite{NOAA1976U.S.1976}. The temperature model is
+\begin{equation}
+    T(h) = T_0 - Lh ,
+    \label{eq:ppa_isa_temp}
+\end{equation}
+where \(T_0=288.15~\mathrm{K}\) and \(L=0.0065~\mathrm{K/m}\). Pressure follows
+\begin{equation}
+    p(h) = p_0 \left(\frac{T(h)}{T_0}\right)^{g_0/(RL)} ,
+    \label{eq:ppa_isa_pressure}
+\end{equation}
+and density is
+\begin{equation}
+    \rho(h) = \frac{p(h)}{R T(h)} .
+    \label{eq:ppa_isa_density}
+\end{equation}
+Dynamic viscosity is computed with Sutherland's law,
+\begin{equation}
+    \mu(T) = \frac{\beta T^{3/2}}{T+S} ,
+    \label{eq:ppa_sutherland}
+\end{equation}
+where \(\beta=1.458\times10^{-6}~\mathrm{kg/(m\,s\,K^{1/2})}\) and \(S=110.4~\mathrm{K}\). The local speed of sound is
+\begin{equation}
+    a(h)=\sqrt{\gamma R T(h)} .
+    \label{eq:ppa_speed_sound}
+\end{equation}
+
+For the default \(6000~\mathrm{m}\) case, the implemented model gives \(\rho=0.6597~\mathrm{kg/m^3}\). This density is used in the default hover-power, cruise and wing-loading calculations.
+
+\section{Phase Dependency and N2 Interface}
+\label{sec:ppa_n2}
+
+The phase interfaces use the N2 convention: the row element provides information to the column element. Empty cells mean that no direct interface is used in the current workflow. Cells contain compact interface codes; the definitions are given in \autoref{tab:ppa_n2_codes}. The phase numbers match \texttt{code\_outline.py}.
+
+\begin{landscape}
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Compact N2 matrix for the PPA phase dependency graph. Row phases provide data to column phases.}
+\label{tab:ppa_phase_n2}
+\renewcommand{\arraystretch}{1.25}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{@{}p{0.11\linewidth}*{17}{c}@{}}
+\toprule
+\textbf{Provider} & P0 & P1 & P2 & P3 & P4 & P5 & P6 & P7 & P8 & P9 & P10 & P11 & P12 & P13 & P14 & P15 & P16 \\
+\midrule
+P0 Atmosphere & -- & A1 & A2 & A3 & & & A6 & A7 & A8 & A9 & & & A12 & & A14 & & \\
+P1 Propeller & & -- & B2 & & B4 & & & & & & & & B12 & & & B15 & \\
+P2 Hover power & & & -- & C3 & & C5 & & & & & & & C12 & & & & \\
+P3 Mission & & & & -- & D4 & D5 & D6 & D7 & D8 & & D10 & D11 & & D13 & D14 & & \\
+P4 \(J\) coupling & & E1 & & & -- & E5 & & & & & & E11 & & & & & \\
+P5 Energy & & & & & & -- & F6 & & & & & & & & & F15 & \\
+P6 Constraints & & & & & & & -- & & & & & & & & & & \\
+P7 Airfoils & & & & & & & & -- & G8 & G9 & G10 & & & & G14 & & \\
+P8 Wing & & & & & & & H6 & H7 & -- & H9 & H10 & H11 & & H13 & H14 & H15 & \\
+P9 Canard & & & & & & & & H7 & & -- & I10 & & & & I14 & I15 & \\
+P10 CG/stability & & & & & & & & & & I9 & -- & J11 & & & J14 & J15 & \\
+P11 FW control & & & & & & & & & & & & -- & K12 & K13 & K14 & & \\
+P12 Hover control & & & & & & & & & & & & K11 & -- & L13 & L14 & & \\
+P13 Transition & & & & & & M5 & & & & & & & & -- & M14 & & \\
+P14 Dynamics & & & & & & & & & & & & & & & -- & & \\
+P15 Mass & & N1 & N2 & N3 & & N5 & & & N8 & N9 & N10 & & N12 & & N14 & -- & O16 \\
+P16 MTOW converge & & O1 & O2 & O3 & & & & & O8 & O9 & & & & & & O15 & -- \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+\end{landscape}
+
+\begin{longtable}{@{}p{0.12\textwidth}p{0.27\textwidth}p{0.53\textwidth}@{}}
+\caption{Definition of the PPA N2 interface codes.}
+\label{tab:ppa_n2_codes}\\
+\toprule
+\textbf{Code} & \textbf{Quantity} & \textbf{Purpose} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Code} & \textbf{Quantity} & \textbf{Purpose} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+A1 & \(a(h)\) & Propeller tip-speed limit. \\
+A2 & \(\rho(h)\) & Hover induced velocity and power. \\
+A3 & \(\rho(h)\), \(\mu(h)\) & Mission drag, Reynolds number and hover-power callback. \\
+A6 & \(\rho\) at sizing condition & Constraint-diagram stall, cruise and climb checks. \\
+A7 & \(\rho,\mu\) & Reynolds number used by airfoil analysis. \\
+A8 & \(\rho\), \(a\) & Wing stall loading and Mach correction. \\
+A9 & \(a\) & Canard lift-slope Mach correction. \\
+A12 & \(\rho\) & Hover slipstream dynamic pressure. \\
+A14 & \(\rho\) & Dimensional aerodynamic derivatives. \\
+B2 & \(T_r,A_{\mathrm{disc}}\) & Rotor thrust and area for hover power. \\
+B4 & \(D,n_{\max}\) & Advance-ratio coupling and RPM cap. \\
+B12 & \(T_r,A_{\mathrm{disc}}\), rotor arms & Differential-thrust and hover-yaw control sizing. \\
+B15 & Propeller diameter and power class & Propulsion mass estimate and structural mount loads. \\
+C3 & \(P_{\mathrm{hover}}(h)\) & Hover/transition power callback for mission grid search. \\
+C5 & Hover power & Energy timeline. \\
+C12 & Induced velocity and disc loading & Hover propwash over control surfaces. \\
+D4 & \(V_{\mathrm{cruise}}\) & Cruise advance ratio. \\
+D5 & \(P_{\mathrm{FW}},t_{\mathrm{FW}},P_{\mathrm{hover}},t_{\mathrm{hover}}\) & Energy timeline. \\
+D6 & \(V_{\mathrm{cruise}},\gamma,ROC\) & Constraint verification. \\
+D7 & \(Re\) estimate & Airfoil analysis seed. \\
+D8 & \(V_{\mathrm{cruise}}\), Mach & Wing aerodynamic sizing state. \\
+D10 & \(C_{L,\mathrm{trim}}\) & Canard trim and CG limit. \\
+D11 & \(V_{\mathrm{cruise}},V_{\mathrm{stall}}\) & Fixed-wing control authority. \\
+D13 & \(V_{\mathrm{stall}}\) and transition state & Blending schedule. \\
+D14 & Flight condition & Dynamic stability verification. \\
+E1 & Diameter revision signal & Optional return to propeller sizing if a target \(J\) cannot be met. \\
+E5 & Cruise RPM and \(\eta_p\) assumption & Energy model and propulsion operating point. \\
+E11 & Slipstream/RPM state & Control-surface dynamic pressure in cruise. \\
+F6 & Battery power loading & Constraint verification of the selected design point. \\
+F15 & Battery mass and peak power & Mass model and motor/ESC sizing. \\
+G8 & \(c_{l,\alpha}\), \(c_{l,\max}\), \(c_d\), \(c_m\) & Wing lift slope, stall and drag assumptions. \\
+G9 & Canard polar & Canard planform and stall margin. \\
+G10 & Wing/canard lift data & Neutral point and trim limit. \\
+G14 & Aerodynamic derivatives & Dynamic stability verification. \\
+H6 & \(S,V_{\mathrm{stall}},C_{L,\max}\) & Constraint verification after wing sizing. \\
+H7 & \(\bar{c}\) and Reynolds update & Airfoil Reynolds loop. \\
+H9 & \(S_w,\bar{c}_w,x_{ac,w}\) & Canard geometry. \\
+H10 & Wing geometry and \(C_{L,\alpha,w}\) & Canard neutral point. \\
+H11 & \(S_w,b_w,\bar{c}_w\) & Elevon area and roll-rate sizing. \\
+H13 & \(V_{\mathrm{stall}}\) & Transition blending speeds. \\
+H14 & Geometry and lift slope & Dynamic stability verification. \\
+H15 & \(S_w,b_w,\bar{c}_w\) & Mass and inertia estimate. \\
+I9 & Canard area revision signal & Possible return to Phase 9 if CG range is too small. \\
+I10 & \(S_c,l_c,C_{L,\alpha,c},C_{L,\max,c}\) & Neutral point and trim limit. \\
+I14 & Canard contribution to static derivatives & Dynamic stability verification. \\
+I15 & \(S_c,b_c,\bar{c}_c,l_c\) & Canard structural mass and layout. \\
+J11 & CG range & Required pitch trim authority. \\
+J14 & Static margin and \(C_{m,\alpha}\) estimate & Dynamic stability verification. \\
+J15 & CG envelope & Component placement and inertia model. \\
+K12 & Fixed-wing elevon size & Hover-yaw check uses the same control surface. \\
+K13 & Fixed-wing control endpoint & Transition mixer endpoint. \\
+K14 & Control derivatives & Dynamic stability verification. \\
+L13 & Hover control endpoint & Transition mixer endpoint. \\
+L14 & Hover control authority & Low-speed stability/control verification. \\
+M5 & Transition time and power correction & Energy timeline once transition is explicitly modelled. \\
+M14 & Blend schedule & Dynamic transition verification. \\
+N1--N14 & Updated MTOW, CG and inertia & Feed mass properties back to all MTOW-dependent phases. \\
+O1--O16 & Damped MTOW update & Outer-loop convergence. \\
+\end{longtable}
+
+\section{Phase Methodology}
+\label{sec:ppa_phase_methodology}
+
+\subsection{Phase 0: Atmosphere}
+\label{subsec:ppa_phase0}
+
+Phase 0 provides \(\rho\), \(\mu\), \(a\) and \(T\) at each altitude requested by later phases. The equations are given in \autoref{sec:ppa_atmosphere}. The phase is not an aircraft design step; it is a shared environment model. The limiting assumption is that only the troposphere is supported. This is acceptable for the current \(6000~\mathrm{m}\) mission but must be extended if a higher-altitude case is introduced.
+
+\subsection{Phase 1: Physical Propeller Sizing}
+\label{subsec:ppa_phase1}
+
+Phase 1 computes the propeller diameter, actuator-disc area and maximum allowable shaft speed from the MTOW seed and a target disc loading. With UAV weight \(W=m_{\mathrm{TO}}g\), the total design thrust is
+\begin{equation}
+    T_{\mathrm{tot}} = \left(\frac{T}{W}\right) W .
+    \label{eq:ppa_total_thrust}
+\end{equation}
+For \(N_r\) rotors,
+\begin{equation}
+    T_r = \frac{T_{\mathrm{tot}}}{N_r}.
+    \label{eq:ppa_per_rotor_thrust}
+\end{equation}
+The target disc area per rotor is
+\begin{equation}
+    A_{\mathrm{disc}} = \frac{T_r}{DL_{\mathrm{target}}},
+    \label{eq:ppa_disc_area}
+\end{equation}
+and the corresponding propeller diameter is
+\begin{equation}
+    D = \sqrt{\frac{4A_{\mathrm{disc}}}{\pi}}
+      = \sqrt{\frac{4T_r}{\pi DL_{\mathrm{target}}}} .
+    \label{eq:ppa_prop_diameter}
+\end{equation}
+The tip-speed limit is imposed as
+\begin{equation}
+    V_{\mathrm{tip,max}} = M_{\mathrm{tip,max}}a,
+    \label{eq:ppa_tip_speed}
+\end{equation}
+which gives the maximum revolutions per second
+\begin{equation}
+    n_{\max} = \frac{V_{\mathrm{tip,max}}}{\pi D}.
+    \label{eq:ppa_nmax}
+\end{equation}
+The implementation uses \(M_{\mathrm{tip,max}}=0.72\) as a conservative first-cut value.
+
+If a CAD or packaging diameter limit is supplied, the diameter is capped and the actual disc loading is recomputed:
+\begin{equation}
+    A_{\mathrm{disc,cap}} = \pi\left(\frac{D_{\max}}{2}\right)^2 ,
+    \label{eq:ppa_disc_cap_area}
+\end{equation}
+\begin{equation}
+    DL_{\mathrm{actual}} = \frac{T_r}{A_{\mathrm{disc,cap}}}.
+    \label{eq:ppa_actual_dl}
+\end{equation}
+This means disc loading is not treated as an independent optimized variable in the current inner loop. It changes when MTOW changes in the later outer loop, or when a diameter cap forces the propeller away from the target area.
+
+For the default \(50~\mathrm{kg}\) fixed-MTOW case, Phase 1 gives \(T_{\mathrm{tot}}=637.4~\mathrm{N}\), \(T_r=159.4~\mathrm{N}\), \(D=1.092~\mathrm{m}\), \(A_{\mathrm{disc}}=0.937~\mathrm{m^2}\), \(DL_{\mathrm{actual}}=170~\mathrm{N/m^2}\) and \(n_{\max}=66.38~\mathrm{rev/s}\). The propeller diameter must be verified against CAD clearances, rotor-to-rotor spacing and ground clearance.
+
+\subsection{Phase 2: Hover and Axial-Climb Power}
+\label{subsec:ppa_phase2}
+
+Phase 2 uses actuator-disc momentum theory to compute induced velocity and electrical power per rotor. For axial climb rate \(V_c\), the induced velocity is \cite{Leishman2006}
+\begin{equation}
+    v_i = -\frac{V_c}{2}
+          + \sqrt{\left(\frac{V_c}{2}\right)^2+\frac{T_r}{2\rho A_{\mathrm{disc}}}} .
+    \label{eq:ppa_induced_velocity_climb}
+\end{equation}
+In hover, \(V_c=0\) and this reduces to
+\begin{equation}
+    v_h = \sqrt{\frac{T_r}{2\rho A_{\mathrm{disc}}}} .
+    \label{eq:ppa_hover_induced_velocity}
+\end{equation}
+The ideal induced power is
+\begin{equation}
+    P_{\mathrm{ideal}} = T_r(V_c+v_i),
+    \label{eq:ppa_ideal_power}
+\end{equation}
+and the shaft power is corrected with the rotor figure of merit,
+\begin{equation}
+    P_{\mathrm{shaft}} = \frac{P_{\mathrm{ideal}}}{FoM}.
+    \label{eq:ppa_shaft_power}
+\end{equation}
+The electrical power per rotor is
+\begin{equation}
+    P_{\mathrm{elec},r} =
+    \frac{P_{\mathrm{shaft}}}{\eta_m\eta_{\mathrm{ESC}}}.
+    \label{eq:ppa_electric_power_rotor}
+\end{equation}
+
+The current default evaluates Phase 2 as hover at the target altitude, \(V_c=0\). The fixed-wing climb of approximately \(10~\mathrm{m/s}\) is handled in Phase 3. This distinction is important: Phase 2 is the hover/capture power model, while Phase 3 is the outbound climb-trajectory model.
+
+For the default case, Phase 2 gives \(v_i=11.35~\mathrm{m/s}\), \(P_{\mathrm{shaft}}=2.584~\mathrm{kW}\) per rotor, \(P_{\mathrm{elec},r}=3.022~\mathrm{kW}\) per rotor and total hover electrical power \(P_{\mathrm{hover}}=12.09~\mathrm{kW}\). These values depend directly on the selected disc loading and must be replaced by propeller test data or blade-element calculations when a propeller family is selected.
+
+\subsection{Phase 3: Mission Trajectory and Fixed-Wing Operating Point}
+\label{subsec:ppa_phase3}
+
+Phase 3 searches over cruise speed and transition altitude to minimize the outbound mission energy while satisfying the time budget. The phase uses a parabolic drag polar,
+\begin{equation}
+    C_D = C_{D0}+K C_L^2,
+    \qquad
+    K = \frac{1}{\pi AR e}.
+    \label{eq:ppa_drag_polar}
+\end{equation}
+At each grid point, the fixed-wing climb segment is defined by transition altitude \(h_{\mathrm{tr}}\), fixed-wing climb altitude
+\begin{equation}
+    h_{\mathrm{FW}} = h_{\mathrm{tar}}-h_{\mathrm{tr}},
+    \label{eq:ppa_fw_altitude}
+\end{equation}
+climb angle
+\begin{equation}
+    \gamma = \tan^{-1}\left(\frac{h_{\mathrm{FW}}}{R}\right),
+    \label{eq:ppa_gamma}
+\end{equation}
+and climb path length
+\begin{equation}
+    s_{\mathrm{FW}} = \sqrt{R^2+h_{\mathrm{FW}}^2}.
+    \label{eq:ppa_fw_path}
+\end{equation}
+The transition time uses the mission-average vertical-rate reference,
+\begin{equation}
+    \dot{h}_{\mathrm{ref}} = \frac{h_{\mathrm{tar}}}{t_{\mathrm{out}}},
+    \qquad
+    t_{\mathrm{tr}}=\frac{h_{\mathrm{tr}}}{\dot{h}_{\mathrm{ref}}}.
+    \label{eq:ppa_transition_time}
+\end{equation}
+The fixed-wing time is
+\begin{equation}
+    t_{\mathrm{FW}} = \frac{s_{\mathrm{FW}}}{V}.
+    \label{eq:ppa_fw_time}
+\end{equation}
+A candidate is feasible only if
+\begin{equation}
+    t_{\mathrm{tr}}+t_{\mathrm{FW}} \leq t_{\mathrm{out}}.
+    \label{eq:ppa_time_constraint}
+\end{equation}
+
+For each feasible point, dynamic pressure is
+\begin{equation}
+    q = \frac{1}{2}\rho V^2,
+    \label{eq:ppa_dynamic_pressure}
+\end{equation}
+the lift coefficient is
+\begin{equation}
+    C_L = \frac{W}{qS},
+    \label{eq:ppa_cl_cruise}
+\end{equation}
+and drag is
+\begin{equation}
+    D = qS C_D.
+    \label{eq:ppa_drag}
+\end{equation}
+The fixed-wing electrical power is modelled as
+\begin{equation}
+    P_{\mathrm{FW}} =
+    \frac{\left(D+W\sin\gamma\right)V}{\eta_p\eta_m\eta_{\mathrm{ESC}}}.
+    \label{eq:ppa_fw_power}
+\end{equation}
+The transition energy is approximated from the mean hover power between ground level and the transition altitude,
+\begin{equation}
+    E_{\mathrm{tr}} =
+    \frac{P_{\mathrm{hover}}(0)+P_{\mathrm{hover}}(h_{\mathrm{tr}})}{2}
+    t_{\mathrm{tr}}.
+    \label{eq:ppa_transition_energy}
+\end{equation}
+The fixed-wing and terminal-hover energies are
+\begin{equation}
+    E_{\mathrm{FW}} = P_{\mathrm{FW}}t_{\mathrm{FW}},
+    \label{eq:ppa_fw_energy}
+\end{equation}
+\begin{equation}
+    E_{\mathrm{hover}} = P_{\mathrm{hover}}(h_{\mathrm{tar}})t_{\mathrm{hover}}.
+    \label{eq:ppa_hover_energy}
+\end{equation}
+The objective minimized by the grid search is
+\begin{equation}
+    E_{\mathrm{mission}} =
+    E_{\mathrm{tr}}+E_{\mathrm{FW}}+E_{\mathrm{hover}}.
+    \label{eq:ppa_mission_energy}
+\end{equation}
+
+The phase also reports the minimum-power speed for comparison \cite{Raymer2018},
+\begin{equation}
+    V_{P_{\min}} =
+    \sqrt{
+    \frac{2(W/S)}{\rho}
+    \sqrt{\frac{K}{3C_{D0}}}
+    },
+    \label{eq:ppa_min_power_speed}
+\end{equation}
+and the Reynolds-number estimate
+\begin{equation}
+    Re = \frac{\rho V \bar{c}_{\mathrm{guess}}}{\mu}.
+    \label{eq:ppa_reynolds}
+\end{equation}
+
+The default result is \(V_{\mathrm{cruise}}=14.21~\mathrm{m/s}\), \(\gamma=44.76^\circ\), \(ROC=10.01~\mathrm{m/s}\), \(h_{\mathrm{tr}}=50~\mathrm{m}\), \(t_{\mathrm{FW}}=594.5~\mathrm{s}\), \(C_{L,\mathrm{cruise}}=0.832\), \(C_{D,\mathrm{cruise}}=0.0803\), and \(Re=7.30\times10^5\). The very steep climb angle is a direct consequence of the \(6000~\mathrm{m}\) altitude and \(6000~\mathrm{m}\) range inside a \(600~\mathrm{s}\) outbound budget. This result should be checked against transition feasibility and propulsive power margin before being accepted as a real trajectory.
+
+\subsection{Phase 4: Cruise Advance-Ratio Coupling}
+\label{subsec:ppa_phase4}
+
+Phase 4 checks that the cruise RPM and propeller diameter produce an acceptable fixed-pitch advance ratio. The advance ratio is
+\begin{equation}
+    J = \frac{V_{\mathrm{cruise}}}{nD},
+    \label{eq:ppa_advance_ratio}
+\end{equation}
+where \(n\) is in revolutions per second. The current target is \(J=0.60\), with the acceptable band \(0.40\leq J\leq0.80\). Holding \(V_{\mathrm{cruise}}\) and \(D\) fixed, the target shaft speed is
+\begin{equation}
+    n_{\mathrm{target}} =
+    \frac{V_{\mathrm{cruise}}}{J_{\mathrm{target}}D}.
+    \label{eq:ppa_n_target}
+\end{equation}
+The implementation then checks
+\begin{equation}
+    n_{\mathrm{cruise}}=\min(n_{\mathrm{target}},n_{\max}).
+    \label{eq:ppa_n_cruise}
+\end{equation}
+If \(n_{\mathrm{target}}>n_{\max}\), the phase flags a tip-speed limitation and the design must revise \(D\), \(J\), cruise speed or propeller selection.
+
+For the default case, \(J=0.600\) and the cruise shaft speed is \(n=21.68~\mathrm{rev/s}\), or \(1301~\mathrm{rpm}\). The maximum tip-speed-limited value is \(3983~\mathrm{rpm}\), so the target cruise \(J\) is not tip limited.
+
+\subsection{Phase 5: Energy and Battery Sizing}
+\label{subsec:ppa_phase5}
+
+Phase 5 sums the electrical energy of each mission segment and converts it into installed battery capacity and battery mass. Each segment has power \(P_i\) and duration \(t_i\), giving
+\begin{equation}
+    E_i = \frac{P_i t_i}{3600},
+    \label{eq:ppa_segment_energy}
+\end{equation}
+where \(E_i\) is in Wh when \(P_i\) is in W and \(t_i\) is in s. The load energy is
+\begin{equation}
+    E_{\mathrm{load}}=\sum_i E_i.
+    \label{eq:ppa_load_energy}
+\end{equation}
+The installed pack energy is
+\begin{equation}
+    E_{\mathrm{pack}}=
+    \frac{E_{\mathrm{load}}}{\eta_b f_{\mathrm{use}}},
+    \label{eq:ppa_pack_energy}
+\end{equation}
+and the battery mass is
+\begin{equation}
+    m_{\mathrm{batt}}=
+    \frac{E_{\mathrm{pack}}}{e_{\mathrm{batt}}}.
+    \label{eq:ppa_battery_mass}
+\end{equation}
+The current implementation sets continuous and peak motor power equal to the maximum segment power until transient control margins are modelled:
+\begin{equation}
+    P_{\mathrm{cont}}=P_{\mathrm{peak}}=\max_i(P_i).
+    \label{eq:ppa_peak_power}
+\end{equation}
+
+The default segment energies are \(E_{\mathrm{tr}}=12.34~\mathrm{Wh}\), \(E_{\mathrm{FW}}=1437.14~\mathrm{Wh}\) and \(E_{\mathrm{hover}}=1007.46~\mathrm{Wh}\). The resulting load energy is \(2456.94~\mathrm{Wh}\), installed energy is \(3042.64~\mathrm{Wh}\), and battery mass is \(15.21~\mathrm{kg}\). Battery mass is reported in the current inner loop but is not yet fed back into MTOW until Phases 15 and 16 are implemented.
+
+\subsection{Phase 6: Constraint Diagram Verification}
+\label{subsec:ppa_phase6}
+
+Phase 6 is verification-only. It plots or returns the power-to-weight requirements implied by the derived wing and mission state. The implementation uses the \(P/W\) convention in \(\mathrm{W/N}\), while also returning inverse \(W/P\) arrays for the classical Raymer-style power-loading view \cite{Raymer2018}.
+
+For a given wing loading \(W/S\), the cruise dynamic pressure is given by \autoref{eq:ppa_dynamic_pressure}. The lift coefficient is
+\begin{equation}
+    C_L = \frac{W/S}{q},
+    \label{eq:ppa_constraint_cl}
+\end{equation}
+and the drag polar is given by \autoref{eq:ppa_drag_polar}. The cruise power loading is
+\begin{equation}
+    \left(\frac{P}{W}\right)_{\mathrm{cruise}} =
+    \frac{V_{\mathrm{cruise}}}{\eta_p}
+    \frac{C_D}{C_L}.
+    \label{eq:ppa_constraint_cruise}
+\end{equation}
+The climb power loading adds the climb-rate term,
+\begin{equation}
+    \left(\frac{P}{W}\right)_{\mathrm{climb}} =
+    \left(\frac{P}{W}\right)_{\mathrm{cruise}}
+    + \frac{ROC}{\eta_p}.
+    \label{eq:ppa_constraint_climb}
+\end{equation}
+The stall wing-loading limit is
+\begin{equation}
+    \left(\frac{W}{S}\right)_{\mathrm{stall}} =
+    \frac{1}{2}\rho V_{\mathrm{stall}}^2 C_{L,\max}.
+    \label{eq:ppa_constraint_stall}
+\end{equation}
+The selected design point must satisfy the stall line, cruise/climb power lines and thrust-to-weight floor. If Phase 6 flags a violation, the corrective action is to return to the phase that produced the deficient quantity. Phase 6 itself does not resize the aircraft.
+
+\subsection{Phase 7: Airfoil Analysis and XFOIL Fallback}
+\label{subsec:ppa_phase7}
+
+Phase 7 supplies 2-D airfoil data for the main wing and canard. The preferred path is to run XFOIL with the selected airfoil coordinate files and the Reynolds numbers from the current iteration \cite{Drela1989XFOIL,DrelaYoungrenXFOILweb}. If XFOIL is not requested or not available, the code uses documented fallback values for SD7037 on the main wing and NACA 0012 on the canard. The SD7037 choice follows the low-Reynolds-number airfoil intent of using high lift-to-drag ratio and acceptable stall behaviour \cite{SeligUIUCVol1}. The NACA 0012 canard fallback is symmetric and gives a simple first-cut control/stall reference \cite{AbbottVonDoenhoff1959}.
+
+From an XFOIL polar, the code extracts the linear lift-curve slope by fitting
+\begin{equation}
+    c_l(\alpha) = c_{l,\alpha}\alpha + c_{l,0}
+    \label{eq:ppa_airfoil_fit}
+\end{equation}
+over the available linear range, currently \(-2^\circ \leq \alpha \leq 6^\circ\) where enough polar points exist. The maximum section lift coefficient is
+\begin{equation}
+    c_{l,\max} = \max(c_l),
+    \label{eq:ppa_clmax_airfoil}
+\end{equation}
+and the best lift-to-drag ratio is
+\begin{equation}
+    \left(\frac{l}{d}\right)_{\max} = \max\left(\frac{c_l}{c_d}\right).
+    \label{eq:ppa_airfoil_ld}
+\end{equation}
+
+The current default run used the fallback path. For the main wing, SD7037 is represented by \(c_{l,\alpha}=5.90~\mathrm{rad^{-1}}\), \(c_{l,\max}=1.4257\), \(c_d=0.00724\) at the design point, \(c_{m0}=-0.0758\), and \(Re=7.30\times10^5\). For the canard, NACA 0012 is represented by \(c_{l,\alpha}=6.10~\mathrm{rad^{-1}}\), \(c_{l,\max}=1.3177\), \(c_d=0.00775\), \(c_{m0}=0\), and \(Re=2.58\times10^5\). These fallback values must be replaced by actual XFOIL polars or wind-tunnel data before the aerodynamic design is frozen.
+
+\subsection{Phase 8: Main-Wing Planform}
+\label{subsec:ppa_phase8}
+
+Phase 8 derives wing area from stall-speed and maximum-lift constraints. It also computes finite-wing lift-curve slope using a DATCOM/Polhamus form \cite{USAFDATCOM1978,Polhamus1958}. The quarter-chord sweep is converted to half-chord sweep for a straight tapered wing using
+\begin{equation}
+    \tan \Lambda_{c/2}
+    =
+    \tan \Lambda_{c/4}
+    -
+    \frac{1}{AR}\frac{1-\lambda}{1+\lambda},
+    \label{eq:ppa_half_chord_sweep}
+\end{equation}
+where \(\lambda\) is taper ratio. With \(\beta^2=1-M^2\), the finite-wing lift-curve slope is
+\begin{equation}
+    C_{L,\alpha}
+    =
+    \frac{2\pi AR}
+    {2+
+    \sqrt{
+    \frac{AR^2\beta^2}{k^2}
+    \left(1+\frac{\tan^2\Lambda_{c/2}}{\beta^2}\right)+4
+    }},
+    \label{eq:ppa_datcom_lift_slope}
+\end{equation}
+where the current implementation uses \(k=1\). The 3-D maximum lift coefficient is
+\begin{equation}
+    C_{L,\max,3D} = 0.9 c_{l,\max}\cos\Lambda_{c/4}.
+    \label{eq:ppa_clmax3d}
+\end{equation}
+The maximum wing loading from the stall-speed target is
+\begin{equation}
+    \left(\frac{W}{S}\right)_{\max}
+    =
+    \frac{1}{2}\rho V_{\mathrm{stall,target}}^2 C_{L,\max,3D}.
+    \label{eq:ppa_ws_stall_limit}
+\end{equation}
+The design wing loading applies the stall margin,
+\begin{equation}
+    \left(\frac{W}{S}\right)_{\mathrm{design}}
+    =
+    f_{\mathrm{stall}}
+    \left(\frac{W}{S}\right)_{\max}.
+    \label{eq:ppa_ws_design}
+\end{equation}
+The wing reference area is then
+\begin{equation}
+    S_w =
+    \frac{W}{(W/S)_{\mathrm{design}}}.
+    \label{eq:ppa_wing_area}
+\end{equation}
+Span and mean reference chord are
+\begin{equation}
+    b_w = \sqrt{S_w AR},
+    \qquad
+    \bar{c}_w=\frac{S_w}{b_w}.
+    \label{eq:ppa_wing_span_chord}
+\end{equation}
+For a trapezoidal wing,
+\begin{equation}
+    c_r=\frac{2S_w}{b_w(1+\lambda)},
+    \qquad
+    c_t=\lambda c_r,
+    \label{eq:ppa_root_tip_chord}
+\end{equation}
+and the mean aerodynamic chord is
+\begin{equation}
+    c_{\mathrm{MAC}} =
+    \frac{2}{3}c_r
+    \frac{1+\lambda+\lambda^2}{1+\lambda}.
+    \label{eq:ppa_mac}
+\end{equation}
+The spanwise MAC station is
+\begin{equation}
+    y_{\mathrm{MAC}} =
+    \frac{b_w}{6}
+    \frac{1+2\lambda}{1+\lambda}.
+    \label{eq:ppa_ymac}
+\end{equation}
+The current aerodynamic-center estimate is
+\begin{equation}
+    x_{ac,w}=0.25c_{\mathrm{MAC}}.
+    \label{eq:ppa_wing_ac}
+\end{equation}
+The resulting stall speed is checked by
+\begin{equation}
+    V_{\mathrm{stall}} =
+    \sqrt{
+    \frac{2(W/S)_{\mathrm{design}}}
+    {\rho C_{L,\max,3D}}
+    }.
+    \label{eq:ppa_stall_speed}
+\end{equation}
+
+For the default case, Phase 8 gives \(S_w=6.436~\mathrm{m^2}\), \(b_w=6.712~\mathrm{m}\), \(\bar{c}_w=0.959~\mathrm{m}\), \(C_{L,\alpha}=4.736~\mathrm{rad^{-1}}\), \(C_{L,\max,3D}=1.283\), and \(V_{\mathrm{stall}}=13.42~\mathrm{m/s}\). Because the current run passes the \(6000~\mathrm{m}\) density into Phase 8, this is a target-altitude stall sizing condition. A later handling-quality review may require a separate sea-level or landing-condition stall check.
+
+\subsection{Phase 9: Canard Planform}
+\label{subsec:ppa_phase9}
+
+Phase 9 sizes the canard from a canard volume coefficient. The moment arm is currently tied to the wing mean chord,
+\begin{equation}
+    l_c = k_l \bar{c}_w,
+    \label{eq:ppa_canard_arm}
+\end{equation}
+with \(k_l=2.50\). The canard volume coefficient is
+\begin{equation}
+    \bar{V}_c =
+    \frac{S_c l_c}{S_w\bar{c}_w}.
+    \label{eq:ppa_canard_volume}
+\end{equation}
+Solving for canard area gives
+\begin{equation}
+    S_c =
+    \bar{V}_c
+    \frac{S_w\bar{c}_w}{l_c}.
+    \label{eq:ppa_canard_area}
+\end{equation}
+The canard span and chord are
+\begin{equation}
+    b_c=\sqrt{S_c AR_c},
+    \qquad
+    \bar{c}_c=\frac{S_c}{b_c}.
+    \label{eq:ppa_canard_span_chord}
+\end{equation}
+The canard root chord, tip chord, MAC and MAC station use the same trapezoidal equations as \autoref{eq:ppa_root_tip_chord}--\autoref{eq:ppa_ymac}, replacing wing variables with canard variables. The canard aerodynamic center is placed forward of the wing aerodynamic center by
+\begin{equation}
+    x_{ac,c}=x_{ac,w}-l_c.
+    \label{eq:ppa_canard_ac}
+\end{equation}
+The canard lift-curve slope uses \autoref{eq:ppa_datcom_lift_slope}, and canard maximum lift is
+\begin{equation}
+    C_{L,\max,c}=0.9c_{l,\max,c}\cos\Lambda_{c/4,c}.
+    \label{eq:ppa_canard_clmax}
+\end{equation}
+
+For the default case, Phase 9 gives \(S_c=0.965~\mathrm{m^2}\), \(b_c=2.197~\mathrm{m}\), \(\bar{c}_c=0.439~\mathrm{m}\), \(l_c=2.397~\mathrm{m}\), \(C_{L,\alpha,c}=4.251~\mathrm{rad^{-1}}\), \(C_{L,\max,c}=1.186\), and \(S_c/S_w=0.150\). The canard arm and longitudinal datum must be replaced by CAD layout.
+
+\subsection{Phase 10: Canard Neutral Point and Preliminary CG Range}
+\label{subsec:ppa_phase10}
+
+Phase 10 is a simplified longitudinal static-stability and trim check for the canard configuration. It estimates the neutral point, aft CG limit, forward CG limit and preliminary feasible CG range. The code uses the wing MAC leading-edge datum, so negative \(x/\bar{c}_w\) values mean the point lies forward of the wing MAC leading edge.
+
+The canard volume coefficient is recalculated as
+\begin{equation}
+    \bar{V}_c =
+    \frac{S_c l_c}{S_w\bar{c}_w}.
+    \label{eq:ppa_phase10_vbar}
+\end{equation}
+The effective lift-curve slopes are
+\begin{equation}
+    a_{w,\mathrm{eff}} = C_{L,\alpha,w}(1-\epsilon_{\alpha,c}),
+    \label{eq:ppa_aw_eff}
+\end{equation}
+\begin{equation}
+    a_{c,\mathrm{eff}} = C_{L,\alpha,c}(1+\epsilon_{\alpha,w}).
+    \label{eq:ppa_ac_eff}
+\end{equation}
+The neutral-point location is estimated from the canard neutral-point relation used in the proposed phase document:
+\begin{equation}
+    \frac{x_{np,\mathrm{forward}}}{l_c}
+    =
+    \frac{1}
+    {1+
+    \dfrac{a_{w,\mathrm{eff}}S_w}{a_{c,\mathrm{eff}}S_c}} .
+    \label{eq:ppa_canard_np_fraction}
+\end{equation}
+The neutral point is therefore
+\begin{equation}
+    x_{np} =
+    x_{ac,w}
+    -
+    x_{np,\mathrm{forward}}.
+    \label{eq:ppa_np_location}
+\end{equation}
+The aft CG limit is set by the required static margin,
+\begin{equation}
+    x_{cg,\mathrm{aft}} =
+    x_{np}-SM_{\min}\bar{c}_w.
+    \label{eq:ppa_aft_cg}
+\end{equation}
+The forward CG limit is set by the maximum trimmable canard lift. The canard maximum lift fraction is
+\begin{equation}
+    \frac{L_{c,\max}}{W}
+    =
+    \frac{C_{L,\max,c}S_c}{C_{L,\mathrm{trim}}S_w}.
+    \label{eq:ppa_canard_lift_fraction}
+\end{equation}
+The forward CG limit is then
+\begin{equation}
+    x_{cg,\mathrm{fwd}} =
+    x_{ac,w}
+    -
+    \frac{C_{L,\max,c}S_c}{C_{L,\mathrm{trim}}S_w}l_c .
+    \label{eq:ppa_forward_cg}
+\end{equation}
+The CG range is
+\begin{equation}
+    \Delta x_{cg}
+    =
+    x_{cg,\mathrm{aft}}-x_{cg,\mathrm{fwd}},
+    \label{eq:ppa_cg_range}
+\end{equation}
+and as a percentage of MAC,
+\begin{equation}
+    \Delta x_{cg,\%}
+    =
+    100\frac{\Delta x_{cg}}{\bar{c}_w}.
+    \label{eq:ppa_cg_percent}
+\end{equation}
+The canard lift coefficient required at a candidate CG is estimated from moment balance:
+\begin{equation}
+    C_{L,c,\mathrm{req}} =
+    \frac{x_{ac,w}-x_{cg}}{l_c}
+    C_{L,\mathrm{trim}}
+    \frac{S_w}{S_c}.
+    \label{eq:ppa_canard_required_cl}
+\end{equation}
+
+For the default case, Phase 10 gives \(x_{np}/\bar{c}_w=-0.031\), \(x_{cg,\mathrm{fwd}}/\bar{c}_w=-0.269\), \(x_{cg,\mathrm{aft}}/\bar{c}_w=-0.131\), and a preliminary CG range of \(13.8\%\) MAC. The phase reports this as feasible, but warns that the canard lift required at the aft CG limit uses a large part of the available canard \(C_L\) margin. This phase must be checked with measured or computed aerodynamic derivatives, real component CG positions and a full scissor plot before acceptance.
+
+\subsection{Phase 11: Fixed-Wing Elevon Sizing}
+\label{subsec:ppa_phase11}
+
+Phase 11 is planned but not yet implemented. It will size the elevon for fixed-wing pitch trim and roll-rate authority. The pitch effectiveness model is
+\begin{equation}
+    C_{m,\delta_e}
+    =
+    -C_{L,\alpha,w}\eta_e
+    \left(\frac{c_e}{c}\right)
+    \left(\frac{S_e}{S_w}\right)
+    \left(\frac{l_e}{\bar{c}_w}\right)
+    \tau_e,
+    \label{eq:ppa_elevon_pitch}
+\end{equation}
+where \(c_e/c\) is elevon chord ratio, \(S_e/S_w\) is elevon area ratio, \(l_e\) is the control moment arm, \(\eta_e\) is local dynamic-pressure effectiveness and \(\tau_e\) is flap effectiveness.
+
+The rolling-moment derivative will be estimated from strip integration,
+\begin{equation}
+    C_{l,\delta_a}
+    =
+    \frac{2C_{L,\alpha,w}\tau_e}{S_w b_w}
+    \int_{y_1}^{y_2} c(y)y\,dy ,
+    \label{eq:ppa_roll_derivative}
+\end{equation}
+with sign determined by the left/right elevon deflection convention. The steady roll rate follows from roll damping,
+\begin{equation}
+    p_{\mathrm{ss}}
+    =
+    -\frac{C_{l,\delta_a}\delta_a V}
+    {C_{l,p}b_w/2}.
+    \label{eq:ppa_steady_roll_rate}
+\end{equation}
+For aft-wing elevons in a tail-sitter slipstream, the local dynamic pressure will include a propwash correction. The proposed first-cut relation is
+\begin{equation}
+    q_{\mathrm{local}}
+    =
+    q_{\infty}
+    \left(1+\frac{8C_T}{\pi J^2}\right),
+    \label{eq:ppa_cruise_slipstream}
+\end{equation}
+consistent with the momentum-theory form used for wing-propeller interaction in tail-sitter analysis \cite{Stone2008}. The design roll-rate floor is currently \(60^\circ/\mathrm{s}\), pending a Bellona-specific handling-quality requirement.
+
+\subsection{Phase 12: Hover Control}
+\label{subsec:ppa_phase12}
+
+Phase 12 is planned but not yet implemented. It will verify hover pitch and roll control through differential thrust, and hover yaw control through elevons in propwash. For a rotor pair separated by moment arm \(d_x\), pitch moment from differential thrust is
+\begin{equation}
+    M_y = \Delta T\,d_x .
+    \label{eq:ppa_diff_thrust_pitch}
+\end{equation}
+The required differential thrust for pitch acceleration is
+\begin{equation}
+    \Delta T =
+    \frac{I_{yy}\dot{q}_{\mathrm{req}}}{d_x}.
+    \label{eq:ppa_required_diff_thrust_pitch}
+\end{equation}
+The corresponding thrust fraction is
+\begin{equation}
+    \frac{\Delta T}{T_r}.
+    \label{eq:ppa_diff_thrust_fraction}
+\end{equation}
+The roll case is analogous, replacing \(I_{yy}\), \(d_x\) and \(\dot{q}_{\mathrm{req}}\) by \(I_{xx}\), \(d_y\) and \(\dot{p}_{\mathrm{req}}\).
+
+In hover, freestream dynamic pressure is zero. The relevant dynamic pressure for an elevon in the rotor wake is therefore the absolute slipstream dynamic pressure,
+\begin{equation}
+    q_{\mathrm{slip,hover}} =
+    \frac{T_r}{A_{\mathrm{disc}}},
+    \label{eq:ppa_hover_qslip}
+\end{equation}
+and the slipstream velocity scale is
+\begin{equation}
+    V_{\mathrm{slip,hover}} =
+    \sqrt{\frac{2T_r}{\rho A_{\mathrm{disc}}}}.
+    \label{eq:ppa_hover_vslip}
+\end{equation}
+The yaw moment from a control surface in this slipstream is
+\begin{equation}
+    M_z =
+    q_{\mathrm{slip,hover}} S_e C_{L,\delta_e}\delta_e l_z .
+    \label{eq:ppa_hover_yaw_moment}
+\end{equation}
+The required yaw-control surface area is therefore
+\begin{equation}
+    S_{e,\mathrm{yaw}}
+    =
+    \frac{I_{zz}\dot{r}_{\mathrm{req}}}
+    {q_{\mathrm{slip,hover}}C_{L,\delta_e}\delta_e l_z}.
+    \label{eq:ppa_hover_yaw_area}
+\end{equation}
+The final elevon size will be the maximum of the fixed-wing result from Phase 11 and the hover-yaw result from Phase 12.
+
+\subsection{Phase 13: Transition Blending}
+\label{subsec:ppa_phase13}
+
+Phase 13 is planned but not yet implemented. It will convert the derived stall speed into a control blending schedule between hover differential-thrust control and fixed-wing elevon control. The current interface defines
+\begin{equation}
+    V_{\mathrm{blend,start}} =
+    f_{\mathrm{start}}V_{\mathrm{stall}},
+    \qquad
+    V_{\mathrm{blend,end}} =
+    f_{\mathrm{end}}V_{\mathrm{stall}},
+    \label{eq:ppa_blend_speeds}
+\end{equation}
+with default \(f_{\mathrm{start}}=0.5\) and \(f_{\mathrm{end}}=1.2\). A smooth scalar blending function can be written as
+\begin{equation}
+    \sigma =
+    \mathrm{clip}\left(
+    \frac{V-V_{\mathrm{blend,start}}}
+    {V_{\mathrm{blend,end}}-V_{\mathrm{blend,start}}},
+    0,1
+    \right),
+    \label{eq:ppa_blend_sigma}
+\end{equation}
+\begin{equation}
+    \alpha_{\mathrm{FW}} =
+    3\sigma^2-2\sigma^3 .
+    \label{eq:ppa_smoothstep}
+\end{equation}
+The commanded actuator vector can then be blended as
+\begin{equation}
+    \mathbf{u} =
+    (1-\alpha_{\mathrm{FW}})\mathbf{u}_{\mathrm{hover}}
+    +
+    \alpha_{\mathrm{FW}}\mathbf{u}_{\mathrm{FW}} .
+    \label{eq:ppa_control_blend}
+\end{equation}
+The transition model will need flight-test or simulation validation because Bellona's mission includes a terminal hover and potential tethered-load cases.
+
+\subsection{Phase 14: Dynamic Stability Verification}
+\label{subsec:ppa_phase14}
+
+Phase 14 is planned as a verification-only phase. It will not drive preliminary sizing unless the selected configuration fails a minimum stability or controllability criterion. The phase will use aerodynamic derivatives from Phase 10, control derivatives from Phases 11--12, mass properties from Phase 15 and flight condition data from Phase 3.
+
+The dimensional pitch derivatives can be formed as
+\begin{equation}
+    M_{\alpha} =
+    \frac{qS_w\bar{c}_w C_{m,\alpha}}{I_{yy}},
+    \label{eq:ppa_m_alpha}
+\end{equation}
+\begin{equation}
+    M_q =
+    \frac{qS_w\bar{c}_w^2 C_{m,q}}{2I_{yy}V}.
+    \label{eq:ppa_m_q}
+\end{equation}
+The same conversion structure applies to roll and yaw derivatives. A reduced short-period check can be expressed through the eigenvalues of a two-state pitch model,
+\begin{equation}
+    \dot{\mathbf{x}} =
+    \mathbf{A}_{sp}\mathbf{x},
+    \qquad
+    \mathbf{x} =
+    \begin{bmatrix}
+    \alpha \\ q
+    \end{bmatrix}.
+    \label{eq:ppa_short_period_model}
+\end{equation}
+For a complex eigenvalue \(\lambda=\sigma\pm i\omega_d\), the natural frequency and damping ratio are
+\begin{equation}
+    \omega_n=\sqrt{\sigma^2+\omega_d^2},
+    \qquad
+    \zeta=-\frac{\sigma}{\omega_n}.
+    \label{eq:ppa_eigen_damping}
+\end{equation}
+The same eigenvalue approach will be used for phugoid, Dutch-roll and spiral checks once the full derivative set is available.
+
+\subsection{Phase 15: Mass, CG and Inertia Model}
+\label{subsec:ppa_phase15}
+
+Phase 15 is planned but not yet implemented. It will convert the propulsion, energy and geometry outputs into a new MTOW estimate. The mass model must preserve the modelling boundary stated in \autoref{sec:ppa_scope_boundary}: onboard netgun and relevant sensors enter through mission equipment mass, and there is no separate capture mass. External balloon or payload mass is not included in UAV MTOW.
+
+The total mass will be assembled as
+\begin{equation}
+    m_{\mathrm{TO,new}} =
+    m_{\mathrm{wing}}
+    +m_{\mathrm{canard}}
+    +m_{\mathrm{fuse}}
+    +m_{\mathrm{prop}}
+    +m_{\mathrm{motor}}
+    +m_{\mathrm{ESC}}
+    +m_{\mathrm{batt}}
+    +m_{\mathrm{avionics}}
+    +m_{\mathrm{mission}}
+    +m_{\mathrm{margin}} .
+    \label{eq:ppa_mass_total}
+\end{equation}
+The wing and fuselage correlations are represented as corrected conceptual-design estimates,
+\begin{equation}
+    m_{\mathrm{wing}} =
+    k_{\mathrm{wing,UAV}} f_{\mathrm{wing}}(S_w,W,n_{\mathrm{ult}},AR),
+    \label{eq:ppa_wing_mass}
+\end{equation}
+\begin{equation}
+    m_{\mathrm{fuse}} =
+    k_{\mathrm{fuse,UAV}} f_{\mathrm{fuse}}(L_{\mathrm{fuse}},W).
+    \label{eq:ppa_fuse_mass}
+\end{equation}
+The planned defaults are \(k_{\mathrm{wing,UAV}}=0.70\) and \(k_{\mathrm{fuse,UAV}}=0.60\), acknowledging that manned-aircraft correlations tend to overpredict small UAV structural mass \cite{Raymer2018,Roskam1985PartVI,Gudmundsson2014}. The current motor mass regression is
+\begin{equation}
+    m_{\mathrm{motor}} =
+    0.00027 P_{\mathrm{cont}},
+    \label{eq:ppa_motor_mass}
+\end{equation}
+with \(P_{\mathrm{cont}}\) in W and mass in kg. This is a first-cut electric motor scaling and must be replaced by selected motor datasheets.
+
+The CG is
+\begin{equation}
+    \mathbf{r}_{CG} =
+    \frac{\sum_i m_i\mathbf{r}_i}{\sum_i m_i},
+    \label{eq:ppa_cg}
+\end{equation}
+and the inertia tensor can be estimated from component point masses as
+\begin{equation}
+    \mathbf{I}_{CG}
+    =
+    \sum_i
+    m_i
+    \left[
+    \left(\mathbf{d}_i^T\mathbf{d}_i\right)\mathbf{1}
+    -
+    \mathbf{d}_i\mathbf{d}_i^T
+    \right],
+    \label{eq:ppa_inertia}
+\end{equation}
+where \(\mathbf{d}_i=\mathbf{r}_i-\mathbf{r}_{CG}\). CAD mass properties shall replace this point-mass model once the layout is available.
+
+\subsection{Phase 16: Damped MTOW Convergence}
+\label{subsec:ppa_phase16}
+
+Phase 16 updates the MTOW estimate after Phase 15. The undamped mass difference is
+\begin{equation}
+    \Delta m =
+    m_{\mathrm{TO,new}}-m_{\mathrm{TO,old}}.
+    \label{eq:ppa_delta_mass}
+\end{equation}
+The damped update is
+\begin{equation}
+    m_{\mathrm{TO,next}} =
+    m_{\mathrm{TO,old}}+\lambda\Delta m,
+    \label{eq:ppa_damped_mtow}
+\end{equation}
+where the planned default damping factor is \(\lambda=0.4\). Convergence is declared when
+\begin{equation}
+    \frac{|\Delta m|}{m_{\mathrm{TO,old}}}<\epsilon_{\mathrm{MTOW}},
+    \label{eq:ppa_mtow_convergence}
+\end{equation}
+with default \(\epsilon_{\mathrm{MTOW}}=0.01\). The outer loop will then run Phase 6 and Phase 14 as final verification checks.
+
+\section{Iteration Architecture}
+\label{sec:ppa_iteration_architecture}
+
+The code currently contains staged inner loops so that each part of the dependency graph can be reviewed before full MTOW closure.
+
+\subsection{Phase 1--6 Inner Loop}
+
+The first loop checks the early propulsion and mission coupling. At fixed MTOW, it:
+\begin{enumerate}[leftmargin=*]
+    \item sizes the propeller from target disc loading,
+    \item computes hover power,
+    \item runs the Phase 3 mission grid search,
+    \item updates cruise RPM to hit the target advance ratio,
+    \item repeats until \(J\) is inside the selected tolerance,
+    \item reports energy and a verification constraint diagram.
+\end{enumerate}
+This loop does not update wing area from airfoil data and does not include canard geometry.
+
+\subsection{Phase 1--8 Inner Loop}
+
+The second loop adds airfoil fallback/XFOIL data and wing area. The old preliminary wing-area seed becomes an iteration variable. The convergence metric is
+\begin{equation}
+    \epsilon_S =
+    \frac{|S_{w,k}-S_{w,k-1}|}{S_{w,k-1}}.
+    \label{eq:ppa_area_convergence}
+\end{equation}
+The default tolerance is \(\epsilon_S \leq 0.01\). This loop removes the hidden dependence on the initial \(S_{\mathrm{guess}}\).
+
+\subsection{Phase 1--9 Inner Loop}
+
+The third loop adds canard geometry and a canard Reynolds-number update. At each iteration, the canard chord gives
+\begin{equation}
+    Re_c =
+    \frac{\rho V_{\mathrm{cruise}}\bar{c}_c}{\mu}.
+    \label{eq:ppa_canard_re}
+\end{equation}
+The Reynolds convergence checks are
+\begin{equation}
+    \epsilon_{Re,w} =
+    \frac{|Re_{w,k}-Re_{w,k-1}|}{Re_{w,k-1}},
+    \qquad
+    \epsilon_{Re,c} =
+    \frac{|Re_{c,k}-Re_{c,k-1}|}{Re_{c,k-1}}.
+    \label{eq:ppa_re_convergence}
+\end{equation}
+The default tolerance is \(2\%\) for both Reynolds numbers. The loop converges when area, advance ratio and Reynolds criteria are all satisfied:
+\begin{equation}
+    \epsilon_S \leq 0.01,
+    \qquad
+    |J-J_{\mathrm{target}}|\leq0.01,
+    \qquad
+    \epsilon_{Re,w}\leq0.02,
+    \qquad
+    \epsilon_{Re,c}\leq0.02 .
+    \label{eq:ppa_inner_convergence}
+\end{equation}
+
+\subsection{Phase 1--10 Appended Verification}
+
+Phase 10 is appended after the fixed-MTOW propulsion and aerodynamics loop. It does not currently iterate canard area back into Phase 9. If the preliminary CG range is infeasible, the next implementation step will be to close a CG--canard loop:
+\begin{equation}
+    S_{c,k+1} =
+    S_{c,k}(1+\Delta_c),
+    \label{eq:ppa_canard_area_update}
+\end{equation}
+where \(\Delta_c\) is a controlled area increment, or alternatively to revise \(l_c\), \(SM_{\min}\), canard airfoil, canard incidence or component placement.
+
+\subsection{Outer MTOW Loop}
+
+The full workflow will use Phase 15 and Phase 16 to close mass. The dependency order will be:
+\begin{enumerate}[leftmargin=*]
+    \item Phase 0 atmosphere,
+    \item Phase 1 propeller sizing,
+    \item Phase 2 hover power,
+    \item Phase 3 mission optimization,
+    \item Phase 4 advance-ratio coupling,
+    \item Phase 7 airfoil analysis,
+    \item Phase 8 wing planform,
+    \item Phase 7 Reynolds refinement,
+    \item Phase 9 canard planform,
+    \item Phase 10 canard scissor check,
+    \item Phase 11 fixed-wing elevon sizing,
+    \item Phase 12 hover control sizing,
+    \item Phase 13 transition blending,
+    \item Phase 5 energy and battery sizing,
+    \item Phase 15 mass, CG and inertia,
+    \item Phase 16 damped MTOW update,
+    \item Phase 6 final constraint verification,
+    \item Phase 14 final dynamic-stability verification.
+\end{enumerate}
+
+\section{Current Default Result}
+\label{sec:ppa_current_result}
+
+\autoref{tab:ppa_current_result} summarizes the current default output from \texttt{python code\_outline.py --json results.json}. The run is fixed at \(m_{\mathrm{TO}}=50~\mathrm{kg}\) and therefore does not yet represent an MTOW-converged aircraft.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Current Phase 1--10 default result at fixed \(50~\mathrm{kg}\) MTOW.}
+\label{tab:ppa_current_result}
+\begin{tabularx}{\textwidth}{@{}p{0.38\textwidth}p{0.22\textwidth}X@{}}
+\toprule
+\textbf{Output} & \textbf{Value} & \textbf{Comment} \\
+\midrule
+Convergence status & True & Phase 1--9 inner loop converged and Phase 10 CG check completed. \\
+Inner iterations & 3 & Area, \(J\), main-wing Reynolds and canard Reynolds met tolerance. \\
+Propeller diameter & \(1.092~\mathrm{m}\) & From \(DL_{\mathrm{target}}=170~\mathrm{N/m^2}\). \\
+Actual disc loading & \(170~\mathrm{N/m^2}\) & Target met because no diameter cap is active. \\
+Cruise speed & \(14.21~\mathrm{m/s}\) & From mission energy grid search. \\
+Fixed-wing climb rate & \(10.01~\mathrm{m/s}\) & Set by the \(6000~\mathrm{m}\), \(600~\mathrm{s}\) outbound requirement. \\
+Cruise RPM & \(1301~\mathrm{rpm}\) & From \(J=0.60\). \\
+Hover power & \(12.09~\mathrm{kW}\) & Total aircraft electrical power at \(6000~\mathrm{m}\). \\
+Installed battery energy & \(3.04~\mathrm{kWh}\) & Includes battery efficiency and usable-capacity margin. \\
+Battery mass & \(15.21~\mathrm{kg}\) & Uses \(200~\mathrm{Wh/kg}\) pack specific energy. \\
+Wing area & \(6.436~\mathrm{m^2}\) & Derived from Phase 8 stall loading. \\
+Wing span & \(6.712~\mathrm{m}\) & \(AR=7\). \\
+Wing mean chord & \(0.959~\mathrm{m}\) & Reference chord \(S/b\). \\
+Wing stall speed & \(13.42~\mathrm{m/s}\) & Current target-altitude-density sizing result. \\
+Canard area & \(0.965~\mathrm{m^2}\) & \(\bar{V}_c=0.375\). \\
+Canard span & \(2.197~\mathrm{m}\) & \(AR_c=5\). \\
+Main Reynolds number & \(7.30\times10^5\) & Uses Phase 3 cruise state. \\
+Canard Reynolds number & \(2.58\times10^5\) & Uses Phase 9 canard chord. \\
+Neutral point & \(-0.031~x/\bar{c}_w\) & Wing MAC leading-edge datum. \\
+CG range & \(-0.269\) to \(-0.131~x/\bar{c}_w\) & Preliminary feasible range. \\
+CG range width & \(13.8\%\) MAC & Must be checked against real component layout. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The capped-propeller sanity check confirms that disc loading is recomputed when a diameter limit is active. With \(D_{\max}=0.900~\mathrm{m}\), the script reports \(DL_{\mathrm{actual}}=250.5~\mathrm{N/m^2}\), hover power \(14.68~\mathrm{kW}\), and battery mass \(16.56~\mathrm{kg}\).
+
+\section{Command-Line and Data Interface}
+\label{sec:ppa_cli}
+
+The script can be run with the default mission by executing
+\begin{verbatim}
+python code_outline.py
+\end{verbatim}
+The full result tree can be written to JSON with
+\begin{verbatim}
+python code_outline.py --json results.json
+\end{verbatim}
+The command-line interface exposes mission altitude, range, time budget, hover time, mission equipment mass, external tow load, disc loading target, optional propeller diameter cap, battery specific energy, stall-speed target, wing-area seed, target advance ratio, XFOIL settings, iteration limits and optional Phase 6 plotting.
+
+The JSON output contains three main blocks:
+\begin{itemize}[leftmargin=*]
+    \item \texttt{inputs}: mission and assumption values used for the run,
+    \item \texttt{summary}: compact headline outputs for quick inspection,
+    \item \texttt{result}: complete phase dictionaries, iteration history, notes and warnings.
+\end{itemize}
+This plain-dictionary output is deliberate. It allows beginner programmers and subsystem leads to inspect intermediate values without needing to understand class methods or hidden state.
+
+\section{Subsystem Interface Control}
+\label{sec:ppa_subsystem_interfaces}
+
+The PPA workflow sits inside the larger system N2 chart. Its outputs affect propulsion, control, electronics, structures, sensing and balloon interaction. \autoref{tab:ppa_system_interfaces} lists the controlled interfaces that should be tracked as the design changes.
+
+\begin{longtable}{@{}p{0.18\textwidth}p{0.23\textwidth}p{0.18\textwidth}p{0.33\textwidth}@{}}
+\caption{Subsystem-level interfaces controlled by the PPA workflow.}
+\label{tab:ppa_system_interfaces}\\
+\toprule
+\textbf{PPA quantity} & \textbf{Produced by} & \textbf{Receiver} & \textbf{Interface control rule} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{PPA quantity} & \textbf{Produced by} & \textbf{Receiver} & \textbf{Interface control rule} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Propeller diameter and disc area & Phase 1 & Structures, CAD, propulsion & Must fit rotor spacing, landing clearance and motor-mount layout. Diameter cap must be reflected as higher actual disc loading. \\
+Rotor thrust and hover power & Phases 1--2 & Electronics, thermal, control & Defines motor, ESC, battery-current and heat-rejection requirements. \\
+Cruise speed and climb path & Phase 3 & Control, sensing, operations & Sets tracking time, transition timing, climb feasibility and ground-station timing. \\
+Advance ratio and cruise RPM & Phase 4 & Propulsion and acoustics & Must be checked with propeller performance data. \\
+Battery energy and mass & Phase 5 & Electronics, structures, mass model & Drives pack selection, battery bay volume, restraint loads and CG. \\
+Constraint-diagram margins & Phase 6 & Systems engineering & Verification artifact only. Violations return to the generating phase. \\
+Airfoil polar data & Phase 7 & Aerodynamics, control & Must be replaced by XFOIL, CFD or wind-tunnel data before final design. \\
+Wing geometry and stall speed & Phase 8 & Structures, controls, transition & Drives spar sizing, elevon sizing, transition speeds and landing/support geometry. \\
+Canard geometry & Phase 9 & Structures, controls, CAD & Drives canard mount, incidence mechanism and forward-body layout. \\
+CG range and neutral point & Phase 10 & Structures, controls, mass model & Component placement must keep actual CG inside the acceptable envelope. \\
+Elevon size and derivatives & Phases 11--12 & Control, structures & Final surface size is the maximum of fixed-wing and hover requirements. \\
+Transition blending schedule & Phase 13 & Control software & Must be validated in simulation before flight. \\
+Dynamic-stability metrics & Phase 14 & Control and verification & Confirms whether the airframe and controller meet handling-quality targets. \\
+Updated MTOW, CG, inertia & Phases 15--16 & All PPA phases & Feeds back into propeller, energy, wing and stability sizing. \\
+\end{longtable}
+
+\section{Verification Sources and Replacement Data}
+\label{sec:ppa_verification_sources}
+
+Each phase includes assumptions that should be replaced before final acceptance. The primary verification sources are:
+\begin{itemize}[leftmargin=*]
+    \item the proposed Bellona phase workflow document for the 16-phase dependency graph and canard neutral-point sign convention,
+    \item the midterm and final report context for mission requirements, concept assumptions and subsystem interfaces,
+    \item the U.S. Standard Atmosphere for atmospheric properties \cite{NOAA1976U.S.1976},
+    \item Leishman for actuator-disc hover and climb power \cite{Leishman2006},
+    \item Raymer, Roskam and Gudmundsson for conceptual aircraft performance, constraint checks and mass correlations \cite{Raymer2018,Roskam1985PartVI,Gudmundsson2014},
+    \item DATCOM/Polhamus for finite-wing lift-curve slope \cite{USAFDATCOM1978,Polhamus1958},
+    \item Stone and Stone/Clarke for tail-sitter transition and wing-propeller interaction context \cite{Stone1999,StoneClarke2001,Stone2008},
+    \item XFOIL documentation and low-Reynolds-number airfoil data for airfoil verification \cite{Drela1989XFOIL,DrelaYoungrenXFOILweb,SeligUIUCVol1},
+    \item selected component datasheets for motors, propellers, ESCs, batteries, sensors and netgun hardware,
+    \item CAD mass properties and VLM/CFD results for CG, inertia, upwash/downwash and aerodynamic derivatives.
+\end{itemize}
+
+The values most urgently requiring replacement are the propeller performance map, battery specific energy under the required discharge rate, SD7037 and NACA 0012 fallback polars, Oswald efficiency, canard arm, component CG locations, canard upwash/downwash gradients, elevon effectiveness, control-surface hinge limits, and the mass correlations in Phase 15.
+
+\section{Limitations}
+\label{sec:ppa_limitations}
+
+The current workflow is deliberately transparent and conservative in structure, but several limitations remain:
+\begin{itemize}[leftmargin=*]
+    \item The current default run is fixed at \(50~\mathrm{kg}\); full MTOW convergence awaits Phases 15 and 16.
+    \item Battery mass is calculated but does not yet feed back into the sizing loop.
+    \item External tow load is recorded as a mission input but is not yet included in the Phase 5 energy timeline or stability model.
+    \item Phase 3 uses a grid search with a parabolic drag polar and an average-altitude climb segment.
+    \item Transition energy is approximated with hover-like power over the transition altitude.
+    \item Phase 7 fallback values are not a substitute for a converged XFOIL run or measured airfoil data.
+    \item Phase 8 currently sizes stall at the density passed to the function. The default run passes target-altitude density; a landing or sea-level stall case should be added as a separate check.
+    \item Phase 10 is a preliminary neutral-point and trim-range check, not a full scissor plot.
+    \item Phases 11--14 remain verification models until control derivatives, actuator limits, inertias and layout data exist.
+    \item The code prioritizes readability and traceability over high-fidelity modelling.
+\end{itemize}
+
+These limitations are acceptable for a first detailed-design scaffold because the model records its assumptions explicitly and exposes every intermediate value. The next development step is to implement Phases 11--16 and close the MTOW loop while preserving the same interface discipline.

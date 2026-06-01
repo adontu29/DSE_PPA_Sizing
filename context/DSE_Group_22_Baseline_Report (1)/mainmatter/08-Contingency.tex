@@ -1,0 +1,351 @@
+\vspace{-10pt}
+\chapter{Resource, Risk and Contingency Management}
+
+
+Risk management is used to identify, assess, and control the driving uncertainties affecting the development and operation of the BELLONA system. Since the mission involves the detection, interception, interaction, and recovery of an uncooperative free-floating balloon, several technical and operational risks must be considered. They are of critical importance because failures during interaction or recovery could jeopardize the reusability of the system, regulatory compliance, the mission, and public safety. 
+\\
+\vspace{-20pt}
+\section{Methodology \& Overview} \label{sec:risk-methodology-and-overview}
+The analysis considers both department-specific risks and system-level risks that arise from subsystem interaction, such as mechanical interfaces, data exchange, power budgets, and mission-phase dependencies. The first step is risk planning, where responsibilities are assigned and the structure of the risk register is defined. Each risk is linked to a responsible department or team member to ensure that mitigation actions can be followed up during the project \cite{Hamann2006SystemsI}. In addition, each risk is assigned a unique identifier to maintain clear traceability and organization within the risk register. The second step is risk identification. In this stage, possible adverse outcomes are identified based on the mission phases, functional flow diagram, subsystem responsibilities, and system-level interfaces. This includes both technical risks within individual departments and general integration risks between subsystems \cite{Hamann2006SystemsI}.\\
+
+After identification, each risk is assessed using two parameters: probability and impact. Probability describes how likely the risk is to occur, while impact describes the severity of its consequences if it occurs. Both are rated on a scale from 1 to 5, as described in \autoref{tab:risk_scales}. The combination of these two values gives an indication of the initial risk level and allows the most critical risks to be prioritized. The risk analysis step then considers which prevention and contingency measures are appropriate. Prevention measures aim to reduce the probability of occurrence, while contingency measures reduce the impact if the risk still occurs \cite{Hamann2006SystemsI}.\\
+For each risk, an initial risk score is obtained by multiplying the probability and impact ratings:
+\begin{equation}
+    R = P \cdot I , 
+    R_r = P_r \cdot I_r
+\end{equation}
+Where $P_r$ and $I_r$ are the residual probability and impact after prevention and contingency measures have been considered. These scores are not used as absolute measures of risk, but as a consistent way to compare and prioritize risks within the project.\\
+
+The probability score was assigned based on the likelihood of the failure  occurring, considering design maturity, environmental uncertainty, subsystem complexity, number of interfaces, and availability of verification data. The impact score was assigned based on the severity of the consequence for mission success, public safety, regulatory compliance, cost, and schedule if the risk were to occur. As such, the probability and impact values are prone to change as the design advances into more complex stages.\\
+
+Finally, the risks are handled by assigning mitigation actions and estimating the residual probability and impact after mitigation. These residual values are used to evaluate whether the risk has been reduced to an acceptable level or whether further design changes are needed \cite{Hamann2006SystemsI}. As such, the complete risk register is presented in \autoref{tab:tech_risk_register}. As the initial Risk and Impact values were derived from market experience and rough estimates. Due to this, the risk register must be continuously updated throughout the project, as the probability, impact, and relevance of each risk may change as the design matures, subsystem interfaces are defined, and additional analyses are completed. The addition or removal of risks is documented in the \autoref{sec:Risk_Changelog}. 
+
+\begin{table}[H]
+    \centering
+    \vspace{-5pt}
+    \caption{Risk Assessment Scales: Probability and Impact 
+    \cite{Hamann2006SystemsI}}
+    \label{tab:risk_scales}
+    
+    % --- LEFT TABLE: PROBABILITY ---
+    \begin{minipage}{.36\textwidth}
+        \centering
+        \caption*{Probability Scale}
+        \begin{tabular}{l c l}
+            \toprule
+            Level & Rating & Range (Prob.) \\
+            \midrule
+            Very High & 5 & $\ge 70\%$ \\
+            High      & 4 & $25\% \le PR < 70\%$ \\
+            Moderate  & 3 & $10\% \le PR < 25\%$ \\
+            Low       & 2 & $1\% \le PR < 10\%$ \\
+            Very Low  & 1 & $< 1\%$ \\
+            \bottomrule
+        \end{tabular}
+    \end{minipage}
+    \hfill 
+    % --- RIGHT TABLE: IMPACT ---
+    \begin{minipage}{.6\textwidth}
+        \centering
+        \vspace{-10pt}
+        \caption*{Impact/Consequence Scale}
+        \vspace{-5pt}
+        \small
+        \begin{tabularx}{\textwidth}{l c X}
+            \toprule
+            Level & Rating & Description \\
+            \midrule
+           Catastrophic & 5 & Prevents completion of the mission or causes complete loss of the required technical capability. \\
+
+Critical & 4 & Severely degrades system performance, making mission success uncertain or only achievable with major limitations. \\
+
+Moderate & 3 & Noticeably reduces system performance, but the primary mission remains achievable with reduced efficiency, capability, or safety margin. \\
+
+Marginal & 2 & Causes minor degradation of performance or affects secondary mission objectives without preventing primary mission success. \\
+
+Negligible & 1 & Causes only inconvenience or minor non-operational effects, with no meaningful impact on technical performance. \\
+            \bottomrule
+        \end{tabularx}
+    \end{minipage}
+\end{table}
+
+\vspace{-20pt}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1.1}
+\setlength{\tabcolsep}{1.2pt}
+
+\begin{xltabular}{\textwidth}{|p{0.045\textwidth}|
+                  X|
+                  p{0.015\textwidth}|
+                  p{0.015\textwidth}|
+                  X|
+                  X|
+                  p{0.02\textwidth}|
+                  p{0.02\textwidth}|
+                  p{0.055\textwidth}|}
+\caption{Technical risk register with prevention, contingency, risk ratings, and responsible member}
+\label{tab:tech_risk_register} \\
+\hline
+\textbf{ID} & \textbf{Description} & \textbf{P} & \textbf{I} & \textbf{Prevention} & \textbf{Contingency} & \textbf{P$_r$} & \textbf{I$_r$} & \textbf{Resp.} \\ \hline
+\endfirsthead
+
+\hline
+\textbf{ID} & \textbf{Description} & \textbf{P} & \textbf{I} & \textbf{Prevention} & \textbf{Contingency} & \textbf{P$_r$} & \textbf{I$_r$} & \textbf{Resp.} \\ \hline
+\endhead
+
+\hline
+\endfoot
+
+RSK-BID-01 & Balloon becomes uncontrollable or unrecoverable after interaction. & 2 & 5 & Use gradual interaction and verify that nominal contact does not tear or destabilize the balloon. & Stop interaction, disengage, re-track the balloon, then retry with reduced aggressiveness or abort. & 1 & 4 & MK \\ \hline
+RSK-BID-02 & Balloon material or geometry prevents reliable capture. & 3 & 4 & Characterize material, diameter, curvature, and envelope tension; test concepts on representative material samples on the ground. & Switch to a more tolerant mode, such as guided contact or controlled deflation. & 3 & 3 & DB \\ \hline
+RSK-BID-03 & Recovered material, tether, or payload cannot be handled safely after landing. & 1 & 2 & Use clear release points, low stored energy, simple handling steps, and remote shutdown. & Power down, isolate the area, and detach the material using manual recovery procedures. & 1 & 1 & MK \\ \hline
+
+RSK-SMS-01 & Launch, vibration, or transit loads damage mounts or structural supports. & 2 & 4 & Check load paths and vibration for all mission phases; apply safety factors and avoid single-point failures. & Abort or land safely, then inspect the platform before relaunch. & 2 & 3 & JW \\ \hline
+RSK-SMS-02 & Loads are incorrectly estimated due to conservative or optimistic assumptions. & 5 & 4 & Define load cases for flight, landing, interaction, tether tension, gusts, and post-contact drag. & Add margin or reinforcement; reduce the envelope or select a lower-load concept if needed. & 2 & 3 & JW \\ \hline
+RSK-SMS-03 & Manufacturing method causes high cost, long lead time, waste, or poor repeatability. & 4 & 2 & Develop the structural design and manufacturing plan concurrently. & Switch to a simpler method, accepting limited mass or geometry penalties. & 2 & 2 & AM \\ \hline
+RSK-SMS-04 & Post-flight inspection misses damage or degraded components. & 2 & 3 & Use a checklist with clear no-go criteria for structure, tethers, batteries, and mechanisms. & Ground the system until the affected component is inspected, repaired, or replaced. & 1 & 2 & AM \\ \hline
+RSK-SMS-05 & Materials lack required strength, durability, or environmental resistance. & 2 & 2 & Specify material properties and check degradation and compatibility between materials. & Replace the material with one having better critical properties. & 1 & 2 & AM \\ \hline
+
+RSK-SCE-01 & Software errors cause unsafe commands or loss of mission functions. & 4 & 3 & Use modular software, code reviews, simulation testing, and a dedicated software V\&V plan. & Switch to manual mode, terminate the mission early, or use remote shutdown. & 2 & 2 & AT \\ \hline
+RSK-SCE-02 & Detection, identification, or tracking fails due to environment or sensor limits. & 3 & 2 & Select sensors for expected range, contrast, FOV, lighting, and clutter; use filtering and multi-frame confirmation. & Request updated target data or abort if detection exceeds the time/energy margin. & 2 & 2 & FR \\ \hline
+RSK-SCE-03 & Battery degradation is underestimated, causing energy or power issues. & 2 & 3 & Include ageing, temperature, discharge rate, and cycle life in the energy budget; check battery health pre-flight. & Abort before interaction and return or land while reserve remains; replace degraded packs. & 1 & 2 & AT \\ \hline
+RSK-SCE-04 & Wiring is insufficiently detailed during design. & 4 & 3 & Define routing, connectors, power/signal separation, strain relief, and inspection access early. & Pause integration and create a simplified harness architecture before continuing. & 2 & 2 & FR \\ \hline
+RSK-SCE-05 & Navigation or communication degrades during launch or transit. & 2 & 2 & Use redundant navigation sources and verify the communication link budget. & Enter degraded-navigation or lost-link mode: hold, return-to-home, or land safely. & 1 & 2 & FR \\ \hline
+
+RSK-OGS-01 & Launch or landing area is unsuitable. & 2 & 3 & Define site criteria and inspect multiple launch/landing areas beforehand. & Move to an alternate site, abort before take-off, or divert to a safe landing area. & 2 & 2 & GZ \\ \hline
+RSK-OGS-02 & Incomplete go/no-go assessment allows unsafe mission authorization. & 2 & 3 & Use a checklist for weather, airspace, public exposure, battery, communication, and system readiness. & Cancel or delay launch and repeat the checklist after resolving the issue. & 2 & 2 & GZ \\ \hline
+RSK-OGS-03 & Recovery or descent path crosses people, infrastructure, or restricted areas. & 4 & 2 & Predict the recovery area before interaction and include it in mission decision logic. & Suspend interaction, reposition, or abort if the predicted path is unsafe. & 2 & 2 & PB \\ \hline
+
+RSK-PPA-01 & Battery reserve is consumed before return and landing. & 3 & 5 & Budget energy for all mission phases and enforce reserve and retry limits. & Stop search/interaction and return or land at an alternate site before reserve depletion. & 2 & 3 & AD \\ \hline
+RSK-PPA-02 & UAS lacks thrust or stability during climb or transit. & 3 & 3 & Size propulsion with thrust margin and check stability with the interaction mechanism installed. & Reduce the mission envelope, return to launch, or land safely. & 2 & 3 & AP \\ \hline
+RSK-PPA-03 & Post-contact forces exceed UAS control capability. & 2 & 5 & Model post-contact drag, lift, payload mass, tether tension, and coupled dynamics. & Release or disengage if safe, then retry or abort. & 2 & 3 & AP \\ \hline
+
+RSK-GEN-01 & BMS or electrical distribution is overloaded by peak power demand. & 2 & 3 & Size the BMS and wiring for peak propulsion, avionics, communication, and actuator loads. & Shed non-critical loads, disable interaction, or abort if limits are exceeded. & 2 & 2 & AT \\ \hline
+RSK-GEN-02 & Mechanical interfaces between subsystems are incompatible. & 3 & 4 & Define interface drawings with mounting points, load limits, tolerances, clearances, and access zones. & Freeze integration and redesign the interface; use adapters only if safe. & 2 & 3 & JW \\ \hline
+RSK-GEN-03 & Data interfaces between sensing, control, and ground station are unclear. & 3 & 4 & Define data formats, timing, coordinate frames, and dependencies using the N2 chart. & Reduce autonomy and use a simplified supervised data path until resolved. & 2 & 3 & AT \\ \hline
+RSK-GEN-04 & Subsystem growth invalidates mass, power, cost, or energy budgets. & 4 & 4 & Maintain live subsystem budgets with margins and update them after each design change. & Reduce the mission envelope, reallocate budgets, or justify requirement relaxation. & 3 & 3 & JW \\ \hline
+
+\end{xltabular}
+\vspace{-20pt}
+\section{Risk Maps}
+In order to better visualize the risks in terms of probability and impact/consequence, the events are plotted in a risk map in \autoref{fig:tech_risk_maps}. By doing so, the relative severity of each risk can be assessed at a glance, allowing the team to identify which risks require the most urgent attention. Risks positioned in the upper-right region of the map combine high probability with high impact and therefore represent the most critical threats to the project. These risks require immediate mitigation actions and close monitoring throughout the design process. Conversely, risks located in the lower-left region have limited probability and/or limited impact, and can therefore be accepted more easily or monitored with less priority.\\
+
+The risk map also supports comparison between the situation before and after prevention and contingency measures are applied. In this way, the effectiveness of the proposed mitigation strategy can be evaluated by observing whether risks move toward lower-probability and lower-impact regions of the map.\\
+The comparison between the two maps shows that the mitigation strategy reduces most risks toward lower-probability and lower-impact regions. Several risks remain non-negligible after mitigation, especially those related to balloon interaction, post-contact controllability, subsystem budget growth, and mechanical or data interfaces. These risks require continued monitoring during later design phases because they are strongly coupled to the final system architecture and cannot be fully resolved at the baseline stage.
+\definecolor{riskgreenstrong}{RGB}{95,205,120}
+\definecolor{riskgreen}{RGB}{145,220,155}
+\definecolor{riskyellow}{RGB}{235,225,160}
+\definecolor{riskorange}{RGB}{235,190,135}
+\definecolor{riskred}{RGB}{230,155,155}
+\definecolor{riskredstrong}{RGB}{220,105,105}
+\definecolor{riskreddark}{RGB}{215,70,70}
+% ---------- 5x5 risk map background ----------
+% ---------- 5x5 risk map background ----------
+\newcommand{\RiskMapFive}[1]{%
+    % Background colours
+    % I = 1
+      \fill[riskgreenstrong] (0,0) rectangle (1,1);
+    \fill[riskgreen]       (1,0) rectangle (2,1);
+    \fill[riskgreen]       (2,0) rectangle (3,1);
+    \fill[riskyellow]      (3,0) rectangle (4,1);
+    \fill[riskorange]      (4,0) rectangle (5,1);
+
+    % I = 2
+    \fill[riskgreen]       (0,1) rectangle (1,2);
+    \fill[riskgreen]       (1,1) rectangle (2,2);
+    \fill[riskyellow]      (2,1) rectangle (3,2);
+    \fill[riskorange]      (3,1) rectangle (4,2);
+    \fill[riskorange]      (4,1) rectangle (5,2);
+
+    % I = 3
+    \fill[riskgreen]       (0,2) rectangle (1,3);
+    \fill[riskyellow]      (1,2) rectangle (2,3);
+    \fill[riskorange]      (2,2) rectangle (3,3);
+    \fill[riskorange]      (3,2) rectangle (4,3);
+    \fill[riskred]         (4,2) rectangle (5,3);
+
+    % I = 4
+    \fill[riskyellow]      (0,3) rectangle (1,4);
+    \fill[riskorange]      (1,3) rectangle (2,4);
+    \fill[riskorange]      (2,3) rectangle (3,4);
+    \fill[riskred]         (3,3) rectangle (4,4);
+    \fill[riskredstrong]   (4,3) rectangle (5,4);
+
+    % I = 5
+    \fill[riskorange]      (0,4) rectangle (1,5);
+    \fill[riskorange]      (1,4) rectangle (2,5);
+    \fill[riskred]         (2,4) rectangle (3,5);
+    \fill[riskredstrong]   (3,4) rectangle (4,5);
+    \fill[riskreddark]     (4,4) rectangle (5,5);
+
+    % Grid
+    \draw[black, thick] (0,0) rectangle (5,5);
+    \foreach \x in {1,2,3,4} {
+        \draw[black, thin] (\x,0) -- (\x,5);
+    }
+    \foreach \y in {1,2,3,4} {
+        \draw[black, thin] (0,\y) -- (5,\y);
+    }
+
+    % Axes
+    \draw[-{Stealth[length=2.6mm]}, thick] (0,0) -- (5.1,0);
+    \draw[-{Stealth[length=2.6mm]}, thick] (0,0) -- (0,5.1);
+
+    % Tick labels
+    \foreach \x/\lab in {0.5/1,1.5/2,2.5/3,3.5/4,4.5/5} {
+        \node[below=3pt, font=\fontsize{9.0}{10.0}\selectfont] at (\x,0) {\lab};
+    }
+    \foreach \y/\lab in {0.5/1,1.5/2,2.5/3,3.5/4,4.5/5} {
+        \node[left=3pt, font=\fontsize{9.0}{10.0}\selectfont] at (0,\y) {\lab};
+    }
+
+    % Axis labels
+    \node[below=11pt, font=\fontsize{9.0}{10.0}\selectfont] at (2.5,0) {Probability};
+    \node[rotate=90, left=15pt, font=\fontsize{9.0}{10.0}\selectfont] at (0,3.3) {Impact};
+
+    % Title
+    \node[font=\fontsize{10.0}{12.0}\selectfont\bfseries] at (2.5,5.1) {#1};
+}
+\begin{figure}[H]
+\vspace{-12pt}
+\centering
+
+% ---------------- BEFORE ----------------
+\begin{minipage}{0.47\linewidth}
+\centering
+\begin{tikzpicture}[
+    x=1.45cm,
+    y=1.95cm,
+    risklabel/.style={
+        align=center,
+        font=\fontsize{6.6}{7.6}\selectfont,
+        text width=2.05cm,
+        inner sep=1.5pt
+    },
+    risklabeldense/.style={
+        align=center,
+        font=\fontsize{6.0}{7.0}\selectfont,
+        text width=2.08cm,
+        inner sep=1.5pt
+    }
+]
+\hspace*{-0.45cm}
+
+\RiskMapFive{Before mitigation}
+
+% (P=1, I=2)
+\node[risklabel] at (0.5,1.5)
+{RSK-BID-03};
+
+% (P=2, I=2)
+\node[risklabel] at (1.5,1.5)
+{RSK-SMS-05\\RSK-SCE-05};
+
+% (P=3, I=2)
+\node[risklabel] at (2.5,1.5)
+{RSK-SCE-02};
+
+% (P=4, I=2)
+\node[risklabel] at (3.5,1.5)
+{RSK-SMS-03\\RSK-OGS-03};
+
+% (P=2, I=3)
+\node[risklabeldense] at (1.5,2.5)
+{RSK-SMS-04\\RSK-SCE-03\\RSK-OGS-01\\RSK-OGS-02\\RSK-GEN-01};
+
+% (P=3, I=3)
+\node[risklabel] at (2.5,2.5)
+{RSK-PPA-02};
+
+% (P=4, I=3)
+\node[risklabel] at (3.5,2.5)
+{RSK-SCE-01\\RSK-SCE-04};
+
+% (P=2, I=4)
+\node[risklabel] at (1.5,3.5)
+{RSK-SMS-01};
+
+% (P=3, I=4)
+\node[risklabel] at (2.5,3.5)
+{RSK-BID-02\\RSK-GEN-02\\RSK-GEN-03};
+
+% (P=4, I=4)
+\node[risklabel] at (3.5,3.5)
+{RSK-GEN-04};
+
+% (P=5, I=4)
+\node[risklabel] at (4.5,3.5)
+{RSK-SMS-02};
+
+% (P=2, I=5)
+\node[risklabel] at (1.5,4.5)
+{RSK-BID-01\\RSK-PPA-03};
+
+% (P=3, I=5)
+\node[risklabel] at (2.5,4.5)
+{RSK-PPA-01};
+
+\end{tikzpicture}
+\end{minipage}
+% ---------------- AFTER ----------------
+\begin{minipage}{0.47\linewidth}
+\centering
+\begin{tikzpicture}[
+    x=1.45cm,
+    y=1.95cm,
+    risklabel/.style={
+        align=center,
+        font=\fontsize{6.6}{7.6}\selectfont,
+        text width=2.05cm,
+        inner sep=1.5pt
+    },
+    risklabeldense/.style={
+        align=center,
+        font=\fontsize{6.0}{7.0}\selectfont,
+        text width=2.08cm,
+        inner sep=1.5pt
+    }
+]
+
+\RiskMapFive{After mitigation}
+
+% (Pr=1, Ir=1)
+\node[risklabel] at (0.5,0.5)
+{RSK-BID-03};
+
+% (Pr=1, Ir=2)
+\node[risklabel] at (0.5,1.5)
+{RSK-SMS-04\\RSK-SMS-05\\RSK-SCE-03\\RSK-SCE-05};
+
+% (Pr=2, Ir=2)
+\node[risklabeldense] at (1.5,1.5)
+{RSK-SMS-03\\RSK-SCE-01\\RSK-SCE-02\\RSK-SCE-04\\RSK-OGS-01\\RSK-OGS-02\\RSK-OGS-03\\RSK-GEN-01};
+
+% (Pr=2, Ir=3)
+\node[risklabeldense] at (1.5,2.5)
+{RSK-SMS-01\\RSK-SMS-02\\RSK-PPA-01\\RSK-PPA-02\\RSK-PPA-03\\RSK-GEN-02\\RSK-GEN-03};
+
+% (Pr=3, Ir=3)
+\node[risklabel] at (2.5,2.5)
+{RSK-BID-02\\RSK-GEN-04};
+
+% (Pr=1, Ir=4)
+\node[risklabel] at (0.5,3.5)
+{RSK-BID-01};
+
+\end{tikzpicture}
+\end{minipage}
+
+\vspace{-8pt}
+\caption{Technical risk maps before and after prevention and contingency measures}
+\label{fig:tech_risk_maps}
+\end{figure}
+
+\vspace{-10pt}
+\section{Changelog}
+\label{sec:Risk_Changelog}
+
+{\large \textbf{Last updated: 01/05/2026}}
+
+Future additions/removals/updates to the risk register and risk maps will be documented in this section. 

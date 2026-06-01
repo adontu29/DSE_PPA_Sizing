@@ -1,0 +1,721 @@
+                                                                                  document
+                                                                                  issue      10
+                                                                                  date       April 2024
+                                                                                  page       1
+
+
+
+
+                                       Deliverable Item Description
+1. TITLE                                                                                             2.
+                                                                                                     IDENTIFICATION
+
+                                                                                                     DID-1
+The Project Plan
+
+3. DESCRIPTION
+The purpose of the Project Plan is to define the group's overall approach to the technical and management
+aspects of the design project. The document provides a complete roadmap of how the group plans to
+accomplish all the necessary tasks to prepare the design. It represents a commitment by the group for work to
+be accomplished on the Project. The customer does not want a detailed discussion of a particular design
+approach, but the approach that shows how the design will be developed through studies, trade-offs, reviews
+and analysis.
+
+The maximum number of pages is 25 everything included, and is specified by the OSCC.
+
+For large logical diagrams, you are allowed to include A3 pages in you report:
+- 2 for the Work Flow Diagram
+- 2 for the Work Breakdown Structure
+- 2 for the Gantt Chart
+Each A3 page counts as 1 page towards the page limit. These are specifically to be used for their deliverables,
+and can not be “traded” to be used elsewhere.
+
+
+4. LAST UPDATE                                                   5. CONFIGURATION CONTROL
+                              April 7, 2020                                       OSCC (J. Sinke)
+6. APPLICATION/INTERRELATIONSHIP
+Submittal of this document shall be in the form of a concise written explanation of exactly what you are
+committing to deliver and how you intend to fulfil that commitment.
+
+7. PREPARATION INSTRUCTIONS
+The Project Plan must show that the group understands the requirements. It has to present a flow of activities
+that eventually will result in a product that meets these requirements. The plan must explicitly state what
+services are to be performed at what moments in time and what will be delivered (i.e., briefings, reports, etc.).
+
+    The plan will be evaluated on quality, not quantity. All written pages must be typewritten. The plan format
+is as follows:
+
+Title Page
+Table of Contents
+General Summary
+●          User Requirements
+●          Description of the entire system (the Global Picture)
+Technical Design Development
+●          Organisational Breakdown Structure (organogram with the responsibilities of the various group
+members); clear distinction between organisational and technical roles (each project member should have at
+least one of each category)
+●          Project logic diagrams (activity flow, phases, milestones, schedule) including explanations in text
+        Work Flow Diagram (WFD)
+        Work Breakdown Structure (WBS)
+        Schedule (Gantt chart) of the OS design project, indicating the project phasing and the planning for the
+         delivery of the items; it should be detailed up to the Midterm Review, and defined in global terms after
+         that
+                                                                            document
+                                                                            issue      10
+                                                                            date       April 2024
+                                                                            page       2
+
+
+
+
+Project rules (internal/external meetings, day-to-day organisation, etc.)
+Organisational risk assessment
+Project Approach with respect to sustainable development (not technical!)
+References
+Appendices
+
+●     Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+●     Format: [Group#]_[Group_name]_ProjectPlan_draft/final.pdf,
+●     Layout: adhere to TUDelft 'huisstijl' - www.huisstijl.tudelft.nl
+                                                                                       document
+                                                                                       issue      10
+                                                                                       date       April 2024
+                                                                                       page       3
+
+
+
+
+                                         Deliverable Item Description
+1. TITLE                                                                                              2. IDENTIFICATION
+
+                                                                                                      DID-2
+Status Meeting
+
+3. DESCRIPTION
+The purpose of a Status Meeting (also called Status Review) is to provide the Principal Tutors and project
+coaches with your progress to date. Your tutor will request informal status meetings periodically
+throughout the project, at least once a week.
+
+4. APPROVAL DATE                                            5. CONFIUGRATION CONTROL
+                         April 7, 2020                                           OSCC (J. Sinke)
+6. APPLICATION/INTERRELATIONSHIP
+●    The weekly status meetings will be held according to a predetermined schedule
+●    Additional Status Meetings will be held within 24 hours after a request by the tutor.
+●    Each status meeting has an agenda and minutes will be made (including action items)
+●    All agendas and minutes are archived
+
+7. PREPARATION INSTRUCTIONS
+The Status Reviews will be informal briefings. As a minimum, they should include:
+
+●                    Review of the minutes of the previous meeting
+●                    Management Control System Status
+●                    Status of Technical Tasks
+●                    Problem areas, critical areas
+●                    Action Item Status
+
+The status reviews shall have minutes, made by a project team member and distributed to the coaches and team,
+at the latest one day after the status meeting
+An agenda will be send one day prior to the meeting to all intended attendees.
+Organisation is in the hands of the project group.
+                                                                                   document
+                                                                                   issue      10
+                                                                                   date       April 2024
+                                                                                   page       4
+
+
+
+
+                                        Deliverable Item Description
+1. TITLE                                                                                          2. IDENTIFICATION
+
+                                                                                                  DID-3
+Project Logbook
+
+3. DESCRIPTION
+The Project Logbook is an expanding document that records the group's project history. The purpose of the
+book is to provide a record of all relevant project information.
+
+4. APPROVAL DATE                                        5. CONFIUGRATION CONTROL
+                        April 7, 2020                                         OSCC (J. Sinke)
+6. APPLICATION/INTERRELATIONSHIP
+A copy of all relevant information should be available to anyone of the project (team member, tutor, coaches)
+and OSCC.
+
+7. PREPARATION INSTRUCTIONS
+You have to designate a team member to be in charge of posting current information in it as the project
+progresses, so it will serve as a source of information for all group members, your tutors and coaches, and the
+OSCC.
+
+How to deliver the logbook is to be agreed upon with the tutor. The Project Logbook should at least contain:
+
+Title Page
+Table of Contents
+Schedule
+Review Slides
+Minutes of Status Meetings
+Action Items
+Decisions and justifications
+Minutes of Key internal meetings
+Etc
+
+Dividers should separate major sections and the book has to be maintained (i.e. have the most current
+information) for the whole project.
+
+To reduce unnecessary copying and to aid in the communication between the team members, it is also
+possible to keep your logbook electronically on a shared directory. An index file (named INDEX) should be
+maintained to list all files in the directory with a short description of what the file includes.
+                                                                                 document
+                                                                                 issue      10
+                                                                                 date       April 2024
+                                                                                 page       5
+
+
+
+
+                                         Deliverable Item Description
+1. TITLE                                                                                         2. IDENTIFICATION
+
+                                                                                                 DID-4
+Personal Appendix
+3. DESCRIPTION
+The purpose of the Personal Appendices is to provide the tutor and coaches with feedback about the design and
+the team process to enable them a comparison with their observations, but also to identify deficiencies in the
+organisation or the project coaching or definition.
+
+
+4. APPROVAL DATE                                          5. CONFIGURATION CONTROL
+                         April 7, 2020                                          OSCC (J. Sinke)
+6. APPLICATION/INTERRELATIONSHIP
+A copy shall be made available to the principal tutor, the coaches and the OSCC at the moment of
+handing in the Draft Mid Term report and the Draft Final Report.
+
+7. PREPARATION INSTRUCTIONS
+Each person briefly explains on 1-2 page(s) A4 his/her activities and gives a personal impression about
+his/her expectations of the DSE, his/her functioning, the project, the team, the cooperation, the
+organisation, the staff, etc.
+
+Write down your expectations and learning objectives in week 1 of the DSE, and review this at midterm
+and final. Any discrepancy should be briefly discussed and (at midterm) new goals/objectives be set.
+                                                                                      document
+                                                                                      issue      10
+                                                                                      date       April 2024
+                                                                                      page       6
+
+
+
+
+                                     Deliverable Item Description
+1. TITLE                                                                                             2. IDENTIFICATION
+
+                                                                                                     DID-5
+Baseline Review
+
+3. DESCRIPTION
+The purpose of the Baseline Requirements Review is to provide the principal tutor, coaches, and any other invited
+guests with a formal briefing on the planning phase and the technical requirements for your project.
+
+The briefing should include the Project Plan, the requirements analysis, the Design Options tree(s), and selected
+concepts entering the trade-off (to be done in the Midterm Phase).
+
+4. APPROVAL DATE                                           5. CONFIGURATION CONTROL
+                        April 12, 2018                                 OSCC (E. Mooij/W. Verhagen)
+6. APPLICATION/INTERRELATIONSHIP
+The Baseline Requirements Review will be presented in a one-hour session. It should contain information on the
+project planning phase and the technical requirements analysis.
+
+7. PREPARATION INSTRUCTIONS
+You should plan to brief for no more than one hour and leave half an hour for questions and discussion. You
+should assume that your audience is familiar with the details of the project.
+
+You should submit an agenda for this review 1 week beforehand, and invite
+(external/internal) guests when appropriate.
+
+Not all project members have to present; it is advised to give students the opportunity to present when they are
+not comfortable to do so, but do want to learn and gain experience.
+                                                                                   document
+                                                                                   issue       10
+                                                                                   date        April 2024
+                                                                                   page        7
+
+
+
+
+                                         Deliverable Item Description
+1. TITLE                                                                                             2. IDENTIFICATION
+
+                                                                                                     DID-6
+Baseline Report
+
+3. DESCRIPTION
+The Baseline Report includes the Requirements Analysis to review and analyse the top-level (user) requirements in
+combination with a flowdown in mission and system requirements. The document should give a clear picture about
+all applicable requirements and identify the driving and any killer requirements.
+
+The Baseline Report is a Technical Design Report.
+
+Your group may define the format of the report, fitting in the template ("huisstijl") of TU Delft.
+The maximum number of pages is 50 everything included, and is specified by the OSCC.
+
+For large logical diagrams, you are allowed to include A3 pages in you report:
+- 2 for the Functional Flow Diagram
+- 1 for the Functional Breakdown Structure
+- 1 for the Design Option Tree(s)
+- 1 for the Requirements Discovery Tree
+Each A3 page counts as 1 page towards the page limit. These are specifically to be used for their deliverables, and
+can not be “traded” to be used elsewhere.
+
+
+The report is a stand-alone document.
+
+4. APPROVAL DATE                                                  5. CONFIGURATION CONTROL
+                              April 12, 2018                                 OSCC (E.Mooij/W. Verhagen)
+6. APPLICATION/INTERRELATIONSHIP
+The Technical Design Report is a “living” document that reflects the current state of the project design.
+
+
+7. PREPARATION INSTRUCTIONS
+The engineering information to be included in this document is in part given by the deliverable items in the table in
+Section 2.5. In addition, the report should include:
+
+1.   Executive Overview (3 pages min, 10 pages, max)
+2.   Project Objectives
+3.   Requirements and Constraints;
+a.   The Requirements Specification must clearly demonstrate that the group understands the user requirements,
+and identify which requirements will drive the actual design of the product to be developed
+b.   From the User Requirements the System and Mission Requirements should be derived, and potential sub-
+system requirements that have an effect on the design options at system level
+4.   Given the User Requirements, a (set of) Design Option Tree(s) with all potential solutions should be provided;
+from this the design options for the Midterm Phase are selected.
+5.   Level of detail of concepts discussion should be sufficient to understand the choices made
+
+
+● Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+● Format: [Group#]_[Group_name]_BaselineReport_draft/final.pdf
+● Layout: adhere to TUDelft 'huisstijl' - www.huisstijl.tudelft.nl
+                                                                                      document
+                                                                                      issue      10
+                                                                                      date       April 2024
+                                                                                      page       8
+
+
+
+
+                                     Deliverable Item Description
+1. TITLE                                                                                             2. IDENTIFICATION
+
+                                                                                                     DID-7
+Mid-Term Review
+
+3. DESCRIPTION
+The purpose of the Mid Term Review is to provide the principal tutor, coaches, members of the faculty, and other
+invited guests with a formal briefing on the progress of your project.
+
+The briefing should include your Project Plan, the key requirements, the design options tree, the ranking of the
+options with trade-off background, thereby showing that a system-engineering approach has been followed
+
+4. APPROVAL DATE                                           5. CONFIGURATION CONTROL
+                        April 12, 2018                                  OSCC (E.Mooij/W. Verhagen)
+6. APPLICATION/INTERRELATIONSHIP
+The Mid Term Review will be presented during a two-hour session (= 1.5 hour + 15 min break). It should contain
+information on the progress that has been achieved to date.
+
+7. PREPARATION INSTRUCTIONS
+You should plan to brief for no more than one hour and leave half an hour for questions and discussion. You
+should assume that your audience is unfamiliar with the details of the Project and your progress to date (assume
+your audience is not familiar with the Design Exercise).
+
+You should submit an agenda for this review 1 week beforehand, and invite
+(external/internal) guests when appropriate.
+
+Each of the students shall present a more or less equal part of the work.
+                                                                                   document
+                                                                                   issue       10
+                                                                                   date        April 2024
+                                                                                   page        9
+
+
+
+
+                                         Deliverable Item Description
+1. TITLE                                                                                               2. IDENTIFICATION
+
+                                                                                                       DID-8
+Midterm Report
+
+3. DESCRIPTION
+The Midterm Report describes the results of the analysis and design activities that the group performed that leads
+to the selected concept entering the detailed design phase. It is motivated that the selected concept will work and
+meets requirements. It should contain all necessary technical details associated with the Design Exercise.
+
+Your group may define the format of the report, fitting in the template ("huisstijl") of TU Delft.
+The maximum number of pages is 75 everything included, and specified by the OSCC.
+
+For large logical diagrams, you are allowed to include A3 pages in you report:
+- 2 for the Work Flow Diagram
+- 2 for the Work Breakdown Structure
+- 2 for the Gantt Chart
+- 1 for the Design Option Tree
+Each A3 page counts as 1 page towards the page limit. These are specifically to be used for their deliverables, and
+can not be “traded” to be used elsewhere.
+
+
+The report is a stand-alone document.
+
+
+4. APPROVAL DATE                                                  5. CONFIGURATION CONTROL
+                              April 7, 2020                                          OSCC (J. Sinke)
+6. APPLICATION/INTERRELATIONSHIP
+The Technical Design Report is a “living” document that reflects the current state of the project design.
+
+7. PREPARATION INSTRUCTIONS
+The engineering information to be included in this document are in part given by the deliverable items in the table
+in Section 2.5. In addition, the report should include:
+
+1.   Executive Overview (3 pages min, 10 pages, max)
+2.   Project Objectives
+3.   All concepts considered for the trade off, with a balanced analysis for a fair trade off
+4.   Engineering Design and Analysis of the Aerospace vehicle (or component thereof) and its major components or
+subsystems, to a sufficient level of detail, to be agreed upon by the Principal Tutor and in light of the design phase.
+
+● Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+● Format: [Group#]_[Group_name]_MidtermReport_draft/final.pdf
+● Layout: adhere to TUDelft 'huisstijl' - www.huisstijl.tudelft.nl
+                                                                                       document
+                                                                                       issue      10
+                                                                                       date       April 2024
+                                                                                       page       10
+
+
+
+
+                                     Deliverable Item Description
+1. TITLE                                                                                           2. IDENTIFICATION
+
+                                                                                                   DID-9
+Final Review
+
+3. DESCRIPTION
+The purpose of the Final Review is to provide the principal tutor, coaches, members of the faculty, and other
+invited guests with a complete and formal briefing on your project
+
+The briefing should include a wrap-up of the development process and results up till the Mid-Term Review,
+followed by the details and the design justifications of the finally selected concept, and a statement of compliance
+with the requirements.
+
+4. APPROVAL DATE                                            5. CONFIGURATION CONTROL
+                        April 12, 2018                                  OSCC (E. Mooij/W. Verhagen)
+6. APPLICATION/INTERRELATIONSHIP
+The Final Review will be presented and discussed during a two-hour session (= 1.5 hr + 15 min break).
+
+7. PREPARATION INSTRUCTIONS
+This Final Review is equivalent to a final exam for this Design Exercise. You should strive to make it perfect!
+You should plan to brief for approximately one hour and leave half an hour for questions and discussion. You
+should assume that your audience is unfamiliar with the details of the project (assume your audience is not
+familiar with the Design Exercise).
+
+You should submit an agenda for this review 1 week beforehand, and invite
+(external/internal) guests when appropriate.
+
+Each of the students should present a more or less equal part of the work.
+                                                                                    document
+                                                                                    issue       10
+                                                                                    date        April 2024
+                                                                                    page        11
+
+
+
+
+                                         Deliverable Item Description
+1. TITLE                                                                                                 2. IDENTIFICATION
+
+                                                                                                         DID-10
+Final Report
+
+3. DESCRIPTION
+The last part of the Design Synthesis Exercise requires the construction of a Final Report. For uniformity and
+consistency, some strict rules apply to channel the flow.
+
+4. APPROVAL DATE                                                   5. CONFIGURATION CONTROL
+                              April 12, 2018                                OSCC (E. Mooij/W. Verhagen)
+6. APPLICATION/INTERRELATIONSHIP
+
+The final report is a standalone report and must besides covering the detailed design phase give a proper
+introduction to the project, as well as a brief summary of the phases leading to the detailed design. It is advised to
+have the same layout/description per sub-system chapter
+7. PREPARATION INSTRUCTIONS
+
+
+The engineering information to be included in this document is in part given by the deliverable items in the table
+in Section 2.5. In addition, the report should include:
+
+
+1.   Executive Overview (3 pages min, 10 pages max)
+2.   Project Objectives
+3.   At least the User Requirements and Constraints;
+4.   Sub-System requirements to which you are designing
+5.   Summary of trade-off and detailed design of final concept
+6.   Engineering Design and Analysis of the Aerospace vehicle (or component thereof) and its major components
+or subsystems, to a sufficient level of detail, to be agreed upon by the Principal Tutor and in light of the design
+phase
+
+The requirements for the report formatting are simple:
+●                  150 pages in total - front-page and appendices included (specified by OSCC).
+●                  You are allowed to use 5 A3 pages for large logical diagrams. These pages cannot contain any
+text and shall only contain diagrams. Each A3 page counts as 1 page towards the page limit.
+●                  Upload in deliverables folder (network share) with front page in full color
+●                  Include a white page after front page
+●                  The report is delivered in pdf; full color is allowed
+●                  No alterations allowed after the deadline
+●                  Deadline of handing in the report is mentioned earlier in this project guide, and will be announced
+via the OSSAs, as posted on Brightspace
+
+The reports will no longer be printed. If you want a hardcopy, you should personally take care of this
+
+●    Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+●    Format: [Group#]_[Group_name]_FinalReport_draft/final.pdf
+●    Layout: adhere to TUDelft 'huisstijl' - www.huisstijl.tudelft.nl
+                                                                                       document
+                                                                                       issue      10
+                                                                                       date       April 2024
+                                                                                       page       12
+
+
+
+
+                                      Deliverable Item Description
+1. TITLE                                                                                          2. IDENTIFICATION
+
+                                                                                                  DID-11
+Jury Summary
+
+3. DESCRIPTION
+The purpose of the jury summary is to inform the members of the jury up front about the topics of the
+presentation
+
+4. APPROVAL DATE                                            5. CONFIGURATION CONTROL
+                         22-June-12                                            OSCC (J.A. Melkert)
+6. APPLICATION/INTERRELATIONSHIP
+
+
+The OSSA will inform the students on the deadline during the exercise. It must be ready three to two
+weeks before the symposium. The deadline will be confirmed on Brightspace.
+
+7. PREPARATION INSTRUCTIONS
+●                 Write a summary about your project
+●                 The title must contain your group number and title of your project
+●                 The summary may have a maximum size of 1 page A4 (including picture), font Times New
+Roman, font size 12 pt
+●                 The summary should describe the mission of your design project and the outcome
+●                 It must show the work performed at the moment of the writing of the summary as well as an
+outlook into what will be achieved during the last couple of weeks of the exercise
+●                 The summary may contain 1 picture
+●                 The summary must be put in the deliverables folder on the network-drive before the deadline
+
+
+●                    Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+●                    Format: [Group#]_[Group_name]_JurySummary.pdf
+                                                                                       document
+                                                                                       issue      10
+                                                                                       date       April 2024
+                                                                                       page       13
+
+
+
+
+                                     Deliverable Item Description
+1. TITLE                                                                                           2. IDENTIFICATION
+
+                                                                                                   DID-12
+Poster
+
+3. DESCRIPTION
+The purpose of the poster is to give an impression of the project during the symposium.
+
+4. APPROVAL DATE                                            5. CONFIGURATION CONTROL
+                        April 7 , 2020                                           OSCC (J. Sinke)
+6. APPLICATION/INTERRELATIONSHIP
+
+
+The OSSA will inform the students on the deadline during the exercise. It must be ready roughly one week
+before the end of the exercise since it will be presented at the symposium day.
+
+7. PREPARATION INSTRUCTIONS
+●                First take a look at the examples (digital on Brightspace or at the various floors, e.g. 6-9)
+●                The format to be used is pdf
+●                The size is A1 (59.4 x 84.1 cm)
+●                Both portrait and landscape orientation are allowed
+●                The poster will be printed in full color (CMYK)
+●                All text should be English (GB or US)
+●                Use at least ten lines of text to explain your design (no all-picture posters!)
+●                If you add the group member names, use the same format for all names
+●                Do not use a font for group members larger than 0.8 cm (28 pt)
+●                Do not include student registration numbers
+●                For the title use a font of about 4 cm (160 pt)
+●                Do not include a group number or room number
+●                Use of the university house style is mandatory.
+●                Include: "Design Synthesis Exercise 20xx" using Arial Black, 28 pt, black or white
+●                Position this line at the bottom left corner (use similar margins as with the university logo, e.g.
+3 cm from sides)
+●                Do not include a date or time
+●                Use your own pictures, or at least no pictures with copyrights on them
+●                The poster must be approved by your Principal Tutor before it is passed on to the OSSAs for
+printing
+
+●               Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+●               Format: [Group#]_[Group_name]_Poster.pdf
+●               Layout: adhere to TUDelft 'huisstijl' - see https://www.tudelft.nl/en/tu-delft-corporate-design.
+See examples and additional input on Brightspace.
+                                                                                       document
+                                                                                       issue      10
+                                                                                       date       April 2024
+                                                                                       page       14
+
+
+
+
+                                     Deliverable Item Description
+1. TITLE                                                                                           2. IDENTIFICATION
+
+                                                                                                   DID-13
+Final Presentation Symposium
+
+3. DESCRIPTION
+The purpose of the Final Presentation on the Symposium Day is to provide any students, faculty staff
+members and other invited guests with a complete (but short) presentation about your project.
+
+4. APPROVAL DATE                                            5. CONFIGURATION CONTROL
+                        April 10, 2017                                         OSCC (J.A. Melkert)
+6. APPLICATION/INTERRELATIONSHIP
+Your Final Presentation will be on the DSE Symposium Day.
+
+
+7. PREPARATION INSTRUCTIONS
+You should plan to brief for no more than 25 minutes and leave 10 minutes for questions and discussion. With the
+presentation you should aim for a level suitable for your fellow 3rd year students.
+
+No audio effects are allowed during the presentation.
+The TU Delft home-style PowerPoint templates must be used.
+No dynamic presentation tools such as Prezzi are allowed
+The desktop computers in the lecture rooms must be used.
+
+An international jury of experts will judge your presentation on the following aspects:
+1. technical content (35%)
+2. design content (35%)
+3. presentation (20%)
+4. sustainability approach (10%)
+
+A further instruction will be given shortly before the symposium .
+                                                                                     document
+                                                                                     issue      10
+                                                                                     date       April 2024
+                                                                                     page       15
+
+
+
+
+                                    Deliverable Item Description
+1. TITLE                                                                                        2. IDENTIFICATION
+
+                                                                                                DID-14
+Project Summary for the "Red Booklet"
+
+3. DESCRIPTION
+The purpose of the Project Summary is to inform the faculty staff, fellow students, faculty board, and interested
+(aerospace) companies about the global content of your design project. It should contain the most important
+technical details considering the design project. This summary is included in the "Red Booklet".
+
+4. APPROVAL DATE                                          5. CONFIGURATION CONTROL
+                       April 10, 2017                                        OSCC (J.A. Melkert)
+6. APPLICATION/INTERRELATIONSHIP
+The Project Summary is an informative summary of the Technical Design Report. Note that it is a separate
+deliverable from the Technical Design Report, and thus does not add to or replace any summary contained
+within the various deliverables associated with the Technical Design Report (i.e., the baseline, midterm and final
+reports). It will be submitted no later than the last day before the grading and the final presentation, i.e.
+halfway the last project week.
+
+
+7. PREPARATION INSTRUCTIONS
+
+The Project Summary shall be limited to 8 pages, all-inclusive. All pages must be typewritten.
+
+The plan format is as follows:
+1)                Mission Statement, Objectives, and Design Requirements and Constraints;
+2)                Concepts studied and related trade-offs;
+3)                Details of selected concept including a 3-view drawing and a listing of the most important
+design parameters;
+4)                Conclusions and recommendations.
+
+The Project Summary shall be written in Word.
+
+Instructions for the Executive Summary
+
+• Start your executive summary with a list of participants and coaches, use full initials, no first names and no
+study numbers. Put the initials in front of the surnames. For the coaches indicate their title(s), for examples see
+previous issues of the book
+●                   Write your text in past tense
+• Do not apply any form of lay-out other than separation of sections and chapters by empty lines
+• Use Times New Roman 12 pt as the font for your text
+• Do not indent anywhere in the text
+• Separate sections (Dutch: alinea’s) by one blank line
+• Do not place pictures side by side
+• Do not place pictures in boxes
+• Pictures will be printed black and white, therefore no colour pictures are allowed in the executive summary.
+                                                                                   document
+                                                                                   issue        10
+                                                                                   date         April 2024
+                                                                                   page         16
+
+
+
+
+• Suggestions for full colour pictures for the front cover are welcome. Add them separately and indicate them
+clearly with this purpose. Make sure these pictures have a high resolution
+• Switch off the option “float over text” for all pictures
+• Put all pictures in the right location in the text. Add all pictures separately as JPG or TIF files with meaningful
+names, the resolution of these pictures must be 150 dpi or more
+• Do not put a border around the pictures
+• Do not lay out the text around pictures
+• Number pictures and tables: The numbering system is such that it starts with the chapter number. For your
+chapter number see below. For group one of the fall semester - DSE the chapter number is 2 so the numbering
+should be as follows: Figure 2.1, 2.2, Table 2.1, 2.2 etc. Use the same numbering for the sections you want to
+distinguish.
+●                   When you refer to a figure of a table in the text, do not use capitals: e.g. In figure 12.2 you
+can see and not: In Figure 12.2 you can see
+●                   The following division will be made for the chapters in the book:
+Fall semester DSE
+group chapter
+  1     2
+  2     3
+  3     4
+   Etc….
+Spring semester DSE
+Group chapter
+1                       next available chapter number (ask OSSAs)
+2                       Et cetera
+• Put the description of pictures and tables below the picture/table. Do not use caption or any other options of
+Word for doing so, just write the plain text. Do the same in the body text when you refer to a picture or table.
+Do not use the automatic referencing function! Please type the figure numbers by hand. Do not end the
+description with a full stop.
+• For tables use the table option in Word, do not make tables otherwise. Do not import tables as bitmaps or
+likewise.
+One level of section numbering is allowed. Use the same system as for the pictures/tables. E.g. group 1 makes
+chapter 2 of the book and numbers the sections as 2.1, 2.2 etc. Section numbering like 2.1.3.4.1 is not allowed!
+Maximum number of page is 8 using A4 size paper and Times New Roman font with 12 pt font size and single
+line spacing.
+Give a name and e-mail address of a contact person of the group to the student-assistants (OSSA) for further
+reference when necessary
+The executive summary will have to be checked by the Principal Tutor and thereafter submitted in electronic
+format to the OSSAs.
+All pages must be typewritten using Word. Do not copy text, table or figures from other software like Latex.
+When giving the combination of a numerical value and its unit separate them by a space: e.g. write: 24 mm and
+not 24mm. Do not put the units in between brackets: e.g. 24 mm and not 24 [mm]
+Do not use foot notes
+Do not use automated links to figure numbers
+
+
+
+●   Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+●   Format: [Group#]_[Group_name]_ExecSum.doc(x)
+Over the years, many printed examples became available. If you want to have a look at these - go to the DSE -
+library and there you can find the typical red books (A5 size) in the bookshelves.
+

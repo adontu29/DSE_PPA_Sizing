@@ -1,0 +1,988 @@
+\chapter{Trade-off Method}
+\label{chap:tradeoffmethods}
+
+The trade-off is carried out in order to select a conceptual design. They are compared using five main criteria: safety,
+performance, reliability, cost, and sustainability. Each criterion is
+scored on a 1-5 scale using the subcriteria defined in this chapter.
+The final concept score is the weighted sum of the five criterion
+scores.
+
+\section{Trade-off Criteria and Weight Factors}
+
+The trade-off criteria are derived from the driving requirements and from the main weaknesses identified during concept development. Criteria that are mandatory for all concepts, such as electric-only operation and non-pyrotechnic interaction, are treated as screening constraints rather than scored criteria. Criteria that differentiate the remaining concepts are included in the weighted trade-off. Certification and regulatory feasibility are included under the safety criterion, while manufacturability is contained in reliability and cost.
+
+{
+\small
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+\begin{longtable}{@{}p{0.25\textwidth} >{\centering\arraybackslash}p{0.08\textwidth} p{0.63\textwidth}@{}}
+\caption{Main criteria and weights used in the Midterm trade-off.}
+\label{tab:main_trade_weights} \\
+\toprule
+\textbf{Criterion} & \textbf{Weight} & \textbf{Reason for inclusion} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{Criterion} & \textbf{Weight} & \textbf{Reason for inclusion} \\
+\midrule
+\endhead
+
+\bottomrule
+\endfoot
+
+Safety & 0.25 & The system must not create additional hazards to people, aircraft, infrastructure, or the environment. \\
+Performance & 0.25 & The concept must reach, engage, control, and recover the balloon-payload system within the mission envelope. \\
+Reliability & 0.25 & The mission involves physical interaction with an uncertain, uncooperative target, so robustness and fault tolerance are essential. \\
+Cost & 0.15 & The system must remain a low-cost alternative to helicopter-based or military-style intervention. \\
+Sustainability & 0.10 & The mission must minimise waste, unrecovered material, energy demand, noise, and life-cycle impact. \\
+
+\end{longtable}
+}
+
+Safety, performance, and reliability receive the highest weights because
+failure in any of these areas can result in mission failure, regardless
+of cost. Cost receives a lower weight because all concepts are kept
+within a preliminary acceptable cost bracket. Sustainability receives the
+lowest numerical weight because several sustainability aspects are
+already enforced through mandatory screening, but it remains included to
+distinguish concepts that differ in consumables, energy use, noise,
+repairability, and recoverability.
+
+
+\section{Scoring Method}
+
+Each subcriterion or scoring item is scored from 1 to 5, where a higher
+score indicates better performance. The same scale is used for all
+concepts.
+
+\begin{table}[H]
+\centering
+\small
+\caption{General scoring scale used for all subcriteria.}
+\label{tab:scoring_scale}
+\begin{tabularx}{0.95\textwidth}{c X}
+\toprule
+\textbf{Score} & \textbf{Interpretation} \\
+\midrule
+1 & Very poor: major requirement conflict, severe feasibility issue, or unacceptable operational risk. \\
+2 & Weak: possible in principle, but with major limitations, high uncertainty, or high implementation risk. \\
+3 & Acceptable: feasible at concept level, but with clear drawbacks or unresolved risks. \\
+4 & Good: satisfies the criterion with manageable risk and credible design logic. \\
+5 & Excellent: clearly satisfies the criterion and provides a strong advantage over alternatives. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Within each main criterion, local subcriterion weights are used to obtain
+one criterion score per concept. Since the main
+criterion weights sum to 1.00, the final score remains on a 1-5 scale.
+
+
+
+
+
+\section{Subcriteria}
+
+\subsection{Safety}
+
+The safety criterion assesses whether a concept removes the balloon
+hazard without creating larger risks to people, aircraft,
+infrastructure, the payload, or the recovery crew. The local safety
+subcriteria and weights are summarised in \autoref{tab:safety_subcriteria_weights};
+the resulting concept scores are given in \autoref{safety_ranking_tradeoff}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Safety subcriteria and local weights.}
+\label{tab:safety_subcriteria_weights}
+\begin{tabularx}{\textwidth}{p{0.2\textwidth} c X}
+\toprule
+\textbf{Subcriterion} & \textbf{Weight} & \textbf{Scoring basis} \\
+\midrule
+Ground/public risk & 3 & Descent and ascent safety, wind-gust tolerance, contact safety, payload integrity, and detached-debris risk. \\
+Redundancy & 1 & Ability to remain safe after propulsion or communications failure. \\
+Operations & 2 & Abort capability, launch and landing safety, and added airspace exposure from nets, tethers, or low-visibility hardware. \\
+Certifiability & 3 & Feasibility of certifying the aerial platform and the balloon-interaction mechanism for supervised civilian-airspace operation. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+
+\definecolor{good}{HTML}{99FF99}
+\definecolor{mid}{HTML}{FFFF99}
+\definecolor{bad}{HTML}{FF9999}
+
+{
+\tiny
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{1.45}
+\newcommand{\safcell}[2]{\cellcolor{#1}\parbox[t]{\linewidth}{\raggedright #2}}
+
+\begin{longtable}{|p{0.16\textwidth}|*{5}{>{\raggedright\arraybackslash}p{0.148\textwidth}|}}
+\caption{Trade-off Analysis: Justifications per Concept per Category}
+\label{safety_ranking_tradeoff} \\
+\hline
+\diagbox[width=0.16\textwidth, height=0.5cm]{\textbf{Criteria}}{\textbf{Designs}}
+  & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} \\ \hline
+\endfirsthead
+
+\hline
+\diagbox[width=0.16\textwidth, height=0.5cm]{\textbf{Criteria}}{\textbf{Designs}}
+  & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} \\ \hline
+\endhead
+
+\hline
+\endfoot
+
+% Section 1
+\textbf{Ground/Public Risk}
+  & \safcell{mid}{\textbf{3.8}: Strong overall safety performance.}
+  & \safcell{mid}{\textbf{3.2}: Moderate safety in all stages, wind/contact concerns.}
+  & \safcell{bad}{\textbf{2.2}: Weak safety margins and payload integrity.}
+  & \safcell{bad}{\textbf{2.7}: Elevated operational and debris risks.}
+  & \safcell{mid}{\textbf{3.8}: Strong contact safety and balanced robustness.} \\ \hline
+\hspace{4pt} 1A. Descent Safety    & 5.0 & 3.0 & 2.0 & 3.0 & 4.0 \\ \hline
+\hspace{4pt} 1B. Ascent Safety     & 3.0 & 4.0 & 4.0 & 2.0 & 4.0 \\ \hline
+\hspace{4pt} 1C. Wind Gust Safety  & 3.0 & 2.0 & 2.0 & 2.0 & 3.0 \\ \hline
+\hspace{4pt} 1D. Contact Safety    & 4.0 & 2.0 & 2.0 & 3.0 & 5.0 \\ \hline
+\hspace{4pt} 1E. Payload Integrity & 4.0 & 4.0 & 1.0 & 4.0 & 4.0 \\ \hline
+\hspace{4pt} 1F. Debris Risk       & 4.0 & 4.0 & 2.0 & 2.0 & 3.0 \\ \hline
+
+% Section 2
+\textbf{Redundancy}
+  & \safcell{good}{\textbf{4.5}: Excellent resilience to failures.}
+  & \safcell{bad}{\textbf{2.5}: Limited tolerance to communication failure, risk of motors failure high.}
+  & \safcell{good}{\textbf{4.5}: High redundancy and communication resilience.}
+  & \safcell{bad}{\textbf{2.5}: Minimal redundancy across systems.}
+  & \safcell{good}{\textbf{4.5}: Strong robustness to subsystem failures.} \\ \hline
+\hspace{4pt} 2A. Single Motor Failure     & 4.0 & 3.0 & 4.0 & 3.0 & 4.0 \\ \hline
+\hspace{4pt} 2B. Comms. Failure   & 5.0 & 2.0 & 5.0 & 2.0 & 5.0 \\ \hline
+
+% Section 3
+\textbf{Operations}
+  & \safcell{good}{\textbf{4.5}: Excellent operational flexibility and safety.}
+  & \safcell{bad}{\textbf{2.8}: Weak abort and landing performance.}
+  & \safcell{mid}{\textbf{3.3}: Balanced operational capability.}
+  & \safcell{bad}{\textbf{2.8}: Limited airspace and abort performance.}
+  & \safcell{good}{\textbf{4.3}: Strong operational safety and recovery.} \\ \hline
+\hspace{4pt} 3A. Abort Capability & 5.0 & 2.0 & 3.0 & 3.0 & 4.0 \\ \hline
+\hspace{4pt} 3B. Take-off         & 4.0 & 4.0 & 4.0 & 3.0 & 4.0 \\ \hline
+\hspace{4pt} 3C. Landing          & 4.0 & 2.0 & 2.0 & 3.0 & 4.0 \\ \hline
+\hspace{4pt} 3D. Airspace Safety  & 5.0 & 3.0 & 4.0 & 2.0 & 5.0 \\ \hline
+
+% Section 4
+\textbf{Certifiability}
+  & \safcell{good}{\textbf{4.0}: Strong compliance and certification path.}
+  & \safcell{bad}{\textbf{1.0}: Very poor certifiability outlook.}
+  & \safcell{mid}{\textbf{3.0}: Moderate compliance feasibility.}
+  & \safcell{bad}{\textbf{1.5}: Weak platform and interaction compliance.}
+  & \safcell{good}{\textbf{4.0}: High certifiability and standards alignment.} \\ \hline
+\hspace{4pt} 4A. Platform Compliance   & 3.0 & 1.0 & 4.0 & 1.0 & 4.0 \\ \hline
+\hspace{4pt} 4B. Interaction Compl. & 5.0 & 1.0 & 2.0 & 2.0 & 4.0 \\ \hline
+
+\textbf{Overall Weighted Score}
+  & \cellcolor{good}\textbf{4.1}
+  & \cellcolor{bad}\textbf{2.3}
+  & \cellcolor{mid}\textbf{3.0}
+  & \cellcolor{bad}\textbf{2.3}
+  & \cellcolor{good}\textbf{4.1} \\ \hline
+
+\end{longtable}
+}
+
+
+
+
+\subsection{Performance}
+
+The performance criterion evaluates whether each concept can reach,
+engage, control, and recover the balloon-payload system within the
+required mission envelope. The local performance subcriteria and weights
+are summarised in \autoref{tab:performance_subcriteria_weights}; the
+detailed scoring matrix is given in
+\autoref{tab:performance-criteria-scoring}.
+
+{
+\small
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+\begin{longtable}{@{}p{0.28\textwidth}c p{0.62\textwidth}@{}}
+\caption{Performance subcriteria and local weights.}
+\label{tab:performance_subcriteria_weights} \\
+\toprule
+\textbf{Subcriterion} & \textbf{Weight} & \textbf{Scoring basis} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{Subcriterion} & \textbf{Weight} & \textbf{Scoring basis} \\
+\midrule
+\endhead
+
+\bottomrule
+\endfoot
+
+Mission time performance & 3 & Time to intercept, complete capture, and remove the balloon-payload system from the endangered airspace. \\
+Mission envelope capability & 3 & Ability to operate at the required altitude and range while returning safely. \\
+Target-size adaptability & 2 & Tolerance to balloon diameter, payload mass and geometry, and tether length variation. \\
+Landing-zone performance & 2 & Descent-rate control and recovery-zone accuracy. \\
+Wind and gust performance & 1 & Transit, interaction, and descent robustness under sustained wind and gust loading. \\
+
+\bottomrule
+\end{longtable}
+}
+
+For each subcriterion group, the bold score in
+\autoref{tab:performance-criteria-scoring} is obtained by averaging the
+listed scoring items. The overall weighted score compares the concepts
+on expected mission performance.
+
+{
+\tiny
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{1.45}
+\providecommand{\perfcell}[2]{\cellcolor{#1}\parbox[t]{\linewidth}{\raggedright #2}}
+
+\begin{longtable}{|p{0.16\textwidth}|*{5}{>{\raggedright\arraybackslash}p{0.148\textwidth}|}}
+\caption{Performance trade-off analysis with subcriterion scores and compact category-level justifications.}
+\label{tab:performance-criteria-scoring} \\
+\hline
+\diagbox[width=0.16\textwidth, height=0.5cm]{\textbf{Criteria}}{\textbf{Designs}}
+  & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} \\ \hline
+\endfirsthead
+
+\hline
+\diagbox[width=0.16\textwidth, height=0.9cm]{\textbf{Criteria}}{\textbf{Designs}}
+  & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} \\ \hline
+\endhead
+
+\hline
+\endfoot
+
+\textbf{Mission Time Performance}
+  & \perfcell{mid}{\textbf{4.0}: Fast cruise and quick net deployment.}
+  & \perfcell{mid}{\textbf{3.3}: Carrier deployment and staged capture add time; parafoil descent helps recovery.}
+  & \perfcell{mid}{\textbf{3.0}: Carrier deployment and clamping sequence add overhead.}
+  & \perfcell{bad}{\textbf{2.0}: Heavy multirotor climb to 6 km dominates the time budget.}
+  & \perfcell{mid}{\textbf{3.0}: Carrier deployment and bolas engagement add staging; descent remains load-limited.} \\ \hline
+\hspace{4pt} 1A. Interception time & 4 & 3 & 3 & 1 & 3 \\ \hline
+\hspace{4pt} 1B. Capture time & 4 & 2 & 3 & 4 & 4 \\ \hline
+\hspace{4pt} 1C. Descent time & 4 & 5 & 3 & 1 & 2 \\ \hline
+
+\textbf{Mission Envelope Capability}
+  & \perfcell{mid}{\textbf{3.5}: Cruise platform supports 6 km range and altitude with sizing uncertainty.}
+  & \perfcell{mid}{\textbf{3.5}: Carrier supports altitude; parafoil recovery constrains return planning.}
+  & \perfcell{mid}{\textbf{3.5}: Cruise platform supports range; clamp loads limit margin.}
+  & \perfcell{bad}{\textbf{2.5}: FlyCart-class reference reaches 6 km only unloaded, making loaded climb marginal.}
+  & \perfcell{mid}{\textbf{3.5}: Lift-and-cruise platform supports range; towing power remains uncertain.} \\ \hline
+\hspace{4pt} 2A. Altitude capability & 3 & 4 & 3 & 2 & 3 \\ \hline
+\hspace{4pt} 2B. Range capability & 4 & 3 & 4 & 3 & 4 \\ \hline
+
+\textbf{Adaptability to Different Target Sizes}
+  & \perfcell{mid}{\textbf{3.3}: Moderate tolerance, with sensitivity to tether and payload access.}
+  & \perfcell{good}{\textbf{4.3}: Two-stage cinching net and inner bag tolerate varied balloon and payload geometry.}
+  & \perfcell{mid}{\textbf{3.3}: Good tether tolerance, but weak tolerance to irregular payload shapes.}
+  & \perfcell{mid}{\textbf{3.7}: Payload-net approach and adjustable ballast give broad target tolerance.}
+  & \perfcell{mid}{\textbf{3.3}: Balloon size tolerance is good, but tether geometry controls capture success.} \\ \hline
+\hspace{4pt} 3A. Balloon adaptability & 4 & 3 & 4 & 4 & 4 \\ \hline
+\hspace{4pt} 3B. Payload mass and size adaptability & 3 & 5 & 1 & 2 & 4 \\ \hline
+\hspace{4pt} 3C. Tether adaptability & 3 & 5 & 5 & 5 & 2 \\ \hline
+
+\textbf{Landing-Zone Performance}
+  & \perfcell{good}{\textbf{4.5}: Continuous powered link enables active steering during descent.}
+  & \perfcell{bad}{\textbf{2.0}: Parafoil glide from 6 km can drive the landing radius to about 18 km.}
+  & \perfcell{good}{\textbf{4.5}: Powered link and rigid grip support steering if the clamp remains stable.}
+  & \perfcell{bad}{\textbf{2.5}: Limited tether steering and long descent increase wind drift.}
+  & \perfcell{good}{\textbf{4.5}: Powered tow line enables active lateral steering.} \\ \hline
+\hspace{4pt} 4A. Descent controllability & 4 & 2 & 4 & 2 & 4 \\ \hline
+\hspace{4pt} 4B. Recovery zone acc. & 5 & 2 & 5 & 3 & 5 \\ \hline
+
+\textbf{Wind and Gust Performance}
+  & \perfcell{mid}{\textbf{3.5}: Cruise platform handles 13 m/s transit; hover capture remains gust-sensitive.}
+  & \perfcell{mid}{\textbf{3.5}: Carrier and cruise phases are robust; net and parafoil phases remain wind-sensitive.}
+  & \perfcell{mid}{\textbf{3.5}: Cruise-capable platform helps transit; close hover near the payload is gust-sensitive.}
+  & \perfcell{bad}{\textbf{2.0}: Multirotors carrying the net are weak in headwind, and long descent increases drift.}
+  & \perfcell{mid}{\textbf{3.3}: Cruise-capable platform helps transit; bolas aiming and tow dynamics are gust-sensitive.} \\ \hline
+\hspace{4pt} 5A. Wind tolerance transit & 4 & 4 & 4 & 1 & 4 \\ \hline
+\hspace{4pt} 5B. Wind tolerance interaction & 3 & 4 & 2 & 2 & 3 \\ \hline
+\hspace{4pt} 5C. Wind tolerance descent & 4 & 2 & 4 & 2 & 4 \\ \hline
+\hspace{4pt} 5D. Gust-load margin & 3 & 4 & 4 & 3 & 2 \\ \hline
+
+\textbf{Overall Weighted Score}
+  & \cellcolor{mid}\textbf{3.8}
+  & \cellcolor{mid}\textbf{3.3}
+  & \cellcolor{mid}\textbf{3.5}
+  & \cellcolor{bad}\textbf{2.5}
+  & \cellcolor{mid}\textbf{3.5} \\ \hline
+
+\end{longtable}
+}
+\subsection{Reliability}
+
+The reliability criterion assesses the likelihood that a concept will
+work repeatedly under realistic operating conditions. It focuses on
+technology maturity, mechanism count, sensing robustness, control
+authority during interaction, and tolerance to credible faults. The local
+reliability subcriteria and weights are summarised in
+\autoref{tab:reliability_subcriteria_weights}; the detailed scoring
+matrix is given in \autoref{tab:detailed_robustness_tradeoff}.
+
+{
+\small
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+\begin{longtable}{@{}p{0.31\textwidth} c p{0.57\textwidth}@{}}
+\caption{Reliability subcriteria and local weights.}
+\label{tab:reliability_subcriteria_weights} \\
+\toprule
+\textbf{Subcriterion} & \textbf{Weight} & \textbf{Scoring basis} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{Subcriterion} & \textbf{Weight} & \textbf{Scoring basis} \\
+\midrule
+\endhead
+
+\bottomrule
+\endfoot
+
+Implementation readiness & 1 & Technology maturity, verification feasibility, and confidence that demonstrations scale to the balloon size, payload mass, and wind envelope. \\
+Mechanism and architecture complexity & 3 & Number of critical moving parts, mission stages, interfaces, releases, winches, deployables, and coordinated vehicle actions. \\
+Sensing and estimation robustness & 2 & Balloon tracking and terminal interaction sensing for the specific feature used during engagement. \\
+Control and interaction robustness & 3 & Control authority near the target, capture tolerance, target-variability tolerance, and post-contact dynamic stability. \\
+Fault tolerance and system loss probability & 3 & Single-point failure tolerance, power-budget margin, and ability to retry or abort after failed engagement. \\
+
+\bottomrule
+\end{longtable}
+}
+
+{
+\tiny
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{1.45}
+\providecommand{\relcell}[2]{\cellcolor{#1}\parbox[t]{\linewidth}{\RaggedRight #2}}
+
+\begin{longtable}{|p{0.16\textwidth}|*{5}{>{\RaggedRight\arraybackslash}p{0.148\textwidth}|}}
+\caption{Reliability trade-off analysis with subcriterion scores and compact category-level justifications.}
+\label{tab:detailed_robustness_tradeoff} \\
+\hline
+\diagbox[width=\dimexpr0.16\textwidth+2\tabcolsep\relax, height=0.5cm]{\textbf{Criteria}}{\textbf{Designs}}
+  & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} \\ \hline
+\endfirsthead
+
+\hline
+\diagbox[width=\dimexpr0.16\textwidth+2\tabcolsep\relax, height=0.5cm]{\textbf{Criteria}}{\textbf{Designs}}
+  & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} \\ \hline
+\endhead
+
+\hline
+\endfoot
+
+% Section 1
+\textbf{Implementation Readiness}
+  & \relcell{mid}{\textbf{3.7}: Mature net/parachute\\elements; single-vehicle capture\\loads limit scaling.}
+  & \relcell{mid}{\textbf{3.0}: Scales through\\cooperation; full deployment\\sequence has weak heritage.}
+  & \relcell{bad}{\textbf{2.3}: Simple clamp principle;\\uncertain payload geometry\\weakens verification.}
+  & \relcell{bad}{\textbf{2.7}: Scalable net concept;\\suspended-load testing\\remains demanding.}
+  & \relcell{bad}{\textbf{2.3}: Familiar components;\\balloon-specific interaction\\lacks demonstrated maturity.} \\ \hline
+\hspace{4pt} 1A. Tech maturity
+  & 4.0 & 2.0 & 3.0 & 2.0 & 3.0 \\ \hline
+\hspace{4pt} 1B. Verification
+  & 4.0 & 3.0 & 2.0 & 3.0 & 2.0 \\ \hline
+\hspace{4pt} 1C. Scalability
+  & 3.0 & 4.0 & 2.0 & 3.0 & 2.0 \\ \hline
+
+% Section 2
+\textbf{Mechanism Complexity}
+  & \relcell{mid}{\textbf{3.5}: Few main mechanisms;\\recovery chain still depends\\on clean sequencing.}
+  & \relcell{bad}{\textbf{1.0}: Many deployed subsystems\\create a long dependent\\failure chain.}
+  & \relcell{mid}{\textbf{3.5}: Few mechanisms;\\clamp must handle uncertain\\moving loads.}
+  & \relcell{bad}{\textbf{2.0}: Net hardware is manageable;\\coordination and tether handling\\dominate complexity.}
+  & \relcell{mid}{\textbf{3.0}: Moderate mechanism count;\\simple architecture gives limited\\interaction tolerance.} \\ \hline
+\hspace{4pt} 2A. Mech complexity
+  & 4.0 & 1.0 & 3.0 & 2.0 & 3.0 \\ \hline
+\hspace{4pt} 2B. Mission stages
+  & 3.0 & 1.0 & 4.0 & 2.0 & 3.0 \\ \hline
+
+% Section 3
+\textbf{Sensing Robustness}
+  & \relcell{good}{\textbf{4.0}: Large interaction target;\\terminal sensing tolerates\\moderate estimation errors.}
+  & \relcell{mid}{\textbf{3.0}: Multiple viewpoints\\help tracking; tether clamping\\is the sensing bottleneck.}
+  & \relcell{mid}{\textbf{3.0}: Balloon tracking is manageable;\\payload/tether localisation\\drives sensing risk.}
+  & \relcell{mid}{\textbf{3.0}: Team sensing helps tracking;\\net occlusion and formation\\geometry reduce robustness.}
+  & \relcell{mid}{\textbf{3.5}: Direct sensing geometry;\\fewer fallback paths during\\final engagement.} \\ \hline
+\hspace{4pt} 3A. Balloon tracking
+  & 3.0 & 4.0 & 3.0 & 4.0 & 3.0 \\ \hline
+\hspace{4pt} 3B. Interaction sensing
+  & 5.0 & 2.0 & 3.0 & 2.0 & 4.0 \\ \hline
+
+% Section 4
+\textbf{Control Robustness}
+  & \relcell{mid}{\textbf{3.5}: Good pre-contact authority;\\tethered post-capture motion\\drives uncertainty.}
+  & \relcell{good}{\textbf{4.0}: Large net gives tolerance;\\cooperative control remains\\demanding.}
+  & \relcell{bad}{\textbf{1.8}: Direct engagement is precise;\\payload swing weakens\\post-contact stability.}
+  & \relcell{mid}{\textbf{3.8}: Large net tolerates target\\variation; suspended dynamics\\reduce stability.}
+  & \relcell{mid}{\textbf{3.0}: Acceptable approach control;\\limited capture tolerance\\reduces robustness.} \\ \hline
+\hspace{4pt} 4A. Control authority
+  & 4.0 & 3.0 & 2.0 & 3.0 & 4.0 \\ \hline
+\hspace{4pt} 4B. Capture tolerance
+  & 3.0 & 5.0 & 2.0 & 5.0 & 2.0 \\ \hline
+\hspace{4pt} 4C. Target variability
+  & 4.0 & 3.0 & 1.0 & 5.0 & 3.0 \\ \hline
+\hspace{4pt} 4D. Post-contact dyn.
+  & 3.0 & 5.0 & 2.0 & 2.0 & 3.0 \\ \hline
+
+% Section 5
+\textbf{Fault Tolerance}
+  & \relcell{bad}{\textbf{2.0}: Power margin is acceptable;\\failed capture offers little\\retry margin.}
+  & \relcell{mid}{\textbf{3.3}: Power margin is strong;\\critical sequence steps\\remain fragile.}
+  & \relcell{good}{\textbf{4.0}: Repeatable clamp attempts\\improve recovery from\\failed engagement.}
+  & \relcell{bad}{\textbf{2.7}: Retry potential is useful;\\power and multi-UAV dependency\\reduce margin.}
+  & \relcell{bad}{\textbf{2.0}: Few backup paths;\\main engagement failure\\likely causes abort.} \\ \hline
+\hspace{4pt} 5A. Single-point failure
+  & 2.0 & 2.0 & 4.0 & 3.0 & 2.0 \\ \hline
+\hspace{4pt} 5B. Power budget
+  & 3.0 & 5.0 & 3.0 & 1.0 & 3.0 \\ \hline
+\hspace{4pt} 5C. Retry capability
+  & 1.0 & 3.0 & 5.0 & 4.0 & 1.0 \\ \hline
+
+\textbf{Final Weighted Score}
+  & \cellcolor{mid}\makecell[l]{\textbf{3.2}}
+  & \cellcolor{bad}\makecell[l]{\textbf{2.8}}
+  & \cellcolor{mid}\makecell[l]{\textbf{3.0}}
+  & \cellcolor{bad}\makecell[l]{\textbf{2.8}}
+  & \cellcolor{bad}\makecell[l]{\textbf{2.8}} \\ \hline
+
+\end{longtable}
+}
+
+
+\subsection{Cost}
+
+The cost criterion compares concepts from the customer perspective. It
+is scored from acquisition, integration, mission, and maintenance cost
+estimates. The local cost subcriteria and weights are summarised in
+\autoref{tab:cost_subcriteria_weights}; the resulting cost values and
+scores are given in \autoref{tab:cost-criterion-scoring}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Cost subcriteria and local weights.}
+\label{tab:cost_subcriteria_weights}
+\begin{tabularx}{\textwidth}{p{0.15\textwidth} c X}
+\toprule
+\textbf{Subcriterion} & \textbf{Weight} & \textbf{Scoring basis} \\
+\midrule
+Acquisition and integration cost & 3 & System acquisition cost covers materials, existing drones, and equipment based on the concept estimates in Chapter 4. Manufacturing and integration cost reflects component maturity, airframe assembly, propulsion and battery integration, sensor integration, and attachment of the interaction mechanism. This category is weighted highest because it sets the initial procurement barrier. \\
+Lifetime recurring cost & 2 & Recurring cost combines operational cost per mission and maintenance cost per quarter over 20 missions per year for five years. It includes maintenance, safety checks, replacement parts, energy use, recovery resources, reset effort, and consumables such as net replacement or bolas reloads. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Cost is divided into acquisition and integration cost, paid before the
+system can be operated, and lifetime recurring cost, paid through
+missions and maintenance.
+
+Each cost value is converted to a score from 1 to 5 using inverse cost
+scaling:
+
+\begin{equation}
+S_i =
+\max \left(
+5 \cdot
+\frac{C_{\max} - C_i}{C_{\max} - C_{\min}},
+1
+\right)
+\end{equation}
+
+where \(C_i\) is the cost of concept \(i\), \(C_{\max}\) is the highest
+cost among the five concepts, and \(C_{\min}\) is the lowest cost among
+the five concepts. This gives the lowest-cost concept a score of 5,
+while the highest-cost concept is limited to a minimum score of 1. The
+resulting scores are rounded to the nearest integer before they are
+entered into the trade-off matrix.
+
+The combined cost score is calculated as
+
+\begin{equation}
+S_{\mathrm{cost},i}
+=
+\frac{
+3S_{\mathrm{nonrec},i}
++
+2S_{\mathrm{rec},i}
+}{3+2}
+\end{equation}
+
+where \(S_{\mathrm{nonrec},i}\) is the acquisition and integration cost
+score and \(S_{\mathrm{rec},i}\) is the lifetime recurring cost score.
+{
+\tiny
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{1.45}
+\providecommand{\costcell}[2]{\cellcolor{#1}\parbox[t]{\linewidth}{\raggedright #2}}
+
+\begin{longtable}{|p{0.16\textwidth}|*{5}{>{\raggedright\arraybackslash}p{0.148\textwidth}|}}
+\caption{Cost trade-off analysis with numerical cost basis and compact category-level justifications.}
+\label{tab:cost-criterion-scoring} \\
+\hline
+\diagbox[width=\dimexpr0.16\textwidth+2\tabcolsep\relax, height=0.5cm]{\textbf{Criteria}}{\textbf{Designs}}
+  & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} \\ \hline
+\endfirsthead
+
+\hline
+\diagbox[width=\dimexpr0.16\textwidth+2\tabcolsep\relax, height=0.5cm]{\textbf{Criteria}}{\textbf{Designs}}
+  & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} \\ \hline
+\endhead
+
+\hline
+\endfoot
+
+\textbf{Acquisition and Integration Cost}
+  & \costcell{good}{\textbf{5}: Low system cost and moderate single-UAV integration.}
+  & \costcell{bad}{\textbf{2}: Multi-UAV net, parafoil, and sequencing hardware drive high acquisition cost.}
+  & \costcell{good}{\textbf{4}: Moderate vehicle cost; clamp integration increases non-recurring effort.}
+  & \costcell{bad}{\textbf{1}: Three heavy-lift UAVs dominate procurement cost.}
+  & \costcell{good}{\textbf{5}: Lowest component cost; bolas integration remains comparatively modest.} \\ \hline
+\hspace{4pt} 1A. System acquisition cost [EUR] & 13600 & 53500 & 19650 & 84550 & 12482 \\ \hline
+\hspace{4pt} 1B. Manufacturing and integration cost [EUR] & 3000 & 1350 & 5650 & 5101 & 4450 \\ \hline
+\hspace{4pt} 1C. Total acquisition and integration cost [EUR] & 16600 & 54850 & 25300 & 89651 & 16932 \\ \hline
+
+\textbf{Lifetime Recurring Cost}
+  & \costcell{mid}{\textbf{3}: Moderate mission and maintenance cost, including net reset and replacement.}
+  & \costcell{bad}{\textbf{2}: High reset, inspection, and multi-vehicle maintenance burden.}
+  & \costcell{good}{\textbf{5}: Clamp hardware is mostly reusable and has the lowest per-mission cost.}
+  & \costcell{bad}{\textbf{2}: Three-vehicle operations and tethered-net reset keep recurring cost high.}
+  & \costcell{good}{\textbf{4}: Low operating cost; projectile reload and launcher inspection add reset effort.} \\ \hline
+\hspace{4pt} 2A. Operational cost per mission [EUR] & 150 & 200 & 70 & 100 & 100 \\ \hline
+\hspace{4pt} 2B. Lifetime operational cost [EUR] & 15000 & 20000 & 7000 & 10000 & 10000 \\ \hline
+\hspace{4pt} 2C. Maintenance cost per quarter [EUR] & 450 & 700 & 527 & 800 & 460 \\ \hline
+\hspace{4pt} 2D. Lifetime maintenance cost [EUR] & 9000 & 14000 & 10540 & 16000 & 9200 \\ \hline
+\hspace{4pt} 2E. Total lifetime recurring cost [EUR] & 24000 & 34000 & 17540 & 26000 & 19200 \\ \hline
+
+\textbf{Overall Weighted Cost Score}
+  & \cellcolor{good}\textbf{4.2}
+  & \cellcolor{bad}\textbf{2.0}
+  & \cellcolor{good}\textbf{4.4}
+  & \cellcolor{bad}\textbf{1.4}
+  & \cellcolor{good}\textbf{4.6} \\ \hline
+
+\end{longtable}
+}
+
+
+
+\subsection{Sustainability}
+
+The sustainability criterion assesses whether the mission removes the
+balloon hazard without creating additional environmental, recovery, or
+life-cycle burden. The local sustainability subcriteria and weights are
+summarised in \autoref{tab:sustainability_subcriteria_weights}; the
+detailed scoring matrix is given in
+\autoref{tab:detailed_sustainability_tradeoff}.
+
+{
+\small
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+\begin{longtable}{@{}p{0.30\textwidth} c p{0.58\textwidth}@{}}
+\caption{Sustainability subcriteria and local weights.}
+\label{tab:sustainability_subcriteria_weights} \\
+\toprule
+\textbf{Subcriterion} & \textbf{Weight} & \textbf{Scoring basis} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{Subcriterion} & \textbf{Weight} & \textbf{Scoring basis} \\
+\midrule
+\endhead
+
+\bottomrule
+\endfoot
+
+Reusability & 3 & Reuse of mission-specific hardware and reset effort after recovery, including inspection, battery servicing, tether rewinding, net untangling, and repacking of parachutes or parafoils. \\
+Debris generation & 3 & Risk of creating loose balloon-envelope material, payload fragments, ballast, tethers, nets, parafoil hardware, or unrecovered UAS/recovery hardware. \\
+Maintainability & 3 & Modularity, inspection accessibility, repair time after minor damage, and use of standard replacement parts. \\
+End-of-life recyclability & 1 & Recycling routes for metals, electronics, batteries, nets, tethers, recovery hardware, and any hazardous or difficult-to-dispose material. \\
+Recovery-zone flexibility & 2 & Ability to adapt to changing ground risk and likelihood that the balloon, payload, and recovery hardware can be safely accessed after landing. \\
+
+\end{longtable}
+}
+
+\definecolor{good}{HTML}{99FF99}
+\definecolor{mid}{HTML}{FFFF99}
+\definecolor{bad}{HTML}{FF9999}
+
+{
+\tiny
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.6}
+\providecommand{\suscell}[2]{\cellcolor{#1}\parbox[t]{\linewidth}{\raggedright #2}}
+
+\begin{longtable}{|p{0.16\textwidth}|*{5}{>{\raggedright\arraybackslash}p{0.148\textwidth}|}}
+\caption{Sustainability trade-off analysis with subcriterion scores and compact category-level justifications.}
+\label{tab:detailed_sustainability_tradeoff} \\
+\hline
+\diagbox[width=\dimexpr0.16\textwidth+2\tabcolsep\relax, height=0.5cm]{\textbf{Criteria}}{\textbf{Designs}}
+& \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} \\ \hline
+\endfirsthead
+
+\hline
+\diagbox[width=\dimexpr0.16\textwidth+2\tabcolsep\relax, height=1.0cm]{\textbf{Criteria}}{\textbf{Designs}}
+& \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} \\ \hline
+\endhead
+
+\hline
+\endfoot
+
+% Section 1
+\textbf{Reusability}
+& \suscell{mid}{\textbf{3.0}: Reusable net and tether system, but powered towing and recovery hardware still need reset checks.}
+& \suscell{bad}{\textbf{2.0}: Adhesive patch, burn-wire, parafoil rigging, and release hardware create high reset burden.}
+& \suscell{good}{\textbf{4.0}: Mostly reusable clamp hardware and limited consumables support efficient reset.}
+& \suscell{bad}{\textbf{2.5}: Net and UAVs are reusable, but ballast handling and three-UAV reset effort remain high.}
+& \suscell{mid}{\textbf{3.0}: Simple reusable architecture, with reload and launcher checks after each sortie.} \\ \hline
+\hspace{4pt} 1A. Post-mission reusable hardware
+& 3.0 & 2.0 & 4.0 & 2.0 & 3.0 \\ \hline
+\hspace{4pt} 1B. Reset effort after mission
+& 3.0 & 2.0 & 4.0 & 3.0 & 3.0 \\ \hline
+
+% Section 2
+\textbf{Debris Generation}
+& \suscell{mid}{\textbf{3.0}: Avoids intentional envelope damage, but net, tether, or release hardware may be unrecovered.}
+& \suscell{mid}{\textbf{3.0}: Strong containment reduces envelope debris; multi-part recovery system adds hardware risk.}
+& \suscell{bad}{\textbf{1.0}: Direct payload clamping can damage payload connections or destabilise the flight train.}
+& \suscell{good}{\textbf{4.0}: Payload net keeps hazardous material controlled and avoids direct envelope damage.}
+& \suscell{bad}{\textbf{2.0}: Bolas/tow-line hardware may detach or remain unrecovered during interaction or descent.} \\ \hline
+\hspace{4pt} 2A. Balloon-envelope debris risk
+& 3.0 & 3.0 & 1.0 & 4.0 & 2.0 \\ \hline
+\hspace{4pt} 2B. UAS/recovery-hardware debris risk
+& 2.0 & 4.0 & 4.0 & 5.0 & 1.0 \\ \hline
+
+% Section 3
+\textbf{Maintainability}
+& \suscell{mid}{\textbf{3.0}: Single-UAV architecture is serviceable, but capture hardware needs inspection after loads.}
+& \suscell{mid}{\textbf{3.3}: Multiple standard vehicles help repairability; net and parafoil access complicate inspection.}
+& \suscell{mid}{\textbf{3.0}: Clamp modules are replaceable, but actuator and contact-surface checks slow repair.}
+& \suscell{mid}{\textbf{3.3}: Standard multirotor parts help maintenance; tethered net reset remains labour-intensive.}
+& \suscell{mid}{\textbf{3.0}: Simple launcher hardware is accessible, but bolas reload and tow-line inspection are required.} \\ \hline
+\hspace{4pt} 3A. Modularity of critical components
+& 3.0 & 3.0 & 4.0 & 3.0 & 3.0 \\ \hline
+\hspace{4pt} 3B. Inspection accessibility
+& 3.0 & 2.0 & 3.0 & 2.0 & 3.0 \\ \hline
+\hspace{4pt} 3C. Repair time after minor damage
+& 3.0 & 4.0 & 2.0 & 4.0 & 3.0 \\ \hline
+\hspace{4pt} 3D. Standardisation of replacement parts
+& 3.0 & 4.0 & 3.0 & 4.0 & 3.0 \\ \hline
+
+% Section 4
+\textbf{End-of-Life Recyclability}
+& \suscell{good}{\textbf{4.0}: Main UAV, net, tether, batteries, and electronics have standard recovery routes.}
+& \suscell{bad}{\textbf{2.0}: Adhesives, burn-wire remnants, parafoil rigging, and damaged soft goods complicate disposal.}
+& \suscell{good}{\textbf{4.0}: Mostly reusable mechanical hardware and standard batteries support end-of-life handling.}
+& \suscell{bad}{\textbf{2.3}: Ballast containers, nets, and tether hardware may be recoverable but less standardised.}
+& \suscell{good}{\textbf{4.0}: Simple launcher, tow-line, batteries, and electronics have clear disposal routes.} \\ \hline
+\hspace{4pt} 4A. Recyclability
+& 4.0 & 2.0 & 4.0 & 2.0 & 4.0 \\ \hline
+\hspace{4pt} 4B. Battery disposal and replacement
+& 4.0 & 2.0 & 4.0 & 2.0 & 4.0 \\ \hline
+\hspace{4pt} 4C. Hazardous material content
+& 4.0 & 2.0 & 4.0 & 3.0 & 4.0 \\ \hline
+
+% Section 5
+\textbf{Recovery Zone Flexibility}
+& \suscell{mid}{\textbf{3.0}: Powered descent gives some steering, but off-nominal tether release can reduce recovery control.}
+& \suscell{mid}{\textbf{3.5}: Parafoil supports redirection, but its glide footprint can move recovery far from the launch area.}
+& \suscell{mid}{\textbf{3.5}: Landing access is strong if the clamp remains stable, but adaptability is limited.}
+& \suscell{good}{\textbf{4.0}: Three-UAV tether steering helps adapt recovery and keep hardware accessible.}
+& \suscell{mid}{\textbf{3.0}: Tow-line steering supports recovery, but weaker containment limits flexibility.} \\ \hline
+\hspace{4pt} 5A. Adaptability to changing ground risk
+& 3.0 & 4.0 & 2.0 & 4.0 & 3.0 \\ \hline
+\hspace{4pt} 5B. Post-landing accessibility
+& 3.0 & 3.0 & 5.0 & 4.0 & 3.0 \\ \hline
+
+\textbf{Final Weighted Score}
+& \cellcolor{mid}\textbf{3.1}
+& \cellcolor{bad}\textbf{2.8}
+& \cellcolor{mid}\textbf{2.9}
+& \cellcolor{good}\textbf{3.3}
+& \cellcolor{bad}\textbf{2.8} \\ \hline
+
+\end{longtable}
+}
+
+% \section{Traceability to Requirements}
+
+% The criteria are linked to the driving requirements to ensure that the trade-off reflects mission needs rather than arbitrary preferences.
+
+% \begin{table}[H]
+% \centering
+% \small
+% \caption{Traceability between trade-off criteria and driving requirements.}
+% \label{tab:trade_criteria_traceability}
+% \begin{tabularx}{\textwidth}{p{0.22\textwidth} X}
+% \toprule
+% \textbf{Criterion} & \textbf{Linked design drivers} \\
+% \midrule
+% Safety & Civilian-airspace operation, non-explosive and non-pyrotechnic interaction, debris prevention, controlled descent, manual override, and safe abort behaviour. \\
+% Performance & Detection and tracking of a 2--6 m balloon, 10 minute interception, mission envelope, terminal engagement, descent control, and recovery-zone delivery. \\
+% Reliability & Redundant state estimation, sensor degradation tolerance, single-point failure tolerance, tracking-loss recovery, safe mode, and contingency handling. \\
+% Cost & Acquisition cost, per-sortie cost, sensor and computing cost, integration effort, operational logistics, and repair cost. \\
+% Sustainability & Electric-only operation, low noise, recoverability, minimal consumables, reusability, repairability, and responsible end-of-life handling. \\
+% \bottomrule
+% \end{tabularx}
+% \end{table}
+
+
+
+% \begin{table}[H]
+% \centering
+% \small
+% \caption{Main scoring tendencies for each concept.}
+% \label{tab:concept_scoring_guidance}
+% \begin{tabularx}{\textwidth}{p{0.08\textwidth} X X}
+% \toprule
+% \textbf{Concept} & \textbf{Expected strengths} & \textbf{Expected weaknesses} \\
+% \midrule
+% A & Simple architecture, fewer vehicles, lower logistics burden, and compatibility with several descent devices. & Lower capture tolerance and high sensitivity to tether or payload accessibility. \\
+% B & Highest capture tolerance, strong containment, and dedicated parafoil-based descent control. & High cost, high logistics burden, many vehicles, many mechanisms, and complex sequencing. \\
+% C & Direct payload capture, fewer vehicles than cooperative concepts, and no intentional balloon-envelope interaction. & Sensitive to payload geometry, payload swing, thrust margin, and secure grasping. \\
+% D & Avoids direct envelope interaction, offers more capture tolerance than a rigid gripper, and can initiate descent without puncture. & Feasibility depends on ballast mass, tether management, three-UAV coordination, and safe ballast recovery. \\
+% E & Lightweight, mechanically simple, and potentially low cost. & Low capture tolerance, high sustained power demand, uncertain coupled dynamics, and weaker post-contact control. \\
+% \bottomrule
+% \end{tabularx}
+% \end{table}
+
+% The scoring must not reward a concept only for one strong feature. For example, Concept B should be credited for capture tolerance and containment, but penalised for cost and complexity. Similarly, Concept C should be credited for mechanical directness, but penalised if reliable payload access and post-contact control are uncertain.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% \subsection{Safety}
+
+% Safety has a total weight of 0.25 and is one of the highest-priority criterion because the system operates in or near civilian airspace and must not create a larger hazard than the original balloon. A concept that performs well technically but risks uncontrolled descent, payload release, falling debris, or hazardous interaction cannot be selected.
+
+% The safety criterion is assessed using the following subcriteria:
+
+% \begin{itemize}
+%     \item \textbf{Public and ground safety} (\(w = 0.08\)): assesses whether the concept avoids injury risk and unsafe operation above people, vehicles, runways, buildings, and critical infrastructure. This includes the severity of possible ground impact if the balloon, payload, UAV, or recovery hardware descends outside the intended recovery zone.
+
+%     \item \textbf{Falling-object and debris risk} (\(w = 0.07\)): assesses the probability and severity of falling drone parts, net parts, payload components, ballast, parachute or parafoil hardware, balloon fragments, or released mission hardware. Concepts that contain all mission hardware and avoid uncontrolled debris receive higher scores.
+
+%     \item \textbf{Post-contact controllability} (\(w = 0.09\)): assesses whether the balloon-payload system remains controlled after interaction. This includes avoiding unstable descent, uncontrolled rupture, payload separation, excessive swing, or loss of the captured system.
+
+%     \item \textbf{Fail-safe, abort, and interaction safety} (\(w = 0.06\)): assesses whether the concept can safely abort, disengage, or enter a safe mode before or after attempted capture. It also includes compatibility with non-explosive, non-pyrotechnic, non-destructive, and spark-safe interaction, especially if the balloon contains hydrogen.
+% \end{itemize}
+
+% \subsection{Performance}
+
+% Performance has a total weight of 0.25 and measures whether the concept can complete the mission within the required operational envelope. For BELLONA, performance is not limited to flight performance. A successful concept must detect or receive target information, confirm and track the balloon, estimate the relative target state during terminal approach, engage the balloon-payload system with sufficient tolerance, and bring it to a safe end state.
+
+% The performance criterion is assessed using the following subcriteria:
+
+% \begin{itemize}
+%     \item \textbf{Detection and external cueing compatibility} (\(w = 0.04\)): assesses whether the concept can realistically use coarse target information from radar, observers, airport systems, or a ground station. Concepts receive higher scores if they can tolerate low update rate, limited position accuracy, and uncertainty in the initial balloon state.
+
+%     \item \textbf{Onboard target confirmation and tracking} (\(w = 0.05\)): assesses whether the concept can maintain a reliable onboard track of the balloon using feasible sensors such as RGB/EO cameras, LWIR/EO-IR sensing, stereo vision, or LiDAR. Concepts that depend on fragile visual conditions, unrealistic detection range, or continuous perfect tracking receive lower scores.
+
+%     \item \textbf{Terminal relative-state estimation} (\(w = 0.05\)): assesses whether the concept can estimate the relative position, velocity, distance, payload location, tether geometry, and swing state accurately enough for the required interaction. Concepts that require precise localisation of a small tether, hook point, or irregular payload are penalised compared with concepts that have a large capture envelope.
+
+%     \item \textbf{Intercept time, range, altitude, and energy margin} (\(w = 0.05\)): assesses whether the concept can reach the target within the required time window and at the required horizontal distance and altitude, while retaining sufficient energy for terminal tracking, engagement, descent management, return, and contingencies.
+
+%     \item \textbf{Capture, descent, and recovery effectiveness} (\(w = 0.06\)): assesses whether the concept can engage the target, tolerate wind disturbance and payload swing, remove the balloon from the endangered airspace, control the descent rate, and bring the balloon, payload, UAS, and deployed hardware to a controlled recovery state.
+% \end{itemize}
+
+% \subsection{Reliability}
+
+% Reliability has a total weight of 0.20 and measures how likely the concept is to work repeatedly and safely under realistic operating conditions. Since the mission includes physical interaction with an uncertain and uncooperative target, concepts with low technology maturity, excessive complexity, many critical mechanisms, or poor failure tolerance are penalised.
+
+% The reliability criterion is assessed using the following subcriteria:
+
+% \begin{itemize}
+%     \item \textbf{Technical maturity and testability} (\(w = 0.05\)): assesses whether the required mechanisms, sensors, control methods, and recovery devices are based on mature, demonstrable, or easily testable technology. Concepts relying on unproven mechanisms or difficult-to-test interactions receive lower scores.
+
+%     \item \textbf{Number of critical mechanisms} (\(w = 0.05\)): assesses the number of actuators, releases, winches, clamps, drawlines, burn wires, deployment devices, and other components that must function correctly for mission success. Concepts with fewer mission-critical moving parts receive higher scores.
+
+%     \item \textbf{Control and interface complexity} (\(w = 0.05\)): assesses the difficulty of vehicle control, formation keeping, tether management, payload-swing damping, timing, sensing interfaces, and subsystem coordination. Multi-UAV and multi-body concepts are penalised if their coordination is difficult or poorly tolerant to timing errors.
+
+%     \item \textbf{Robustness and fault tolerance} (\(w = 0.05\)): assesses whether the concept can tolerate failed capture, loss of target tracking, degraded sensor input, excessive loads, actuator failure, communication degradation, partial UAV failure, or release failure without catastrophic outcome. Concepts that can safely abort, reacquire the target, or continue with degraded sensing receive higher scores.
+% \end{itemize}
+
+% \subsection{Cost}
+
+% Cost has a total weight of 0.15 because the BELLONA system is intended to be a low-cost, deployable alternative to helicopter-based or military-style intervention. A technically attractive concept may still be unsuitable if it exceeds the acquisition cost target, requires expensive recovery hardware, or has high recurring deployment and maintenance costs.
+
+% The cost criterion is assessed using the following subcriteria:
+
+% \begin{itemize}
+%     \item \textbf{Acquisition cost} (\(w = 0.05\)): assesses the expected cost of flying hardware, sensors, onboard computing, airframe, propulsion, interaction hardware, recovery hardware, and communication systems relative to the acquisition cost target.
+
+%     \item \textbf{Per-sortie cost} (\(w = 0.04\)): assesses recurring cost due to consumables, damaged components, battery use, reset items, tether replacement, net or patch replacement, ballast, and recovery hardware wear.
+
+%     \item \textbf{Development and integration cost risk} (\(w = 0.03\)): assesses the expected effort and cost required to develop, integrate, tune, and validate the concept. Concepts requiring custom mechanisms, advanced autonomous coordination, sensor fusion, tether tracking, payload recognition, or complex deployment sequences receive lower scores.
+    
+%     \item \textbf{Operational logistics and repair cost} (\(w = 0.03\)): assesses crew effort, number of UAVs, setup time, reset time, transportability, recovery effort, ground-support equipment, and expected repair cost after routine missions or minor failures.
+% \end{itemize}
+
+% \subsection{Sustainability}
+
+% Sustainability has a total weight of 0.10 because the mission must not solve the balloon hazard by creating a new environmental or social hazard. A concept is considered more sustainable if it avoids debris, minimises unrecovered material, uses reusable components, limits energy demand and noise, and supports repair or recycling.
+
+% The sustainability criterion is assessed using the following subcriteria:
+
+% \begin{itemize}
+%     \item \textbf{Unrecovered and consumable material} (\(w = 0.03\)): assesses the mass and type of material likely to be consumed, discarded, damaged, or left in the environment during each mission. Concepts using disposable nets, tethers, patches, ballast, or release devices are penalised unless these items are recovered or clearly justified.
+
+%     \item \textbf{Energy use and noise} (\(w = 0.02\)): assesses expected battery demand, hover time, number of vehicles, propulsion loading, and acoustic impact near populated or controlled areas. Concepts with high sustained thrust or long hover phases receive lower scores.
+
+%     \item \textbf{Reusability and repairability} (\(w = 0.03\)): assesses whether the platform, sensors, interaction hardware, recovery system, and structural components can be reused, inspected, repaired, or replaced after normal operation or minor damage.
+
+%     \item \textbf{End-of-life and recovery compatibility} (\(w = 0.02\)): assesses whether the concept supports retrieval of the balloon, payload, and deployed hardware, and whether major components such as batteries, composites, electronics, nets, and recovery devices have a credible reuse, recycling, or disposal route.
+% \end{itemize}
+
+% Although sustainability has a numerical weight of 0.10, several sustainability-related aspects are already enforced through mandatory screening constraints, such as electric-only operation, debris prevention, recoverability of deployed hardware, and avoidance of uncontrolled rupture. The sustainability score therefore captures the remaining differences between concepts that have already passed these minimum limits.
+
+% \section{Scoring Method}
+
+% Each subcriterion is scored from 1 to 10. A higher score always indicates better performance. The same scoring scale is used for all concepts and subcriteria to keep the method consistent.
+
+% \begin{table}[H]
+% \centering
+% \small
+% \caption{General scoring scale used for all subcriteria.}
+% \label{tab:scoring_scale}
+% \begin{tabularx}{0.88\textwidth}{c X}
+% \toprule
+% \textbf{Score} & \textbf{Interpretation} \\
+% \midrule
+% 1--2 & Very poor. Major requirement conflict, severe feasibility problem, or unacceptable operational risk. \\
+% 3--4 & Weak. Possible in principle, but with major limitations, high risk, or large uncertainty. \\
+% 5--6 & Acceptable. Feasible at concept level, but with clear drawbacks or unresolved risks. \\
+% 7--8 & Good. Satisfies the criterion with manageable risk and credible design logic. \\
+% 9--10 & Excellent. Strongly satisfies the criterion and provides a clear advantage over the alternatives. \\
+% \bottomrule
+% \end{tabularx}
+% \end{table}
+
+% The weighted score of concept $j$ is calculated as:
+
+% \begin{equation}
+% S_j = \sum_{i=1}^{20} w_i s_{j,i}
+% \label{eq:tradeoff_score}
+% \end{equation}
+
+% where $w_i$ is the global weight of subcriterion $i$, and $s_{j,i}$ is the score of concept $j$ for that subcriterion. Since the total weight is equal to 1.00, the final score remains on a 1--10 scale.
+
+% The score is not intended to replace engineering judgement. Instead, it provides a traceable comparison framework. The final selection must therefore consider both the numerical ranking and the qualitative discussion of why each concept performs well or poorly.
+
+% \section{Sensitivity Analysis Method}
+
+% A sensitivity analysis is performed to test whether the selected concept depends strongly on the assumed weighting. Three checks are used. First, each main criterion weight is varied by \(\pm 20\%\), while the remaining weights are renormalised. Second, each main criterion is removed once to identify whether the ranking is dominated by a single criterion. Third, the ranking is compared against the qualitative engineering judgement from the concept-specific discussion. If the top two concepts differ by less than 0.3 points or change order under small weight variations, the result is considered non-robust and requires additional technical analysis before final selection.
+
+% \section{Concept-specific Scoring Guidance}
+
+% To reduce subjectivity, the scoring of each concept is based on concept-specific evidence. This evidence includes the mission sequence, number of vehicles, interaction method, descent-management method, mass and cost estimates, expected failure modes, and compatibility with the requirements.
+
+% \begin{longtable}{p{0.10\textwidth} p{0.42\textwidth} p{0.42\textwidth}}
+% \caption{Expected scoring tendencies for the concepts included in the Midterm trade-off.}
+% \label{tab:concept_scoring_guidance} \\
+% \toprule
+% \textbf{Concept} & \textbf{Expected strengths} & \textbf{Expected weaknesses} \\
+% \midrule
+% \endfirsthead
+
+% \toprule
+% \textbf{Concept} & \textbf{Expected strengths} & \textbf{Expected weaknesses} \\
+% \midrule
+% \endhead
+
+% \midrule
+% \\
+% \endfoot
+
+% \bottomrule
+% \endlastfoot
+
+% A & 
+% Simpler architecture than cooperative concepts; fewer vehicles and interfaces; potentially lower acquisition and logistics burden; direct engagement of the tether or payload avoids intentional loading of the balloon envelope; compatible with several descent-control devices such as a parachute, drogue, or parafoil. & 
+% Lower capture tolerance than net-based concepts; performance depends strongly on reliable access to the tether or payload; descent-control device must be attached or activated successfully; limited robustness to payload swing, tether geometry uncertainty, and wind disturbance. \\
+% \midrule
+
+% B & 
+% Highest capture tolerance due to large net aperture; strong post-contact containment of balloon and payload; dedicated parafoil provides controlled descent and recovery-zone guidance; net enclosure reduces direct contact loads on the balloon envelope after capture. & 
+% Highest cost, mass, and logistics burden; requires multiple vehicles, cooperative formation control, net closure, controlled deflation, parafoil deployment, and release sequencing; expensive custom net and parafoil hardware; many interfaces and failure modes. \\
+% \midrule
+
+% C & 
+% Direct payload grasping avoids intentional balloon-envelope interaction; mechanically clear target if the payload is visible and accessible; fewer vehicles than cooperative concepts; potentially simpler mission coordination than net-carrier systems. & 
+% Strongly dependent on payload geometry, accessibility, and approach from below; grasping arms and actuators may be heavy; hydraulic or high-force actuation increases complexity; descent safety depends on thrust margin, load control, and secure payload grip; poor tolerance to unknown payload shape or swing. \\
+% \midrule
+
+% D & 
+% Avoids direct balloon-envelope interaction by capturing the payload or lower flight train; payload net gives more capture tolerance than a rigid gripper; added ballast can initiate descent without puncturing the balloon; cooperative tethered steering may improve recovery-zone control; hardware may be cheaper than a full parafoil-enclosure system if a passive backup parachute is used. & 
+% Feasibility depends strongly on required ballast mass and residual balloon free lift; three-UAV coordination and tether management increase complexity; capture is sensitive to payload swing and tether entanglement; released ballast may create sustainability and safety concerns; recovery accuracy may be limited without a parafoil. \\
+% \midrule
+
+% E & 
+% Mechanically simple interaction principle; fewer specialised capture components than full net or gripper systems; hook/tether hardware can be lightweight and low cost; avoids large custom nets and parafoil systems if descent is controlled by sustained pulling or drag. & 
+% High power and battery demand during drag/descent; low capture tolerance compared with net concepts; high risk of tether entanglement, unstable coupled dynamics, or uncontrolled balloon motion; sustained pulling loads may exceed UAS thrust margin; weaker post-contact control and recovery accuracy than concepts with dedicated descent devices. \\
+
+% \end{longtable}
+
+% In particular, Concept B should not be selected only because it provides the best capture performance. Its cost, multi-UAV coordination, and recovery-system complexity must be penalised explicitly. Similarly, Concept C should not be selected only because it appears mechanically simpler. Its sensitivity to payload access, tether geometry, and post-contact controllability must be reflected in the safety, reliability, and performance scores.
+
+% \section{Mandatory Screening Constraints}
+
+% Before the weighted score is used, each concept must pass the mandatory screening constraints listed in Table~\ref{tab:screening_constraints}. A concept that fails one of these constraints is not eligible for selection, even if its weighted score is high.
+
+% \begin{table}[H]
+% \centering
+% \small
+% \caption{Mandatory screening constraints before weighted scoring.}
+% \label{tab:screening_constraints}
+% \begin{tabularx}{\textwidth}{p{0.28\textwidth} X p{0.18\textwidth}}
+% \toprule
+% \textbf{Constraint} & \textbf{Reason} & \textbf{Outcome if failed} \\
+% \midrule
+% Electric-only operation & Required by the sustainability and energy-storage requirements. & Concept rejected. \\
+% Non-explosive and non-pyrotechnic interaction & Required because the target may contain hydrogen and the mission occurs in civilian environments. & Concept rejected. \\
+% No uncontrolled rupture or destructive interception & Prevents falling debris, uncontrolled descent, and payload release. & Concept rejected. \\
+% Controlled post-contact state & The mission is only successful if the balloon-payload system reaches a safe end state. & Concept rejected or redesigned. \\
+% Recoverability of deployed hardware & Prevents unrecovered nets, tethers, mechanisms, ballast, or payload fragments from becoming secondary hazards. & Concept rejected or penalised. \\
+% Manual override or abort possibility & Required for supervised operation and contingency handling. & Concept rejected or redesigned. \\
+% \bottomrule
+% \end{tabularx}
+% \end{table}
+
+% After this screening step, the remaining concepts are scored using the weighted method. The scoring results and sensitivity analysis are presented in Chapter~\ref{chap:trade_results}.

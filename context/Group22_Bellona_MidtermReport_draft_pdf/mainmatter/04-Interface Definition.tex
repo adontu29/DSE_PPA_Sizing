@@ -1,0 +1,201 @@
+\chapter{Interface Definition}   
+\label{Interfacedefinition}
+
+
+
+The purpose of the interface definition is to identify the main subsystem interactions that drive integration risk, verification effort and design priorities for the selected BELLONA concept. Since the concept is developed by several subsystem groups in parallel, the main interfaces must be made explicit before detailed design to avoid incompatible assumptions between subsystem models. 
+
+An interface is defined as any exchange or constraint crossing a subsystem boundary. This includes data, commands, electrical power, mechanical loads, layout and clearance constraints or safety constraints.
+Interfaces are classified by the type of dependency they introduce. This classification is used later to identify which interfaces require priority control during the detailed design phase.
+
+
+
+
+\section{System Boundary \& Internal subsystems}
+The system boundary includes the airborne UAS, onboard sensing and control functions, propulsion system, structural airframe, balloon interaction mechanism, communication link and ground segment required to supervise the mission. The target balloon, atmosphere, airspace infrastructure, terrain, recovery area, and surrounding public are treated as external elements. These external elements are not controlled by the system, but they impose constraints on sensing, flight control, interaction safety, recovery and operational procedures.
+
+\subsection{Subsystem Boundaries}
+
+% The selected concept is decomposed into five main subsystem groups: Propulsion, Performance and Aerodynamics; Sensing, Control and Electronics; Operations, Ground Systems and Safety; Structures, Materials and Sustainability; and Balloon Interaction. Table~\ref{tab:subsystem_boundaries} defines the responsibility of each subsystem group and the main interface quantities that it provides to the rest of the system.
+
+
+
+
+
+
+
+
+% The system interfaces are grouped into five types: data, command, electrical, mechanical and operational interfaces. This classification is used to make clear what is exchanged between system elements and why the interface matters for the design.
+
+
+
+
+
+
+
+% \begin{table}[H]
+% \centering
+% \small
+% \caption{Interface types considered in the system-level interface definition.}
+% \label{tab:interface_types}
+% \renewcommand{\arraystretch}{1.25}
+% \begin{tabularx}{\textwidth}{|p{0.22\textwidth}|X|X|}
+% \hline
+% \textbf{Interface type} & \textbf{Description} & \textbf{Example for BELLONA} \\ \hline
+% Data interface & Transfer of measured, estimated, or processed information. & Target position estimate from the sensing system to the onboard computer. \\ \hline
+% Command interface & Transfer of control actions or mission decisions. & Launch, abort, safe-mode, or interaction commands from the onboard computer. \\ \hline
+% Electrical interface & Transfer of electrical power between energy storage and consuming subsystems. & Battery power supplied to propulsion, sensors, avionics, and actuators. \\ \hline
+% Mechanical interface & Transfer of forces, moments, vibrations, or structural loads. & Loads introduced into the airframe during balloon interaction or descent control. \\ \hline
+% Operational interface & Interaction with operators, external infrastructure, regulations, or recovery procedures. & Mission authorisation, airspace coordination, and post-mission retrieval. \\ \hline
+% \end{tabularx}
+% \end{table}
+
+
+
+
+The selected concept is decomposed into nine main subsystems that are determined based on the existing departments.
+%Propulsion, Performance and Aerodynamics department was divided into Propulsion and Aerodynamics subsystems, and Sensing, Control, and Electronics was split into its 3 branches. Then, Operations, Ground Systems and Safety is responsible for Communication and Ground System. The remaining Structures and Balloon Interaction fall under responsibility of their respective departments. 
+Although these subsystems can be developed in parallel, their design variables are strongly coupled. The interfaces and interactions between subsystems are presented in the N2 chart in \autoref{tab:n2_chart_9x9}. 
+%Each off-diagonal cell describes the output provided by the subsystem in the row to the subsystem in the column. This convention makes the interface assumptions explicit and allows the systems engineer to monitor whether later subsystem design choices remain compatible. Subsystem boundaries need to be clearly divided to avoid splitting responsibilities between departments. They are presented in the list below. 
+
+
+
+\definecolor{diagblue}{HTML}{D9EAF7}
+
+\begin{landscape}
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{N2 chart presenting interfaces and interaction between functional subsystems.}
+\label{tab:n2_chart_9x9}
+\renewcommand{\arraystretch}{2} % Reduced from 1.5 to save vertical space
+% Added height constraint to adjustbox
+\begin{adjustbox}{max totalheight=0.95\textheight, max width=\linewidth}
+% Switched to tabularx for dynamic column widths based on available landscape width
+\begin{tabularx}{\linewidth}{|X|X|X|X|X|X|X|X|X|}
+\hline
+
+% ROW 1: PROPULSION
+\cellcolor{diagblue}\centering\textbf{Propulsion}
+& Thrust
+& Vibration data, load estimation
+& Propeller performance and RPM feedback
+& Power consumption
+& 
+& 
+& Mechanical loads transmission and vibrations
+& 
+\tabularnewline \hline
+
+% ROW 2: AERODYNAMICS
+Lift, drag, freestream conditions
+& \cellcolor{diagblue}\centering\textbf{Aerodynamics}
+& Freestream data collection, sensors placement
+& Aerodynamic damping; stability derivatives
+& 
+& 
+&
+& Aerodynamic loads, wing geometry
+& Mechanism pointing change due to wind gusts
+\tabularnewline \hline
+
+% ROW 3: SENSING
+& 
+& \cellcolor{diagblue}\centering\textbf{Sensing}
+& Target track and state estimation accuracy
+& Power consumption, wire harness 
+& Telemetry data stream, bandwidth requirements, sensors data stream
+& 
+& Sensor mounting needs
+& 
+\tabularnewline \hline
+
+% ROW 4: CONTROL
+Motor commands, thrust adaptability
+& Stabilization commands flow, control surfaces deflection 
+& Sensors pointing requirements
+& \cellcolor{diagblue}\centering\textbf{Control}
+& Power consumption, wire harness
+& 
+& 
+& Actuator loads
+& Required accuracy, capture procedure
+\tabularnewline \hline
+
+% ROW 5: ELECTRONICS
+Power supply
+& 
+& Power supply
+& Power supply
+& \cellcolor{diagblue}\centering\textbf{Power \& Electronics}
+& Power supply, battery status data stream
+& 
+& Wire harness, battery thermal management, battery mounting, loads on the battery case 
+& Power supply
+\tabularnewline \hline
+
+% ROW 6: COMMUNICATION
+& Change of aerodynamic properties
+& 
+& Operator commands link
+& Power consumption, wire harness
+& \cellcolor{diagblue}\centering\textbf{Communication}
+& Down--link data stream; link quality, down-link budget
+& Antenna mounting
+& 
+\tabularnewline \hline
+
+% ROW 7: GROUND SYSTEM
+& 
+& 
+& 
+& 
+& Up-link commands; data stream; link quality; up-link budget
+& \cellcolor{diagblue}\centering\textbf{Ground System}
+& 
+& Go/no-go decision; interaction authorisation; safe handling constraints
+
+\tabularnewline \hline
+
+% ROW 8: STRUCTURES
+Mass properties; mounting interfaces; eigen-frequencies
+& Stiffness; maximum load characteristics;  
+& Sensor field-of-view constraints; possible mounting interfaces
+& Centre-of-gravity limits; 
+& Battery spacing constraints; possible mounting interfaces
+& Antenna mounting interfaces
+& 
+& \cellcolor{diagblue}\centering\textbf{Structures}
+& Mechanism mounting interfaces; mechanism clearances
+\tabularnewline \hline
+
+% ROW 9: BALLOON INTERACTION
+Placement constraints
+& Change of aerodynamic properties
+& Sensor field-of-view constraints
+& Mechanism reaction to signals;  
+& Power consumption; wire harness
+& 
+&
+& Local mechanism loads
+& \cellcolor{diagblue}\centering\textbf{Balloon Interaction}
+\tabularnewline \hline
+
+\end{tabularx}
+\end{adjustbox}
+\end{table}
+\end{landscape}
+
+\begin{itemize}
+    \item \textbf{Propulsion:} Thrust generation, engine or motor sizing.
+    \item \textbf{Aerodynamics:} Wing/rotor geometry including control surfaces, lift/drag profiles, aerodynamic damping, stability derivatives, and performance estimation.
+    \item \textbf{Sensing:} Sensor choice, sizing and positioning.
+    \item \textbf{Control:} Controller design and control software.
+    \item \textbf{Electronics:} Battery, power, and thermal management.
+    \item \textbf{Communication:} Antenna design, communication protocols, link quality and budgets.
+    \item \textbf{Ground System:} Ground station design, operator interface and commands.
+    \item \textbf{Structures:} Airframe layout, battery case, load paths, materials selection, manufacturing plan, mounting interfaces, wingbox, landing gear, 
+    \item \textbf{Balloon Interaction:} Tether, net and net gun design
+\end{itemize}
+
+

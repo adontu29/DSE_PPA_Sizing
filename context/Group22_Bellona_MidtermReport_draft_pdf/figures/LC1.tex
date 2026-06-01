@@ -1,0 +1,83 @@
+\documentclass[tikz, border=5pt]{standalone}
+\usepackage{graphicx}
+% Use physics for easier vector notation if needed, but standard TikZ works fine
+\usepackage{amsmath} 
+
+\begin{document}
+
+\begin{tikzpicture}
+    % 1. Load the image.
+    % NOTE: If compiling this file alone, ensure the image is in the same folder.
+    % If calling from main.tex, the path 'figures/UAV top view.jpeg' is usually required.
+    \node[anchor=south west, inner sep=0] (image) at (0,0) {
+        \includegraphics[
+            width=12cm,
+            trim=0cm 0cm 0cm 0cm,
+            clip
+        ]{figures/UAV top view.jpeg}
+    };
+
+    % 2. Create the normalized coordinate system (0 to 1)
+    \begin{scope}[x={(image.south east)}, y={(image.north west)}]
+
+        % --- COORDINATES ---
+        \coordinate (CG) at (0.5, 0.45);          % Center of Gravity
+        \coordinate (MotL) at (0.338, 0.54);      % Left Motors
+        \coordinate (MotR) at (0.66, 0.54);       % Right Motors
+        \coordinate (WingL) at (0.25, 0.45);      % Left Wing AC
+        \coordinate (WingR) at (0.75, 0.45);      % Right Wing AC
+        \coordinate (Tail) at (0.5, 0.85);        % Tail Aerodynamic Center
+        \coordinate (Fuselage) at (0.5, 0.38);    % Fuselage Drag Reference
+
+        % --- DRAW FORCES ---
+
+        % Weight
+        \draw[red, ultra thick, -stealth]
+            (CG) -- ++(0, -0.30)
+            node[below, font=\sffamily\bfseries] {$W$};
+
+        % Thrust forces
+        \draw[blue, thick, -stealth]
+            (MotL) -- ++(0, 0.12)
+            node[above, font=\sffamily] {$T_{12}$};
+
+        \draw[blue, thick, -stealth]
+            (MotR) -- ++(0, 0.12)
+            node[above, font=\sffamily] {$T_{34}$};
+
+        % --- DRAG DISTRIBUTION ---
+
+        % Distributed drag arrows
+        \foreach \x in {0.04, 0.08, ..., 1.00} {
+            \draw[orange, -stealth, thin]
+                (\x, 0.31) -- ++(0, -0.05);
+        }
+
+        % Connecting line for the distributed drag load
+        \draw[orange, thick]
+            (0.04, 0.26) -- (0.96, 0.26);
+
+        % Label for distributed drag
+        \node[orange, font=\footnotesize]
+            at (0.25, 0.23) {$q_{\mathrm{drag}}$};
+
+        % --- AESTHETICS ---
+
+        % Coordinate tripod
+        \draw[gray, thick, ->]
+            (0.05, 0.13) -- ++(0.05, 0)
+            node[right] {$x$};
+
+        \draw[gray, thick, ->]
+            (0.05, 0.13) -- ++(0, 0.05)
+            node[above] {$y$};
+
+        % Optional helper grid
+        % Uncomment this while positioning coordinates
+        % \draw[help lines, thin, step=0.1, opacity=0.5] (0,0) grid (1,1);
+        % \foreach \x in {0,1,...,10} \node[below, scale=0.5] at (\x/10,0) {\x};
+        % \foreach \y in {0,1,...,10} \node[left, scale=0.5] at (0,\y/10) {\y};
+
+    \end{scope}
+\end{tikzpicture}
+\end{document}

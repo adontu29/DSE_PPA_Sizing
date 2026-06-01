@@ -1,0 +1,69 @@
+\clearpage
+\includepdf[
+    pages=-,
+    templatesize={420mm}{297mm},
+    fitpaper=true,
+    scale=1,
+    pagecommand={
+        \thispagestyle{empty}
+        \refstepcounter{chapter}
+        \refstepcounter{section}
+        \addcontentsline{toc}{chapter}{Appendix}
+        \addcontentsline{toc}{section}{Functional Flow Diagram}
+        \label{ch:appendix}
+        \label{sec:functional-flow-diagram-app}
+        \begin{tikzpicture}[remember picture, overlay]
+            \node[anchor=north east, xshift=-1cm, yshift=-1cm] 
+                at (current page.north east) {
+                \begin{minipage}{12cm}
+                    \raggedleft
+                    {\fontsize{60}{72}\selectfont\largetitlestyle A}\\[4pt]
+                    {\Huge\titlestyle Appendix}\\[6pt]
+                    {\Large\titlestyle\bfseries \thesection.\hspace{5pt}Functional Flow Diagram}
+                \end{minipage}
+            };
+        \end{tikzpicture}
+    },
+]{figures/FFD_Final_2.pdf}
+\includepdf[
+    pages=-,
+    templatesize={420mm}{297mm},
+    fitpaper=true,
+    scale=1,
+    landscape=False,
+    offset= 0pt -50pt,
+    pagecommand={
+        \section{Functional Breakdown Diagram}
+        \label{sec:functional-breakdown-diagram-app}
+    },
+]{figures/final FBD on god.pdf} 
+
+
+
+\includepdf[
+    pages=-,
+    templatesize={420mm}{297mm},
+    fitpaper=true,
+    scale = 1.15,
+    % landscape=true,
+    pagecommand={
+        \section{Requirements Discovery Tree}
+        \label{sec:requirements-discovery-tree}
+    },
+]{figures/Requirements Discovery Tree.pdf}
+
+
+\includepdf[
+    pages=-,
+    templatesize={420mm}{297mm},
+    fitpaper=true,
+    scale=1.3,
+    pagecommand={
+        \section{Design Option Tree}
+        \label{sec:design-option-tree}
+    },
+]{figures/png2pdf.pdf} 
+
+
+
+

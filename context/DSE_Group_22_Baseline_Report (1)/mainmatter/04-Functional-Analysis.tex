@@ -1,0 +1,808 @@
+\vspace{-15pt}
+\chapter{Functional Analysis}
+\vspace{-10pt}
+The functional analysis translates the mission objective and user needs into the functions that the proposed unmanned aerial system (UAS) must perform. At this stage, the analysis is intentionally independent of the final physical implementation. It therefore defines what the system must achieve during the mission, without yet prescribing how each function is realised by specific hardware, software, or operational procedures.\\
+
+From a functional perspective, the mission consists of an end-to-end intervention process. The UAS must be prepared for operation, acquire sufficient knowledge of the target state, approach the balloon safely, establish a controlled interaction, and bring the balloon to a condition in which it no longer poses an unacceptable hazard. Since the target is uncooperative, these functions must be performed without relying on any active assistance, navigation data, or control input from the balloon itself.\\
+
+
+\vspace{-20pt}
+\section{Mission Architecture}
+
+The mission architecture provides a system-level view of the balloon recovery operation and describes how the mission elements interact. At the baseline stage, the objective is not yet to select a final physical configuration, but to establish a clear system level view of the mission.\\
+
+The mission considered in this project is an aerial intervention mission. A free floating, uncooperative balloon is identified, after which a small unmanned aerial system is deployed to intercept and recover the balloon, bringing it to a safe end state. The mission is initiated by the detection or reporting of a balloon hazard. At this point, the object of interest has been identified as a free-floating balloon or a balloon-like object that requires further confirmation. Before launch or continued operation, the mission conditions must be checked against the intended operational envelope.\\
+
+Once the mission is authorised, the UAS is deployed and begins the interception phase. During this phase, it must maintain safe flight while obtaining or receiving sufficient target-state information to approach the balloon. Depending on the selected concept, these estimates may be generated onboard, provided by the ground segment, or obtained through a combination of both.
+
+The interaction phase starts when the UAS reaches a suitable relative position with respect to the balloon. The exact interaction method is left open for later design phases. Possible outcomes include controlled descent, gradual deflation, restraint, capture, or another safe condition in which the balloon is no longer drifting freely. Regardless of the selected concept, the interaction must avoid explosive or pyrotechnic methods, uncontrolled descent, and hazardous falling debris.
+
+The mission is completed only after both the UAS and the balloon hazard have landed or been recovered safely, the balloon no longer presents an uncontrolled hazard, and any recovered material or mission-specific equipment has been secured where applicable. Mission data are then stored for inspection, validation, maintenance, and possible improvement of future operations.
+
+The main mission entities, their role in the architecture, and their external interfaces are summarised in \autoref{tab:mission_architecture_interfaces}.
+\vspace{-10pt}
+\begin{longtable}{
+    >{\raggedright\arraybackslash}p{0.20\textwidth}
+    >{\raggedright\arraybackslash}p{0.32\textwidth}
+    >{\raggedright\arraybackslash}p{0.40\textwidth}
+}
+\caption{Main mission architecture elements and external interfaces.}
+\label{tab:mission_architecture_interfaces}\\
+
+\toprule
+\textbf{Mission entity} & \textbf{Role in the mission} & \textbf{Interface or functional relevance} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{Mission entity} & \textbf{Role in the mission} & \textbf{Interface or functional relevance} \\
+\midrule
+\endhead
+
+\midrule
+\multicolumn{3}{r}{\textit{Continued on next page}}\\
+\endfoot
+
+\bottomrule
+\endlastfoot
+
+Target balloon &
+Uncooperative object to be detected, tracked, intercepted, and brought to a safe end state. &
+Provides visual, thermal, or geometric signatures; imposes constraints through drift, size, material properties, and physical contact behaviour. \\
+
+\addlinespace
+
+Airborne UAS &
+Primary flight system performing navigation, target approach, interaction, and recovery support. &
+Interfaces with the target, ground segment, atmosphere, and recovery environment through sensing, control, communication, propulsion, and interaction equipment. \\
+
+\addlinespace
+
+Ground segment &
+Operational support element for mission authorisation, supervision, command, and possible external target cueing. &
+Provides operator commands, mission constraints, communication links, and possible target-state information. \\
+
+\addlinespace
+
+Atmosphere and weather &
+External operating environment affecting both UAS flight and balloon motion. &
+Introduces wind disturbances, aerodynamic loads, visibility limitations, and target drift uncertainty. \\
+
+\addlinespace
+
+Terrain and recovery area &
+Physical environment in which the UAS and balloon system must land or be retrieved. &
+Constrains safe landing, obstacle avoidance, accessibility, and post-mission retrieval. \\
+
+\addlinespace
+
+Infrastructure and public &
+Safety-critical external environment surrounding the mission. &
+Drives collision avoidance, debris prevention, noise limits, and controlled-descent requirements. \\
+
+\addlinespace
+
+Recovery and logistics &
+Post-mission support for retrieved material, system reset, maintenance, and reuse. &
+Enables inspection, charging, repair, data storage, and preparation for future deployment. \\
+
+\end{longtable}
+
+
+\vspace{-25pt}
+\section{Functional Flow Diagram}
+\label{sec:functional_flow_diagram}
+
+The Functional Flow Diagram (FFD), shown in \autoref{sec:functional-flow-diagram-app}, translates the mission architecture into a time-ordered sequence of system functions. Whereas the mission architecture describes the main mission elements and their interaction at system level, the FFD focuses on the functional logic required to execute the mission safely. It shows the order of functions, the decision points that control progression through the mission, the feedback loops needed for off-nominal cases, and the functions that must operate in parallel. 
+
+The diagram is organised into seven main functional phases: production of a mission-ready UAS, mission preparation, movement toward the target, situational awareness, target interception, mission return and closure, and lifecycle closure. 
+\vspace{-10pt}
+\paragraph{Producing a mission-ready UAS.}
+The first phase describes the functions required to turn the selected design into an operational system. This branch is included before the mission flow because the UAS cannot be considered available for deployment until its design baseline has been frozen, required parts have been procured or manufactured, components have been inspected, and the system has been assembled and integrated. The branch also includes interface verification, calibration, ground tests, flight acceptance tests, and configuration documentation. 
+\vspace{-10pt}
+\paragraph{Preparing the mission.}
+The preparation phase contains the first major decision gates of the operational flow. After a mission trigger is received, the mission feasibility is assessed before the UAS is allowed to proceed. This gate prevents the mission from continuing when external conditions, system status, airspace limitations, energy availability, or recovery constraints fall outside the intended operating envelope. If the mission is feasible, the UAS proceeds through pre-flight checks. Failed checks lead to an issue-resolution loop, after which the checks must be repeated before mission parameters are configured and launch is authorised. This structure makes vehicle readiness and mission feasibility explicit conditions for deployment.
+\vspace{-10pt}
+
+\paragraph{Moving toward the target.}
+The target acquisition phase begins after launch authorisation and deployment. The UAS launches, searches for the target, detects candidate objects, and only proceeds when the object has been identified and confirmed as the balloon target. If no target candidate is detected, the system remains in the search loop. If a candidate is detected but cannot be confirmed, the flow returns to the detection stage. This distinction between detection and confirmation is important because the balloon is uncooperative and the UAS must avoid approaching or interacting with the wrong object.
+\vspace{-10pt}
+
+\paragraph{Maintaining situational awareness.}
+Situational awareness is shown as a parallel functional flow rather than as a single sequential step. The UAS must continuously monitor its own position and attitude, detect obstacles, monitor the surrounding airspace, and track mission progress. These functions support navigation, target approach, decision-making, and contingency handling throughout the mission. Their parallel placement in the diagram indicates that they remain active during multiple phases, including flight toward the target, interception, return, and mission closure.
+\vspace{-10pt}
+
+\paragraph{Intercepting the target.}
+The interception phase contains the most safety-critical mission logic. The FFD separates target tracking, target-motion prediction, approach, alignment, interaction, and post-contact securing into individual functions. The UAS may only continue toward interaction if the target track is maintained. Loss of tracking returns the flow to the target acquisition process. Once in range of the target, the alignment process commences and safe interaction is assured. An unsafe interaction geometry leads to repositioning before another alignment attempt is made. If the interaction is unsuccessful, the UAS disengages safely and re-enters the approach sequence. This prevents the interaction from being treated as a single irreversible action and instead represents it as a monitored process with recovery paths.
+\vspace{-10pt}
+
+\paragraph{Assuring safety throughout the mission.}
+Safety assurance is also represented as a continuous parallel flow. It includes monitoring system health and faults, protecting third parties, and managing contingency modes. This region is separated from the main mission sequence because safety functions are not confined to one phase of operation. They influence whether the mission may continue, whether the UAS must abort and whether a contingency mode is required.
+\vspace{-10pt}
+
+\paragraph{Returning to the landing area and closing the mission.}
+After the post-contact outcome has been secured, the UAS transitions to the return and closure phase. The UAS navigates to the landing area, descends, lands, and then supports recovery of any payload, balloon material, deployed equipment, or debris where applicable. A post-flight check is performed to determine the condition of the UAS, after which mission data are recorded. This region closes the individual mission and provides the information required for inspection, maintenance, validation, and improvement of future operations.
+\vspace{-15pt}
+
+\paragraph{Closing the UAS lifecycle.}
+The final region addresses the end-of-life path of the UAS and its mission-specific equipment. This branch is only entered when the UAS is no longer fit for continued operation or has reached defined retirement criteria. It includes a final system health audit, extraction and archiving of lifetime telemetry, removal of reusable subsystems, safe disposal of hazardous materials, recycling of recoverable materials, formal deregistration where applicable, and recording of the end-of-life outcome. The feedback toward future production represents recycling of materials and reusing subsystems where applicable as well as the use of lessons learned from operation and retirement in later design iterations.
+                               
+\section{Functional Breakdown}
+
+\label{sec:functional_breakdown_structure}
+
+The Functional Breakdown Structure (FBS), shown in \autoref{sec:functional-breakdown-diagram-app} hierarchically decomposes the balloon recovery mission into the required functionality that the UAS must provide, independently of when each function occurs during the mission.\\
+At the highest level, the functions are grouped into five categories: Sensing and Tracking, Aerial Platform, Balloon Interaction, Operations and Environment, and Life-Cycle Support. These categories do not represent physical subsystems, since no final system architecture has been selected at this stage. Instead, they are used as logical groupings that make the functional decomposition easier to interpret and trace toward later design choices. For example, sensing and tracking functions may later be allocated to onboard sensors, ground-based support, software, or a combination of these elements. The breakdown supports the derivation of requirements by linking user needs and mission objectives to concrete system functions. It also helps reveal functional gaps, overlaps, and dependencies before the concept generation and trade-off process begins.\\
+\vspace{-10pt}
+\bgroup
+\renewcommand{\arraystretch}{1.1}
+\begin{xltabular}{\textwidth}{m{0.1\textwidth} >{\hsize=0.66\hsize}X >{\hsize=1.34\hsize}X}
+\hline
+\textbf{Category} & \textbf{Function Identifier \& Name} & \textbf{Functional Definition} \\ \hline
+\endhead
+\hline
+\endfoot
+
+\multirow{8}{=}{\centering Sensing and Tracking (ST) Functions} 
+ & \textit{2.2 Search for target} & Scans the designated airspace to find initial balloon signatures. \\ 
+ & \textit{2.3 Detect Candidate Targets} & Extracts specific objects from raw sensor data that exhibit physical characteristics of a balloon while filtering environmental noise. \\ 
+ & \textit{2.4 Identify and confirm balloon target} & Cross-references candidate object data against known balloon profiles to ensure pursuit of the correct target. \\ 
+ & \textit{3.1 Monitor own position and attitude} & Calculates the aircraft's 3D coordinates and orientation \\ 
+ & \textit{3.2 Detect obstacles} & Identifies fixed or moving hazards in the environment to prevent mid-air collisions. \\ 
+ & \textit{3.3 Monitor airspace status} & Tracks nearby aircraft and traffic signals to maintain safe separation and situational awareness. \\ 
+ & \textit{4.1 Track target} & Maintains an estimation of the balloon's relative position through sensor monitoring. \\ 
+ & \textit{4.2 Predict target motion} & Projects the future trajectory of the balloon based on current velocity and  wind drift. \\ \hline
+
+\multirow{7}{=}{\centering Aerial Platform (AP) Functions} 
+ & \textit{2.1 Launch UAS} & Transitions the platform from a stationary ground state to a controlled, airborne flight state. \\ 
+ & \textit{4.3 Approach target} & Navigates the UAS toward the predicted intercept point while optimizing for speed and energy efficiency. \\ 
+ & \textit{4.4 Align for interaction} & Maneuvers the platform into the precise lateral, vertical, and angular orientation required for engagement. \\ 
+ & \textit{6.2 Protect third parties} & Steers the UAS flight path away from populated areas, vehicles, and high-value infrastructure to minimize ground risk. \\ 
+ & \textit{5.2 Descend} & Executes a controlled reduction in altitude toward the designated recovery zone. \\ 
+ & \textit{5.3 Land} & Performs the final touchdown maneuver while minimizing impact force to protect the UAS and/or payload. \\ 
+ & \textit{5.4 Recover payload and debris} & Retrieves the landed UAS and any intercepted materials from the field for transport. \\ \hline
+
+\multirow{2}{=}{\centering Balloon Interaction (BI) Functions} 
+ & \textit{4.5 Establish controlled interaction} & Actuates the interaction mechanism to make physical contact and initiate the capture process. \\ 
+ & \textit{4.6 Secure post-contact outcome} & Manages the combined dynamics of the coupled UAS-balloon system to ensure a controlled descent. \\ \hline
+
+\multirow{10}{=}{\centering Operations and Environment (OE) Functions} 
+ & \textit{1.1 Receive mission trigger} & Accepts the activation command or external alert signaling the start of a specific task. \\ 
+ & \textit{1.2 Assess mission feasibility} & Evaluates environmental and system conditions to determine if the mission can be safely executed. \\ 
+ & \textit{1.3 Perform pre-flight checks} & Executes comprehensive diagnostic routines across all subsystems to verify readiness. \\ 
+ & \textit{1.4 Configure mission parameters} & Loads specific operational boundaries, target profiles, and mission logic into the flight controller. \\ 
+ & \textit{1.5 Authorize launch} & Provides the final safety validation and software clearance required for flight operations. \\ 
+ & \textit{3.4 Monitor mission progress} & Supervises the real-time execution of the mission against predefined milestones. \\ 
+ & \textit{5.5 Post Flight Check} & Conducts a thorough inspection of the platform after retrieval to identify maintenance needs. \\ 
+ & \textit{5.6 Record Mission Data} & Compiles and archives all flight telemetry, interaction logs, and sensor data for analysis. \\ 
+ & \textit{6.1 Monitor health and faults} & Analyzes system diagnostic data in real-time to detect anomalies. \\ 
+ & \textit{6.3 Manage contingency modes} & Triggers emergency protocols and failsafe maneuvers in the event of a critical system failure. \\ \hline
+
+\multirow{2}{=}{\centering Life-Cycle Support (LS) Functions} 
+ & \textit{0.0 Produce Mission-Ready UAS} & Executes the entire production process of building subsystem modules and integrating them into a flight-ready unit. \\ 
+ & \textit{7.0 Decommission UAS and Close Lifecycle} & Manages the safe removal of reusable subsystems and disposal of hazardous materials to formally register the lifecycle end. \\ 
+
+\end{xltabular}
+\egroup
+\vspace{-10pt}
+
+% \subsection{Nominal mission flow}
+
+% Whereas the Functional Breakdown Structure describes simply what functions exist, the Functional Flow Diagram describes when and in what logical order they are executed. The nominal mission logic for the balloon recovery UAS is summarized below:
+
+% \begin{enumerate}
+%     \item Receive mission trigger and define operational area.
+%     \item Evaluate mission feasibility and perform pre-flight checks.
+%     \item Configure mission parameters and authorize launch.
+%     \item Launch UAS and transit to the search area.
+%     \item Search for the target balloon.
+%     \item Detect, identify and track the target.
+%     \item Estimate and predict target motion.
+%     \item Plan interception and safe interaction geometry.
+%     \item Approach target and establish controlled interaction.
+%     \item Activate the chosen intervention process.
+%     \item Stabilize the post-contact situation.
+%     \item Guide the balloon or combined system to a safe end state.
+%     \item Confirm that the hazard has been neutralised.
+%     \item Return, land, and recover the UAS.
+%     \item Secure recovered materials, log data, and close mission.
+% \end{enumerate}
+
+
+% % This nominal flow highlights that the mission consists of more than target interception. The post-interaction management and the final mission closure are equally essential for successful operation.
+
+% \subsection{Off-nominal and contingency flows}
+
+% In addition to the nominal mission path, the system must support several off-nominal flows. These are functionally necessary because real operations may involve uncertainty in sensing, target motion, communication or subsystem health.
+
+% The most relevant contingency flows are:
+% \begin{itemize}
+%     \item \textbf{Target not detected during initial search:} expand search pattern, refine search area, reattempt acquisition, or abort after timeout.
+%     \item \textbf{Target lost during tracking or interception:} retreat to safe separation, recover stable flight state, and re-initiate search and tracking.
+%     \item \textbf{Interaction unsuccessful or only partially successful:} disengage safely, reassess target state, and either retry or abort according to safety margins.
+%     \item \textbf{Energy margin becomes insufficient:} terminate mission, return to base, or land at a predefined safe alternate location.
+%     \item \textbf{Communication degraded or lost:} switch to onboard autonomous contingency mode and execute a predefined safe behaviour.
+%     \item \textbf{Unsafe public exposure detected:} suspend interaction, reposition to a safer geometry or abort the engagement.
+% \end{itemize}
+
+% These contingency branches are important not only from an operational perspective, but also because they later support the required validation of failure scenarios and the development of a robust contingency management strategy.
+
+
+
+
+
+
+% \section{Design Driving and Critical Functions}
+
+
+
+
+% Not all functions have equal influence on the final design. At the baseline stage, several functions can already be identified as design drivers because they strongly constrain the viable concept. %space
+
+% \begin{enumerate}
+%     \item \textbf{Detect and maintain track of a drifting balloon.}  
+%     This function drives the sensing concept, field of view, onboard processing requirements, and state-estimation robustness.
+
+%     \item \textbf{Intercept a target under wind disturbance.}  
+%     This function drives platform choice, controllability, propulsion sizing, flight stability, and low-speed manoeuvring capability.
+
+%     \item \textbf{Establish safe controlled interaction.}  
+%     This is the main concept-defining function, since it determines how the UAS can physically engage the balloon while preserving safety and control.
+
+%     \item \textbf{Secure the post-contact outcome.}  
+%     The design must not only make contact with the balloon, but also ensure that the resulting condition does not generate falling debris, uncontrolled descent or a renewed hazard.
+
+%     \item \textbf{Maintain safety under faults and abnormal conditions.}  
+%     This drives redundancy, fault detection, degraded mode logic and operational limitations.
+
+%     \item \textbf{Operate within energy, cost and, of course, sustainability constraints.}  
+%     This drives material choice, reusability, subsystem selection and mission architecture.
+% \end{enumerate}
+
+% These functions are expected to dominate the trade-offs between candidate concepts in the next project phase. In particular, the interaction and post-interaction functions will likely determine whether a concept is ultimately feasible within the imposed safety and cost constraints.
+
+
+
+
+
+
+% \section{Assumptions and Limitations}
+
+
+% The present functional analysis is based on the following baseline assumptions:
+
+% \begin{enumerate}
+%     \item The UAS operates in civilian airspace under supervised and authorised mission conditions.
+%     \item The target balloon is uncooperative.% except for passive drift under wind influence.% here i would like to include also if balloon non-manoeuvring
+%     \item The target lies within the specified size and altitude envelope of the project requirements.
+%     \item The system uses electric energy storage only.
+%     \item The mission is conducted in nominal weather conditions within the operational wind limits defined for the project.
+%     \item The intervention mechanism must be non-explosive, non-pyrotechnic, and non-destructive in a general public-safety sense.
+% \end{enumerate}
+
+% In addition, several functions are considered outside the baseline system scope:
+% \begin{itemize}
+%     \item strategic wide-area surveillance before a local mission trigger is issued;
+%     \item broader airspace management beyond mission-specific operational approval;
+%     \item post-recovery recycling and waste processing beyond securing and handing over recovered materials;
+%     \item law-enforcement or incident-command decision making outside the direct UAS mission.
+% \end{itemize}
+
+
+
+% %concluzii
+
+
+% The analysis identifies the most influential functional branches for later design work: target detection and tracking, interception under wind disturbance, controlled interaction, post-contact outcome management and mission-wide safety support. These functions will drive the next phase of concept generation, option structuring and trade-off analysis.
+
+% The chapter therefore provides the functional basis for the remainder of the baseline report, including the functional flow diagrams, the functional breakdown structure and the derivation of system level requirements.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%\section{Introduction}
+
+
+
+
+
+
+% For this project, the system to be designed is a small unmanned aerial system (UAS) capable of locating, intercepting and safely recovering a payload from a free-floating balloon in a controlled manner. The target balloon is assumed to be uncooperative, meaning that it has no onboard control authority and may drift unpredictably with the wind. The design must therefore combine target detection, tracking, interception, interaction and recovery in a way that remains safe for people, infrastructure, airspace users and the environment.
+
+% The functional analysis serves four purposes:
+% \begin{enumerate}
+%     \item to define the system boundary and its interaction with the operational environment;
+%     \item to derive the main and supporting functions the UAS must fulfil;
+%     \item to identify the logical sequence of operations from mission start to mission termination;
+%     \item to provide a neutral basis for comparing alternative design concepts in the next design phases.
+% \end{enumerate}
+
+
+
+
+
+
+% \section{Mission Context and Functional Objective}
+% The mission context is the recovery or controlled neutralisation of a drifting balloon that may enter restricted or populated airspace. The UAS is expected to detect and track a balloon with a diameter of approximately 2--6~m at altitudes up to 300~m AGL, intercept it within the required response time under nominal wind conditions, and then safely disable or recover it without creating hazardous debris, uncontrolled descent, or unacceptable risk to the public.
+
+% From a functional point of view, the overall objective can be written as follows:
+
+% \begin{quote}
+% \textbf{Provide a safe, controlled and sustainable aerial intervention capability that transforms an uncooperative free-floating balloon from a drifting hazard into a secured, recoverable or harmless end state.}
+% \end{quote}
+
+% This means that the system is not only required to reach the balloon, but also to manage the complete chain of events before, during, and after contact. A successful mission therefore includes preparation, deployment, search, tracking, interception, interaction, stabilisation of the outcome and post-mission recovery of the payload.
+
+% \section{System Boundary and External Interfaces}
+
+
+% The functional analysis is performed at system level. The system of interest includes the airborne vehicle and all onboard hardware and software required to perform the mission. Depending on concept choice, the system may also include a recovery device, interaction mechanism, tether, capture net, controlled deflation device or detachable payload-handling element. % here theres more to add
+
+% The following elements are considered external to the system:
+% \begin{itemize}
+%     \item the target balloon and any suspended payload;
+%     \item the atmosphere and wind field;
+%     \item the ground operator or ground control station;
+%     \item navigation infrastructure (e.g.\ GNSS signals);
+%     \item communications environment;
+%     \item civilians, infrastructure, and other airspace users;
+%     \item emergency response or retrieval personnel after landing.
+% \end{itemize}
+
+% The system therefore exchanges matter, energy and information with its environment. These exchanges are summarized in Table~\ref{tab:functional_interfaces}.
+
+
+
+
+% \begin{table}[h!]
+% \centering
+% \caption{Main external interfaces of the UAS system.}
+% \label{tab:functional_interfaces}
+% \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.2cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+% \toprule
+% \textbf{External entity} & \textbf{Interface type} & \textbf{Functional relevance} \\
+% \midrule
+% Target balloon & Physical interaction, relative motion, visual signature & Must be detected, tracked, approached, contacted, stabilised, and recovered or disabled safely \\
+% Ground operator / GCS & Command, monitoring, mission supervision & Provides mission authorization, health monitoring, override capability, and mission termination commands \\
+% Atmosphere / wind & Aerodynamic loads, disturbances, visibility limitations & Determines flight performance, controllability, tracking difficulty, and safety margins \\
+% Navigation infrastructure & Positioning and timing information & Supports localization, guidance, route planning, and redundancy in navigation \\
+% Communications link & Telemetry and command data & Enables supervision, contingency handling, and mission logging \\
+% Ground / landing area & Recovery zone, obstacle environment & Must support safe descent, debris containment, retrieval, and mission closure \\
+% Public / third parties & Safety-critical exposure & System must avoid collisions, falling debris, excessive noise, and unsafe interaction \\
+% Maintenance / logistics & Charging, inspection, replacement & Enables turnaround between missions and long-term operability \\
+% \bottomrule
+% \end{tabularx}
+% \end{table}
+
+
+
+
+% \section{Functional Analysis Method}
+% % The functional analysis is carried out top-down. First, the overall system function is defined. Next, this overall function is decomposed into major mission functions. These are then further decomposed into supporting and lower-level functions.
+
+% The decomposition follows three principles:
+% \begin{enumerate}
+%     \item \textbf{Solution-neutrality:} functions are expressed without prematurely fixing the physical design;
+%     \item \textbf{Traceability:} each function must support one or more requirements;
+%     \item \textbf{Completeness:} both nominal mission functions and support/safety functions are included.
+% \end{enumerate}
+
+
+
+
+
+
+
+
+
+
+% At this stage, the functional architecture must be rich enough to evaluate different concepts such as:
+% \begin{itemize}
+%     \item direct capture and guided descent;
+%     \item controlled puncture and deflation;
+%     \item tethered stabilisation and descent assistance;
+%     \item hybrid recovery approaches combining containment and venting.
+% \end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+% \section{Top-Level System Function}
+% The top-level system function is defined as:
+
+% \begin{quote}
+% \textbf{Safely neutralise the hazard posed by a drifting balloon through autonomous or supervised aerial intervention and controlled mission closure.} % is it fully autonomous or can it be supervised as well
+% \end{quote}
+
+% This top-level function can be divided into six first-level functions:
+% \begin{enumerate}[label=F\arabic*:, leftmargin=1.5cm]
+%     \item Prepare and authorize mission
+%     \item Deploy and navigate to search area
+%     \item Detect, identify and track target balloon
+%     \item Intercept and establish controlled interaction
+%     \item Secure balloon outcome
+%     \item Recover system and close mission
+% \end{enumerate}
+
+% These first-level functions are expanded in the following sections.
+
+% \section{Functional Breakdown Structure}
+% \subsection{Level 1 Breakdown}
+% Figure~\ref{fig:fbs_level1} should present the level 1 functional breakdown structure. A suggested textual form is given below.
+
+% \begin{figure}[h!]
+%     \centering
+%     \fbox{\parbox{0.9\textwidth}{
+%     \centering
+%     Placeholder for Functional Breakdown Structure (Level 1).\\
+%     Recommended to replace with an A3 figure in the final baseline report.
+%     }}
+%     \caption{Functional Breakdown Structure of the balloon recovery UAS at Level 1.}
+%     \label{fig:fbs_level1}
+% \end{figure}
+
+% \subsection{Level 2 Breakdown}
+% The detailed functional decomposition is given in Table~\ref{tab:fbs_level2}.
+
+
+
+% \begin{longtable}{>{\raggedright\arraybackslash}p{1.8cm} >{\raggedright\arraybackslash}p{4.0cm} >{\raggedright\arraybackslash}p{8.2cm}}
+% \caption{Level 2 functional breakdown of the system.}
+% \label{tab:fbs_level2}\\
+% \toprule
+% \textbf{ID} & \textbf{Function} & \textbf{Description} \\
+% \midrule
+% \endfirsthead
+% \toprule
+% \textbf{ID} & \textbf{Function} & \textbf{Description} \\
+% \midrule
+% \endhead
+% F1 & Prepare and authorize mission & Establish mission readiness before take-off. Includes pre-flight planning, configuration, health checks, and go/no-go decision-making. \\
+
+% F1.1 & Receive mission trigger & Accept alert from operator, surveillance source, or local spotter that a balloon requires intervention. \\
+
+% F1.2 & Assess mission feasibility & Determine whether weather, airspace, battery state, target location, and safety constraints permit launch. \\
+
+% F1.3 & Configure mission parameters & Load geofences, search area, nominal altitude, operator limits, and contingency procedures. \\
+
+% F1.4 & Verify system readiness & Check propulsion, sensors, communications, power system, interaction mechanism, and fail-safe functions. \\
+
+% F1.5 & Authorize launch & Confirm readiness and allow mission start. \\
+
+% F2 & Deploy and navigate to search area & Move the UAS from standby state to operational area while preserving safety and mission margin. \\
+
+% F2.1 & Launch safely & Take off in controlled fashion from designated location without endangering people or property. \\
+
+% F2.2 & Transit to search zone & Follow a route or vector toward the expected balloon location. \\
+
+% F2.3 & Maintain flight stability & Reject wind disturbances and remain within controllability and structural limits during transit. \\
+
+% F2.4 & Maintain situational awareness & Continuously monitor own-state, obstacles, geofence limits, airspace constraints, and mission progress. \\
+
+% F3 & Detect, identify, and track target balloon & Convert uncertain environmental information into a reliable estimate of balloon position, velocity, and relative geometry. \\
+
+% F3.1 & Search for target & Use onboard sensors and search logic to detect candidate balloon signatures. \\
+% F3.2 & Classify target & Distinguish the balloon from birds, drones, clutter, clouds, or background objects. \\
+
+% F3.3 & Estimate target state & Determine balloon location, altitude, relative velocity, drift direction, and size estimate. \\
+
+% F3.4 & Maintain track & Preserve continuous target lock despite motion, occlusion, lighting variation, or temporary sensing degradation. \\
+
+% F3.5 & Predict target motion & Estimate future balloon position to support interception planning. \\
+
+% F4 & Intercept and establish controlled interaction & Bring the UAS into a position and state from which safe physical interaction can occur. \\
+
+% F4.1 & Plan approach trajectory & Generate a safe approach path considering balloon motion, rotor safety, wind, and interaction geometry. \\
+
+% F4.2 & Align with target & Achieve required relative position, attitude, and velocity for contact or containment. \\
+
+% F4.3 & Control relative closing speed & Limit contact dynamics to prevent tearing, rebound, entanglement, or loss of target. \\
+
+% F4.4 & Arm interaction mechanism & Prepare the capture, containment, tethering, or venting subsystem for use. \\
+
+% F4.5 & Establish physical interaction & Perform first controlled contact with the balloon or attached recovery element. \\
+
+% F5 & Secure balloon outcome & Transform the balloon from an uncontrolled drifting object into a controlled post-interaction state. \\
+
+% F5.1 & Contain or restrain target & Prevent the balloon or its fragments/payload from escaping in an uncontrolled way. \\
+
+% F5.2 & Reduce lift safely & If relevant to the concept, gradually vent gas or otherwise reduce buoyancy without explosive or hazardous action. \\
+
+% F5.3 & Stabilize coupled system & Maintain stable flight and load control after capture or during descent-assist operations. \\
+
+% F5.4 & Guide descent or recovery & Direct the balloon, attached payload, or recovery assembly toward a safe landing or retrieval state. \\
+
+% F5.5 & Prevent hazardous debris & Ensure no dangerous fragments, cutting elements, or heavy falling objects are released. \\
+
+% F5.6 & Confirm safe end state & Verify that the balloon hazard has been neutralised and that public risk is acceptably low. \\
+
+% F6 & Recover system and close mission & Complete the operation and restore the system to a safe post-mission condition. \\
+
+% F6.1 & Return to base or landing zone & Navigate to recovery point or safe landing location. \\
+
+% F6.2 & Land safely & Execute controlled landing with or without recovered balloon hardware. \\
+
+% F6.3 & Secure recovered materials & Package, isolate, or hand over balloon remnants and payload for disposal or analysis. \\
+
+% F6.4 & Record mission data & Store telemetry, imagery, events, anomalies, and evidence of requirement compliance. \\
+
+% F6.5 & Reset and inspect system & Recharge, inspect wear items, and prepare for next mission. \\
+
+% FS1 & Assure safety throughout mission & Cross-cutting safety function active in every mission phase. \\
+
+% FS1.1 & Monitor health and faults & Detect propulsion, sensor, communication, or mechanism failures. \\
+
+% FS1.2 & Manage contingency modes & Replan, abort, loiter, retreat, or land safely under abnormal conditions. \\
+
+% FS1.3 & Enforce flight envelope and geofence & Prevent unsafe speed, attitude, altitude, or boundary excursions. \\
+
+% FS1.4 & Protect third parties & Maintain separation from people, buildings, vehicles, and other airspace users. \\
+
+% FS2 & Manage energy and resources & Ensure sufficient electrical power, computation, and communication margin throughout the mission. \\
+
+% FS2.1 & Monitor state of charge & Estimate remaining usable energy and mission reserve. \\
+
+% FS2.2 & Allocate power to subsystems & Prioritize flight-critical and safety-critical functions under limited power. \\
+
+% FS2.3 & Support mission abort decision & Trigger return, landing, or mission termination when margins become insufficient. \\
+% FS3 & Enable supervision and control & Provide operator awareness and authority over the mission. \\
+
+% FS3.1 & Transmit telemetry & Send state, health, and mission progress to the ground station. \\
+
+% FS3.2 & Receive commands & Accept operator inputs, override commands, or mode changes. \\
+
+% FS3.3 & Present mission status & Support informed decisions by showing target state, alarms, and action recommendations. \\
+
+% \bottomrule
+% \end{longtable}
+
+% \section{Functional Grouping by Mission Phase}
+% To make the system logic clearer, the functions can also be grouped into mission phases. This is useful because the same subsystem may support different functions in different phases.
+
+
+
+
+% \subsection{Phase 1: Pre-mission}
+% Before take-off, the system must become mission-ready. This includes receiving the mission trigger, verifying that the balloon event is within operational scope, checking that legal and operational constraints are satisfied, and confirming that the vehicle and interaction mechanism are ready for flight. The pre-flight phase is especially important because the project guide explicitly requires risk assessment and checklists before operation.
+
+% \subsection{Phase 2: Search and acquisition}
+% Once airborne, the system must enter the expected search area and identify the target balloon. This phase is dominated by sensing, state estimation, robustness against false positives, and the ability to build a stable track despite environmental uncertainty.
+
+% \subsection{Phase 3: Interception}
+% After a target track is established, the UAS must compute an approach strategy that respects both flight safety and interaction constraints. The interception is not simply a navigation task; it is the preparation for controlled physical interaction with a deformable, wind-driven object.
+
+% \subsection{Phase 4: Interaction and neutralisation}
+% This phase is the core differentiator of the project. The system must either capture, restrain, vent, guide, or otherwise neutralise the balloon without causing hazardous debris, uncontrolled descent, or excessive danger to people and infrastructure. This phase determines much of the design space and will strongly influence the concept trade-off.
+
+% \subsection{Phase 5: Recovery and post-mission}
+% After the balloon hazard has been neutralised, the mission is not yet complete. The system must still manage safe landing, retrieval of the balloon or debris where feasible, data logging, inspection, and turnaround for the next deployment.
+
+% \section{Functional Flow Description}
+% The functional flow diagram (FFD) should describe the logical order of operations. Figure~\ref{fig:ffd} is a placeholder for the graphical FFD, while the mission logic is described below in text form.
+
+
+
+
+
+% \begin{figure}[h!]
+%     \centering
+%     \fbox{\parbox{0.9\textwidth}{
+%     \centering
+%     Placeholder for Functional Flow Diagram.\\
+%     Recommended to replace with an A3 mission flow chart in the final baseline report.
+%     }}
+%     \caption{Top-level functional flow diagram for the balloon recovery mission.}
+%     \label{fig:ffd}
+% \end{figure}
+
+% \subsection{Nominal Functional Flow}
+% The nominal mission flow is as follows:
+% \begin{enumerate}
+%     \item Receive mission trigger and define search area.
+%     \item Execute pre-flight checks and confirm go/no-go.
+%     \item Launch UAS and transit to operational zone.
+%     \item Search for target balloon.
+%     \item Detect and classify target.
+%     \item Estimate target state and maintain target track.
+%     \item Plan interception and safe interaction geometry.
+%     \item Approach target and establish controlled contact.
+%     \item Activate recovery or controlled neutralisation mechanism.
+%     \item Stabilise balloon-UAS interaction outcome.
+%     \item Guide balloon, payload or remnants to a safe end state.
+%     \item Confirm hazard removal.
+%     \item Return and land safely.
+%     \item Recover materials, log mission data and inspect system.
+% \end{enumerate}
+
+% \subsection{Abnormal and Contingency Flows}
+% In addition to the nominal path, the system must support several abnormal flows:
+% \begin{itemize}
+%     \item \textbf{Target lost during search:} expand search pattern, re-acquire through alternate sensor mode, or abort after timeout.
+%     \item \textbf{Target lost during interception:} retreat to safe separation, recover stable flight, and re-initiate tracking.
+%     \item \textbf{Interaction mechanism partial failure:} switch to backup interaction mode, disengage safely, or maintain surveillance until alternative action is possible.
+%     \item \textbf{Energy margin insufficient:} abort mission and return to base or land at safe alternate site.
+%     \item \textbf{Communication degraded:} revert to onboard autonomous safety mode and execute predefined contingency.
+%     \item \textbf{Unsafe public exposure detected:} suspend interaction and reposition until safe conditions are restored.
+% \end{itemize}
+
+% These off-nominal flows are particularly important because at least two failure scenarios must be analysed later in the validation process.
+
+% \section{Functional Drivers and Design-Critical Functions}
+% Not all functions have equal influence on the system design. At baseline stage, the following functions are considered design drivers:
+
+% \begin{enumerate}
+%     \item \textbf{Detect and maintain track of a drifting balloon:} drives sensor suite, onboard processing, field of view, and target-state estimation logic.
+%     \item \textbf{Intercept under wind disturbance:} drives platform type, controllability, propulsion sizing, and flight control performance.
+%     \item \textbf{Establish safe physical interaction:} drives the entire concept family, especially whether the design prioritises capture, venting, tethering, or guided descent.
+%     \item \textbf{Prevent hazardous debris and uncontrolled descent:} strongly constrains mechanism design and excludes aggressive solutions.
+%     \item \textbf{Maintain safety under single-point failures:} drives redundancy, fault detection, safe-mode logic, and operational constraints.
+%     \item \textbf{Minimise waste, noise, and per-mission cost:} drives reuse strategy, material selection, electric architecture, and mechanism resetability.
+% \end{enumerate}
+
+% These functions are likely to dominate concept selection in the next phase.
+
+% \section{Allocation of Functions to Major Subsystems}
+% At this stage, a preliminary functional allocation can be made without freezing the final architecture. Table~\ref{tab:function_allocation} shows a generic allocation.
+
+% \begin{table}[h!]
+% \centering
+% \caption{Preliminary allocation of major functions to subsystems.}
+% \label{tab:function_allocation}
+% \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.0cm} >{\raggedright\arraybackslash}X}
+% \toprule
+% \textbf{Subsystem} & \textbf{Main allocated functions} \\
+% \midrule
+% Airframe and propulsion & launch, transit, hover/position control, disturbance rejection, load carrying, safe landing \\
+% Flight control and autonomy & guidance, navigation, control, mode management, contingency logic, geofence protection \\
+% Sensing and perception & target detection, classification, tracking, obstacle awareness, own-state estimation support \\
+% Navigation and state estimation & positioning, attitude estimation, redundancy management, target-relative navigation \\
+% Interaction mechanism & controlled contact, capture/containment/venting/tethering, descent assistance, debris prevention \\
+% Power system & energy storage, power distribution, state-of-charge monitoring, safe shutdown \\
+% Communication and supervision & telemetry, command link, operator awareness, logging \\
+% Recovery and logistics support & handling of recovered materials, reset, inspection, maintainability \\
+% \bottomrule
+% \end{tabularx}
+% \end{table}
+
+
+
+% \section{Functional Requirements Implications}
+% The functional analysis directly influences the later system requirements flowdown. Several implications already emerge:
+
+% \begin{itemize}
+%     \item The system must support both \emph{search} and \emph{precision close-range interaction}, which may favor a platform with strong hover and low-speed control authority.
+%     \item The system must remain effective when the balloon motion is uncertain, which increases the importance of prediction, relative navigation, and stable target tracking.
+%     \item The interaction mechanism cannot be designed in isolation; it is coupled to flight dynamics, public safety, recovery logistics, and sustainability.
+%     \item Because the mission must avoid uncontrolled descent and hazardous debris, end-state management is a core function rather than a secondary consideration.
+%     \item The mission only succeeds when the UAS itself also remains recoverable and reusable, so post-mission recovery and maintainability are part of the functional scope.
+% \end{itemize}
+
+% \section{Assumptions and Functional Boundaries}
+% The present analysis is based on the following baseline assumptions:
+% \begin{enumerate}
+%     \item The UAS operates in civilian airspace under supervision and with mission authorization.
+%     \item The target balloon is uncooperative and non-manoeuvring except for passive wind-driven motion.
+%     \item The target is within the stated balloon size and altitude range.
+%     \item Energy storage is electric only.
+%     \item The system is intended for outdoor operation in nominal wind conditions up to the specified limit.
+%     \item The intervention mechanism must be non-explosive, non-pyrotechnic, and non-destructive in the public-safety sense.
+% \end{enumerate}
+
+
+
+% The following functions are considered outside the baseline system scope:
+% \begin{itemize}
+%     \item strategic airspace management beyond mission-specific operational approval;
+%     \item long-range balloon surveillance before local mission trigger;
+%     \item post-recovery recycling processes beyond securing and handing over recovered materials;
+%     \item law-enforcement decision-making or incident command outside the UAS mission itself.
+% \end{itemize}
+
+% \section{Verification-Oriented Functional Considerations}
+% To make the chapter useful for later verification and validation, each major function should eventually be associated with observable success criteria. At baseline level, the following examples are relevant:
+% \begin{itemize}
+%     \item \textbf{Detection and tracking:} target can be acquired and continuously tracked in representative operational conditions.
+%     \item \textbf{Interception:} UAS can close to interaction position within the required time margin.
+%     \item \textbf{Controlled interaction:} the mechanism can engage the balloon without unsafe fragmentation or loss of control.
+%     \item \textbf{Outcome securing:} the balloon hazard is converted into a recoverable, restrained, or otherwise safe end state.
+%     \item \textbf{Contingency management:} loss of target or partial subsystem failure does not lead to catastrophic outcome.
+% \end{itemize}
+
+% These verification links will be developed further in the compliance matrix and validation plan.
+
+% \section{Conclusions}
+% The functional analysis shows that the balloon recovery UAS is not merely a flying sensor platform, but an integrated intervention system that must combine search, tracking, controlled close-range flight, safe physical interaction, post-interaction stabilisation, and mission recovery. The core challenge is to transform an uncertain airborne hazard into a controlled end state while preserving public safety, operational reliability, and sustainability.
+
+
+% At system level, the most influential functions are target acquisition, interception under wind disturbance, safe physical interaction, and controlled post-contact outcome management. These functions will drive the concept generation and trade-off in the next project phase. The functional breakdown and flow defined in this chapter therefore form the basis for:
+% \begin{itemize}
+%     \item system and subsystem requirements flowdown;
+%     \item design option tree development;
+%     \item concept comparison criteria;
+%     \item interface definition;
+%     \item verification and validation planning.
+% \end{itemize}
+
+% The next step is to map these functions onto candidate system concepts and assess which architectures can fulfil them most robustly within the project limits on safety, cost, sustainability, and mission performance.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%\section{Mission Scenario}
+% The mission starts when a free-floating balloon is identified within the operational area. The UAS is deployed, acquires the target, tracks its motion, and approaches it in a controlled manner. Once suitable alignment is achieved, the system performs the required interaction with the balloon. After successful interaction, the system must ensure controlled descent and safe mission completion, while avoiding uncontrolled debris, hazardous failure, or loss of the target. 
+
+
+
+
+
+% \section{Functional Flow Diagram}
+% % insert figure here
+% The functional flow diagram describes the sequence of functions required to execute the mission, from target acquisition to recovery or mission termination. The main functions are target detection, target tracking, intercept planning, controlled approach, balloon interaction, post-interaction control, and safe recovery.
+
+% \section{Functional Breakdown Structure}
+% % insert tree here
+
+% \subsection{Target acquisition and tracking}
+% These functions include detection of the balloon, confirmation of the target, estimation of position and velocity, and short-term trajectory prediction.
+
+% \subsection{Approach and interception}
+% These functions include intercept planning, flight-path control, relative positioning, and stabilisation prior to interaction.
+
+% \subsection{Balloon interaction}
+% These functions include establishing the required contact or restraint condition, modifying the balloon state in a controlled manner, and verifying whether the interaction has been successful.
+
+% \subsection{Post-interaction control and recovery}
+% These functions include descent management, retention of the balloon or payload, contingency handling, and safe recovery or mission termination.
+
+% \subsection{Safety and support functions}
+% These functions include health monitoring, fault detection, contingency activation, operator communication and mission logging.
+
+% \section{Functional Implications for Concept Development}
+% The functional analysis shows that the system is driven by the need to combine reliable target tracking with controlled physical interaction and safe post-interaction descent. This suggests that concept development should focus not only on interception, but also on attachment verification, descent control, and contingency handling.
+

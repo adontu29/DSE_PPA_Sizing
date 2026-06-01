@@ -1,0 +1,359 @@
+\chapter{Executive Overview} \label{ch:introduction}
+% % \todo{do this later in the project}
+% % 1. Executive Overview (3–10 Pages)
+% % This is a standalone summary for stakeholders. It should not just list what is in the report, but summarize the results.
+% % •	The Problem: Brief context of the mission/project.
+% % •	Key Findings: Summary of the "killer" requirements.
+% % •	The Selected Path: Which design branches are being carried forward to the Midterm Phase.
+% % •	High-Level Budget/Risk: A snapshot of the resource and risk landscape.
+
+
+
+% %////////////////////////////////////////////////////////////////////////
+
+
+% % \section*{Mission Need and Project Context}
+
+
+
+
+% Free-floating balloons are increasingly relevant airspace hazards because they can enter restricted, controlled or populated areas without onboard control, active communication or predictable motion. These balloons may originate from meteorological, scientific, commercial or other security related activities. In the civilian context, even a single drifting balloon can disrupt airport operations and cause expenses, create uncertainty for air traffic management and introduce safety risks for aircraft, people, infrastructure, and the environment.\\
+
+
+
+
+% The BELLONA project addresses the need for a safe, low-cost method of removing free-floating balloons from the air. The operational relevance of BELLONA extends beyond accidental meteorological balloon drift. Recent incidents near NATO and EU border regions have shown that balloons can also be used for smuggling and hybrid airspace disruption, including cases where contraband balloons forced airport closures and temporary airspace restrictions. The system is therefore positioned as a civilian compatible response capability for airports, border agencies and infrastructure operators that require safe balloon removal without destructive countermeasures. The objective of BELLONA is therefore to develop a small unmanned aerial system capable of locating, intercepting and safely disabling or recovering an uncooperative balloon in a controlled manner.
+
+
+% % In airport environments, border regions, critical infrastructure zones or populated areas, an uncontrolled balloon can create disruption, collision risk, falling-debris risk and operational uncertainty. Existing countermeasures are either passive, expensive, destructive, unsuitable for civilian airspace, or designed for much smaller rigid drones rather than large buoyant targets.
+
+
+
+% %Introduce image
+
+
+% \section*{Operational Need and Market Relevance}
+
+
+
+% The baseline analysis identifies two main operational scenarios that motivate the BELLONA system. The first is accidental balloon drift, where meteorological, scientific or commercial balloons enter restricted or populated airspace, including areas near airports. The second is deliberate hybrid-use or smuggling activity, where balloons carrying contraband or tracking equipment may disrupt border-region airspace and airport operations. In both cases, the operational need is the same: a system capable of removing the balloon from sensitive airspace without destructive countermeasures, uncontrolled descent, or falling debris. \\
+
+
+% Both scenarios lead to the same core problem: there is currently no low-cost civilian system that can remove a large uncontrolled balloon from sensitive airspace without destroying its payload or creating falling debris. Existing solutions are poorly matched to this mission. Missiles and directed-energy systems are destructive and unsuitable for normal civilian airspace. Jamming is ineffective because a balloon does not require a control link. Existing counter-UAS net drones are designed for small rigid drones rather than large buoyant balloon envelopes. Helicopter interception is expensive, slow to mobilize and exposes pilots to unnecessary risk.\\
+
+% BELLONA is therefore positioned as a low to none collateral damage intervention system for airport operators, border security agencies, national authorities, meteorological services and other critical infrastructure operators. Its value is not only that it can reach the balloon, but that it can do so while keeping the post-interaction state controlled and recovering its payload.
+
+
+
+
+% \section*{Target Characteristics and Design Envelope}
+
+
+
+
+
+
+% The baseline literature study shows that the target population can be described by a common physical design. The balloon envelope is assumed to be large, lightweight, deformable and uncooperative. The main design diameter range is 2-6 m. This range covers relevant meteorological and security related balloon cases, while excluding very large scientific balloons and high-altitude surveillance platforms that would require fundamentally different interception architectures.\\
+
+% The payload characteristics vary significantly between use cases. A meteorological balloon may carry only a small radiosonde, while a smuggling or hybrid-use balloon may carry a much heavier suspended payload. This difference is important because the interaction system must be strong and controllable enough to handle the large loads introduced by the balloon and its possible payload. The target may also contain helium or hydrogen, meaning the design must avoid pyrotechnic, explosive, spark-generating or thermally hazardous interaction methods.
+
+%  % The UAS must therefore detect, confirm, track, and predict the target motion using its own sensors, external cueing, or a combination of both.
+
+
+
+% % The target is assumed to be uncooperative. The system cannot rely on a beacon control or known flight path from the balloon itself.
+
+
+% \section*{Requirements and Design Drivers}
+
+% The requirements analysis translated the stakeholder needs into mission and system-level requirements. Several requirements were identified as key, strongly constraining the possible solutions.\\
+
+
+
+
+
+
+% \begin{xltabular}{\textwidth}{p{0.3\textwidth} p{0.65\textwidth}}
+% \caption{BELLONA Key System Requirements}
+% \label{tab:keysysreq} \\
+
+% \hline
+% \textbf{ID}              & \textbf{Requirement}                                                                                                                                  \\ \hline
+% \endhead
+% \hline
+% \multicolumn{2}{l}{\textit{*A meteorological or similar balloon of diameter 2-6 meters of unknown material.}}
+% \endfoot
+% %
+% REQ-STK-01-MSN-01-SYS-01 & The system shall take less than TBD time from the balloon* entering the covered airspace to the balloon* being removed from the endangered airspace.                      \\
+% REQ-STK-03-MSN-04-SYS-06 & The system shall intercept the detected balloon* within 10 minutes of it entering the covered airspace.                                                                   \\
+% REQ-STK-03-MSN-04-SYS-07 & The system shall be capable of autonomously intercepting the detected balloon*.                                                                                           \\
+% REQ-STK-03-MSN-04-SYS-08 & The system shall be capable of intercepting the detected balloon* at an altitude of TBD meters.                                                                           \\
+% REQ-STK-05-MSN-06-SYS-11 & The system shall be capable of controlling an intercepted balloon* with a payload mass up to 50 kilograms.                                                            \\
+% REQ-STK-05-MSN-06-SYS-13 & The system shall be capable of autonomously delivering payload to the defined landing zone within 10 meters.                                                             \\
+% REQ-STK-10-MSN-12-SYS-22 & The system shall cost less than EUR 5000 (adjusted to 01/01/2026) for all flying components.                                                                               \\
+% REQ-STK-11-MSN-13-SYS-23 & The system shall cost less than EUR 500 (adjusted to 01/01/2026) per use.                                                                                                 \\
+% REQ-STK-12-MSN-15-SYS-27 & The system shall operate in compliance with all applicable aviation regulations in operating airspace.                                                                   
+% \end{xltabular}
+
+% % restructure 
+
+% % The system must detect and track a 2-6 m balloon and maintain sufficient target-state knowledge for interception. This drives the sensing architecture, onboard processing, field of view, tracking robustness and the possible need for external cueing.
+% % \\
+
+% % The UAS must intercept the balloon within 10 minutes of acquisition under nominal wind conditions. This drives the aerial platform choice, propulsion sizing, energy budget, climb and transit performance and approach strategy.
+% % \\
+
+% % The interaction mechanism must be non-explosive, non-pyrotechnic, and non-destructive. This requirement eliminates many conventional counter-air approaches and shifts the design toward capture, restraint, guided descent, or controlled deflation.
+% % \\
+
+% % The system must prevent uncontrolled descent and avoid releasing debris larger than 50 g. This is one of the most important requirements because it means mission success is not achieved at first contact. The balloon, payload and any deployed mission hardware must remain controlled after interaction.
+% % \\
+
+% % The system must use electric-only energy storage, remain reusable where possible, keep noise below the specified community threshold, and favour modularity for repair and replacement. These requirements couple sustainability directly to engineering design, cost, and operational feasibility.
+% % \\
+
+% % Finally, the system must remain economically realistic. The acquisition and per-deployment cost limits force the design to avoid excessive sensor complexity, expensive one-use mechanisms, or interaction concepts that require large post-mission repair effort.
+
+
+
+
+
+% \subsection*{Sustainability Strategy}
+%  The main sustainability concern is not whether the drone uses recyclable materials, but whether the intervention prevents additional hazards. A concept that fragments the balloon, releases its payload or leaves recovery hardware behind would be weak from a sustainability perspective even if the UAS platform itself is reusable.
+% \\
+
+% The main sustainability drivers are debris prevention, balloon and payload recoverability, operational reusability, electric operation, low noise, modularity, repairability and controlled end-of-life handling. These drivers are used to screen concepts before detailed trade-off. Concepts based on combustion propulsion, pyrotechnic mechanisms, uncontrolled destruction, unrecovered hardware or excessive disposable components are considered incompatible with the baseline sustainability strategy.
+
+
+% \section*{Functional and Mission Architecture}
+
+%  The mission begins when a balloon hazard is detected or reported. The UAS or ground segment then assesses mission feasibility, including airspace, weather, energy, safety and recovery constraints. After launch authorisation, the UAS is deployed toward the target area, searches for or receives target information, confirms the target and establishes a track towards it.
+% \\
+
+
+
+% Once the balloon's position has been acquired, the UAS predicts the target motion and plans an interception trajectory. The interaction phase begins only when the UAS has reached a suitable relative position and can establish safe interaction geometry. Depending on the final concept, the interaction may involve capture, tethering, controlled deflation, grasping, guiding or restraining the balloon. After contact, the system must secure the post-interaction state and bring the balloon hazard to a safe condition.
+% \\
+
+% The mission is complete only after the UAS has landed or been recovered, the balloon no longer presents an uncontrolled hazard, and any balloon material, payload or deployed equipment has been secured where feasible. Mission data are then recorded for inspection, validation, maintenance and design improvement.
+% \\
+
+% The most critical functions identified are target detection and tracking, interception under wind disturbance, controlled physical interaction, post-contact outcome management and safety management under faults or abnormal conditions. 
+
+
+
+
+
+
+% \section*{Design Option Structuring}
+
+
+% The design space is structured into three main design option trees: aerial platform, detection and tracking, and balloon interaction strategy. These three design areas are strongly coupled and will define the system concepts carried into the Midterm phase.
+
+
+
+
+% \subsection*{Aerial Platform}
+
+
+% The aerial platform determines the UAS payload capacity, manoeuvrability near the target, endurance, acoustic impact and ability to establish controlled contact. Ground based systems were rejected because they cannot follow the balloon through the required operational volume and cannot provide a controlled interaction at altitude. Fixed-wing concepts are retained only as lower-priority options for further comparison.  %, while rotorcraft concepts are considered more suitable for the baseline mission because they enable low-speed positioning and controlled contact.
+
+
+ % The aerial platform determines the UAS payload capacity, manoeuvrability near the target, endurance, acoustic impact and ability to establish controlled contact. Ground based systems were rejected because they cannot follow the balloon through the required operational volume and cannot provide a controlled interaction at altitude. Fixed-wing concepts are retained only as lower-priority options for further comparison.
+
+
+% % Fixed-wing platforms cannot hover, meaning any interaction would require a fly-through manoeuvre that is more likely to damage the balloon or release the payload, however they were not rejected for the design options because fuck if I know. If nobody removes this during proofreading I am going to be deeply concerned about the general group performance.
+% % also mention balloon based platforms
+% \\
+
+
+% The aerial platform determines the UAS payload capacity, manoeuvrability near the target, endurance, acoustic impact and ability to establish controlled contact. Ground based systems were rejected because they cannot follow the balloon through the required operational volume and cannot provide a controlled interaction at altitude. Fixed-wing concepts are retained only as lower-priority options for further comparison.  %, while rotorcraft concepts are considered more suitable for the baseline mission because they enable low-speed positioning and controlled contact.
+
+% % Rotorcraft platforms remain the most promising branch because they provide hover capability and low-speed controllability near the target. The surviving aerial platform candidates are therefore quadrotor, hexacopter or heavier multirotor platforms, cooperative multirotor team architectures and fixed wing platforms. A cooperative multirotor system may improve load sharing and capture geometry, but it also increases operational complexity, communication requirements, battery count, and maintenance effort.
+
+
+% % also mention V-tol
+
+
+
+% \subsection*{Detection and Tracking}
+
+% The detection and tracking architecture must detect a slow-moving target and provide sufficient relative state information for close-range interaction. Passive optical sensing is retained as the baseline sensing method because RGB cameras with onboard computer vision are low-cost, lightweight and compatible with the project budget. LWIR thermal sensing is retained as a complementary option for low-light or poor-contrast conditions.
+% \\
+
+% Onboard radar was not selected as a primary baseline option because balloon envelopes have weak radar signatures and radar integration would increase cost and complexity. LiDAR is retained as a possible terminal sensor for close-range state estimation during the final approach, but not as the main search sensor because of its mass, power and cost burdens.
+% \\
+
+% The most promising detection architecture is therefore a hybrid cued system: coarse target information from a ground observer, institutional radar or other external monitoring source is handed over to onboard RGB-based detection and tracking for terminal interception. This approach reduces the onboard search burden while keeping the UAS affordable.
+
+
+% \subsection*{Balloon Interaction Strategy}
+
+
+% The balloon interaction strategy is the most novel and highest-risk part of the design. No fielded UAS currently exists for gentle and sustainable capture and recovery of a 2-6 m uncooperative balloon. The interaction mechanism must therefore be evaluated not only for whether it can touch the balloon, but for whether it can keep the balloon and payload controlled after contact.
+% \\
+
+% Three interaction families are carried forward. The first is tethered or net-based capture. This includes launched nets, hanging nets, line-snag concepts, cooperative nets and snare or closure mechanisms. This branch benefits from existing counter-UAS analogues, but must be adapted to a much larger and buoyant target.
+% \\
+
+% The second branch is controlled deflation. This includes concepts such as adhesive vent patches, valve insertion, active venting modules or other mechanisms that gradually reduce lift without bursting the balloon. This branch is attractive because it may reduce the need for the UAS to carry the balloon load, but it has a significant technology gap and must avoid uncontrolled tearing.
+
+% % The third branch is grasp-and-controlled-lowering. This includes soft grippers, tether clamps, compliant mechanisms, or cooperative clamping. This branch is attractive because it can avoid damaging the balloon envelope if the payload or tether is targeted instead, but it may require high sustained force if the UAS must guide or lower the balloon-payload system.
+
+
+
+% \section*{Risk Assessment and Contingency Management}
+
+
+
+% The technical risk assessment identified the interaction and post-interaction phases as the most safety critical parts of the mission. The main risk is that the balloon becomes uncontrollable or unrecoverable after contact. This could occur if the envelope tears, the payload separates, the balloon enters an unstable descent or if the interaction mechanism fails to secure the target.
+% \\
+
+% Other important risks include unreliable capture due to unknown material properties or geometry, incorrect load estimation, software errors, target loss during tracking, insufficient energy margin, communication degradation and unsafe handling of recovered material after landing. These risks are important because failures during the interaction phase could compromise public safety, regulatory compliance and system reusability.
+% \\
+
+% The baseline mitigation strategy is to favour gradual and controllable interaction methods. The UAS should include abort capability, manual override, health monitoring, and clear go/no-go criteria before launch and before physical interaction. Representative material testing, load-case definition, and subsystem-level verification will be required before the final concept can be considered credible.
+
+
+% \section*{Economic and Technical Budget Outlook}
+
+
+% The economic analysis indicates that BELLONA could cover an useful market niche if it remains significantly cheaper and safer than helicopter-based or military-style intervention. The baseline product model assumes direct sale of UAS units to operators such as airport authorities, national agencies or other security organisations. The preliminary production cost estimate remains below the acquisition cost target. %, and the estimated operational cost per mission remains below the per-deployment cost limit. However, these results are still first-order estimates and are sensitive to the final sensing package, platform size, interaction mechanism, and maintenance concept.
+% \\
+
+% The technical budget shows that propulsion and power will be major design drivers, especially if the selected interaction strategy requires the UAS to carry, tow or control a heavy balloon-payload system. Sensing, control and the balloon interaction subsystem are also expected to carry significant cost and power fractions because they directly determine mission success. %At baseline stage, the technical budget is therefore best interpreted as a resource-management framework rather than a final sizing result.
+
+% % The Midterm phase must refine the mass, power, energy, cost, and volume budgets for each candidate concept. In particular, 
+% \\
+
+% The team still must determine whether the interaction strategy can be achieved with a single multirotor, whether a cooperative architecture is required, and whether controlled deflation can reduce the sustained lift and energy burden.
+
+
+
+
+Free-floating balloons are increasingly relevant airspace hazards because they can enter restricted, controlled, or populated areas without onboard control, active communication, or predictable motion. These balloons may originate from meteorological, scientific, commercial, or other activities. In the civilian context, even a single drifting balloon can disrupt airport operations, generate operational costs, create uncertainty for air traffic management, and introduce safety risks for aircraft, people, infrastructure, and the environment.
+\\
+
+The BELLONA project addresses the need for a safe, low-cost method of removing free-floating balloons from the air, while preserving the payload. The operational relevance of BELLONA extends beyond accidental meteorological balloon drift. Recent incidents near border regions have shown that balloons can also be used for smuggling and airspace disruption, including cases in which contraband-laden balloons forced airport closures and temporary airspace restrictions. The system is therefore positioned as a civilian-compatible response capability for airports, border agencies, and infrastructure operators that require safe balloon removal without destructive countermeasures. The objective of BELLONA is to develop a small unmanned aerial system capable of locating, intercepting, and safely disabling and recovering an uncooperative balloon in a controlled manner.
+
+\section*{Operational Need and Market Relevance}
+
+The baseline analysis identifies two main operational scenarios that motivate the BELLONA system. The first is accidental balloon drift, where meteorological, scientific, or commercial balloons enter restricted or populated airspace, including areas near airports. The second scenario is deliberate hybrid use, in which repurposed meteorological-type balloons carrying contraband or tracking equipment may disrupt airspace and airport operations in border regions. The losses to Lithuanian aviation businesses alone were estimated at €2 million for 2025.
+In both cases, the operational need is the same: a system capable of removing the balloon from sensitive airspace without destructive countermeasures, uncontrolled descent, or falling debris. 
+\\
+
+Both scenarios lead to the same core problem: there is currently no low-cost civilian system that can remove a large uncontrolled balloon from sensitive airspace without destroying its payload or creating falling debris. Existing solutions are poorly matched to this mission. Missiles and directed-energy systems are destructive and unsuitable for normal civilian airspace. Jamming is ineffective because a balloon does not require a control link. Existing counter-UAS net drones are designed for small rigid drones rather than large buoyant balloon envelopes. Helicopter interception is expensive, slow to mobilize, and exposes pilots to unnecessary risk. 
+\\
+
+BELLONA is therefore positioned as a low-collateral-damage intervention system for airport operators, border security agencies, national authorities, meteorological services, and other critical infrastructure operators. Its value is not only that it can reach the balloon, but that it can also manage the post-interaction state in a controlled manner and support recovery of the balloon and its payload where feasible. It is also positioned in an investment-friendly market, with the total Counter-drone system market valued at a range of 
+\$1.8 billion \cite{FutureDataStats2024Counter-Drone2024} to \$3.2 billion \cite{GrandViewResearch2025Anti-Drone20252033}.
+
+\section*{Target Characteristics and Design Envelope}
+
+The balloon envelope is assumed to be large, lightweight, deformable, and uncooperative. The main design diameter range is 2--6 m. This range covers relevant meteorological and security-related balloon cases, while excluding very large scientific balloons and high-altitude surveillance platforms that would require fundamentally different interception architectures.
+\\
+
+The payload characteristics vary significantly between use cases. A meteorological balloon may carry only a small radiosonde, while a smuggling or hybrid-use balloon may carry a much heavier suspended payload. This difference is important because the interaction system must be strong and controllable enough to handle the large loads introduced by the balloon and its possible payload. The target may also contain helium or hydrogen, meaning the design must avoid pyrotechnic, explosive, or thermally hazardous interaction methods.
+
+\section*{Requirements and Design Drivers}
+
+The requirements analysis translates stakeholder needs into mission and system-level requirements. Several requirements were identified as key drivers because they strongly constrain the possible solutions.
+
+The requirements containing TBD values are intentionally kept open at this level because their final values depend on a more detailed literature study and feasibility assessment, and thus cannot reliably be determined at this stage.
+
+\begin{table}[h]
+\centering
+\caption{BELLONA key system requirements}
+\label{tab:executive_key_requirements}
+\begin{tabular}{p{0.32\textwidth}p{0.60\textwidth}}
+\toprule
+\textbf{ID} & \textbf{Requirement} \\
+\midrule
+REQ-STK-01-MSN-01-SYS-01 & The system shall take less than TBD time from the balloon* entering the covered airspace to the balloon* being removed from the endangered airspace. \\
+REQ-STK-03-MSN-04-SYS-06 & The system shall intercept the detected balloon* within 10 minutes of it entering the covered airspace. \\
+REQ-STK-03-MSN-04-SYS-07 & The system shall be capable of autonomously intercepting the detected balloon*. \\
+REQ-STK-03-MSN-04-SYS-08 & The system shall be capable of intercepting the detected balloon* at an altitude of TBD meters. \\
+REQ-STK-05-MSN-06-SYS-11 & The system shall be capable of controlling an intercepted balloon* with a payload mass up to 50 kilograms. \\
+REQ-STK-05-MSN-06-SYS-13 & The system shall be capable of autonomously delivering payload to the defined landing zone within 10 meters. \\
+REQ-STK-10-MSN-12-SYS-22 & The system shall cost less than EUR 5000, adjusted to 01/01/2026, for all flying components. \\
+REQ-STK-11-MSN-13-SYS-23 & The system shall cost less than EUR 500, adjusted to 01/01/2026, per use. \\
+REQ-STK-12-MSN-15-SYS-27 & The system shall operate in compliance with all applicable aviation regulations in the operating airspace. \\
+\bottomrule
+\end{tabular}
+
+\vspace{2mm}
+\raggedright
+\small{*A meteorological or uncontrolled balloon of diameter 2--6 meters of unknown material.}
+\end{table}
+
+These requirements show that the system is driven by more than interception alone. It must also satisfy safety, autonomy, cost, recovery, payload-control, and regulatory constraints. The main feasibility challenge is therefore the combination of a low-cost unmanned aerial platform with controlled interaction and recovery of a large, uncertain, and possibly heavy balloon-payload system.
+
+\section*{Sustainability Strategy}
+
+The main sustainability concern is not only whether the drone uses recyclable materials, but whether the intervention prevents additional hazards. A concept that fragments the balloon, releases its payload, or leaves recovery hardware behind would be weak from a sustainability perspective, even if the UAS platform itself is reusable. This touches aspects of not only environmental but also social and economic sustainability.
+\\
+
+The main sustainability drivers are debris prevention, balloon and payload recoverability, operational reusability, electric operation, low noise, modularity, repairability, and controlled end-of-life handling. These drivers are used to prune concepts before the detailed trade-off. Concepts based on combustion propulsion, pyrotechnic mechanisms, uncontrolled destruction, unrecovered hardware, or excessive disposable components are considered incompatible with the baseline sustainability strategy.
+
+\section*{Functional and Mission Architecture}
+
+The mission begins when a balloon hazard is detected or reported. The UAS or ground segment then assesses mission feasibility, including airspace, weather, energy, safety, and recovery constraints. After launch authorisation, the UAS is deployed toward the target area, searches for or receives target information, confirms the target, and establishes a track towards it.
+\\
+
+Once the balloon position has been acquired, the UAS predicts the target motion and plans an interception trajectory. The interaction phase begins only when the UAS has reached a suitable relative position and can establish safe interaction geometry. Depending on the final concept, the interaction may involve capture, tethering, controlled deflation, grasping, guiding, or restraining the balloon. After contact, the system must secure the post-interaction state and bring the balloon hazard to a safe condition.
+\\
+
+The mission is complete only after the UAS has landed or been recovered, the balloon no longer presents an uncontrolled hazard, and any balloon material, payload, or deployed equipment has been secured where feasible. Mission data are then recorded for inspection, validation, maintenance, and design improvement.
+The most critical functions identified are target detection and tracking, interception under wind disturbance, controlled physical interaction, post-contact outcome management, and safety management under faults or abnormal conditions.
+
+\section*{Design Option Structuring}
+
+The design space is structured into three main design option trees: aerial platform, detection and tracking, and balloon interaction strategy. These three design areas are strongly coupled and will define the system concepts carried into the conceptual design phase.
+
+\subsection*{Aerial Platform}
+
+
+The choice of aerial platform is important for payload capacity, controllability near the target, range, altitude capability, energy demand, acoustic performance, and reusability. Rotorcraft and Hybrid VTOL are identified as the strongest baseline option due to their hover capability, low-speed controllability, and precedent in counter-UAS and aerial manipulation systems. Conventional fixed-wing platforms are retained for further study because they offer range or endurance advantages, while more complex or immature concepts such as tilt-wings and flapping-wing vehicles are pruned.
+
+\subsection*{Detection and Tracking}
+
+The detection and tracking architecture must detect a slow-moving target and provide sufficient relative-state information for close-range interaction as well as long-range tracking. 
+For passive sensing, many options are retained. RGB cameras with onboard computer vision are low-cost and low-weight while struggling with unfavourable light and weather conditions. LWIR and EO/IR thermal sensing is good for low-light or poor-contrast conditions. IRST is pruned due to high cost.
+\\
+
+Onboard radar was pruned due to the increased cost and weight.
+LiDAR is retained as a possible terminal sensor for close-range state estimation during the final approach, but not as the main search sensor because of its mass, power, and cost burden.
+\\
+
+The most promising detection architecture is therefore a hybrid cued system: coarse target information from a ground observer, or other external monitoring source, is handed over to onboard detection and tracking for terminal interception. This approach reduces the onboard search burden while keeping the UAS affordable.
+
+\subsection*{Balloon Interaction Strategy}
+
+The balloon interaction strategy is split up in three sequential decision nodes. The first node considers how the UAS establishes contact with the balloon. Net- and tether-based approaches are retained because they provide high capture tolerance and reduce direct loading on the balloon envelope, while most direct-contact methods are pruned when they introduce excessive rupture, bladestrike, cost, or complexity risks.\\
+
+The second node considers how descent is initiated after contact. Options include adding weight, applying sustained downward thrust, using a ground-connected tether, and attaching the drone as a weight. Uncontrolled deflation methods are pruned because they conflict with the debris, safety, and non-pyrotechnic requirements.\\
+
+The third node considers how the descent is managed once the balloon has been brought out of free flight. The retained options rely on increasing drag, increasing lift, or combining both, using solutions such as parachutes, drag surfaces, rotor thrust, lifting surfaces, or buoyant assistance. Since descent handling is strongly dependent on the selected platform and interaction concept, no options are pruned at this stage.\\
+
+\section*{Risk Assessment and Contingency Management}
+
+The technical risk assessment identified the interaction and post-interaction phases as the most safety-critical parts of the mission. The main risk is that the balloon becomes uncontrollable or unrecoverable after contact. This could occur if the envelope tears, the payload separates, the balloon enters an unstable descent, or the interaction mechanism fails to secure the target.
+\\
+
+Other important risks include unreliable capture due to unknown material properties or geometry, incorrect load estimation, software errors, target loss during tracking, insufficient energy margin, communication degradation, and unsafe handling of recovered material after landing. These risks are important because failures during the interaction phase could compromise public safety, regulatory compliance, and system reusability.
+\\
+
+The baseline mitigation strategy is to favor gradual and controllable interaction methods. The UAS should include abort capability, manual override, health monitoring, and clear go/no-go criteria before launch and before physical interaction. Representative material testing, load-case definition, and subsystem-level verification will be required before the final concept can be considered credible.
+
+\section*{Economic and Technical Budget Outlook}
+
+The economic analysis indicates that BELLONA could cover a useful market niche if it remains significantly cheaper and safer than helicopter-based or military-style intervention. The baseline product model assumes direct sale of UAS units to operators such as airport authorities, national agencies, or other security organisations. Under the preliminary baseline cost model, the production cost estimate remains below the acquisition cost target.
+\\
+
+The technical budget shows that propulsion and power will be major design drivers, especially if the selected interaction strategy requires the UAS to carry, tow, or control a heavy balloon-payload system. Sensing, control, and the balloon interaction subsystem are also expected to carry significant cost, mass and power fractions as, depending on the level of precision imposed by the interaction mechanism, high-performance sensors are required.
+\\
+
+The team still must determine whether the interaction strategy can be achieved with a single multirotor, whether a cooperative architecture is required, and whether controlled deflation can reduce the sustained lift and energy burden. These questions will drive the Midterm trade-off together with regulatory compliance, verification of the balloon interaction mechanism, and refinement of the cost and technical budgets.
+
+
+\newpage

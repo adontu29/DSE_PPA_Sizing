@@ -1,0 +1,130 @@
+\chapter{Technical Budget}
+\vspace{-10pt}
+To ensure efficient use of resources throughout the project, a structured \textit{technical budgeting} approach is applied. Technical budgeting enables early identification and allocation of key system resources, allowing each subsystem team to operate within defined constraints. This improves efficiency, reduces iteration, and supports convergence towards a feasible system design.
+
+A \textit{Technical Performance Measurement (TPM)} approach is adopted, where key system resources are defined, allocated, and tracked throughout the design process. As design maturity increases, uncertainty is reduced and contingency margins are progressively decreased.
+\vspace{-15pt}
+\section{Key Performance Metrics and Subsystem Definition}
+
+The selected \textit{Key Performance Metrics (KPMs)} for this project are volume, mass, power, cost, and timeline. These represent the primary technical constraints governing system feasibility and performance and will guide subsystem design and trade-offs throughout the project.
+
+To maintain clarity at this stage, subsystems are grouped into higher-level departmental categories: propulsion, performance and aerodynamics; sensing, control and electronics; operations and ground systems; structures, materials and sustainability; and balloon interaction. As no final system concept has yet been selected, these groupings remain flexible and may be refined in later design stages.
+\vspace{-15pt}
+\section{Technical Budget Allocation}
+The preliminary allocation of KPMs across subsystem groups is shown in Table~\ref{tab:tech_budget}. This is based on the least favorable estimation derived for the potential concepts in this section.    
+\label{sec: TBA}
+
+\begin{table}[H]
+\centering
+\caption{Technical budget allocation per subsystem group}
+\vspace{-8pt}
+\label{tab:tech_budget}
+\begin{tabular}{lccccc}
+\toprule
+Grouped Subsystem & Cost [\%] & Power [\%] & Timeline [\%] & Mass [\%] & Size [m] \\
+\midrule
+Propulsion, Performance \& Aerodynamics & 20 & 85 & 28 & 24 & $0.92 \times 0.92 \times 0.23$ \\
+Sensing, Control \& Electronics & 30 & 7 & 25 & 26 & $0.45 \times 0.23 \times 0.23$ \\
+Operations \& Ground Systems & 15 & 0 & 20 & NA & NA \\
+Structures, Materials \& Sustainability & 15 & 0 & 16 & 28 & $2.56 \times 3.63 \times 0.68$ \\
+Balloon Interaction & 20 & 8 & 11 & 22 & $0.45 \times 0.45 \times 0.45$ \\
+\midrule
+\textbf{Total} & \textbf{€3050} & \textbf{6.5 kW} & \textbf{420 h} & \textbf{67 kg} & \textbf{$\textbf{2.56} \times \textbf{3.63} \times \textbf{0.68}\,\text{m}$} \\
+\bottomrule
+\end{tabular}
+\end{table}
+\vspace{-20pt}
+\subsection{Cost Estimation}
+The cost allocation is derived from the system-level cost breakdown developed in the ROI analysis \autoref{sec:roi}. Subsystem shares reflect estimated contributions of major cost drivers such as propulsion hardware, avionics, structural components, and the mission-specific payload. In particular, sensing and control, as well as the balloon interaction subsystem, are assigned higher cost fractions due to their importance for mission success and system complexity.
+\vspace{-10pt}
+\subsection{Power Estimation}
+The power allocation is based on established UAV energy consumption characteristics and a preliminary system-level power estimate. For heavy-lift electric multirotor platforms, propulsion power requirements scale significantly with system mass and required thrust. Since the final vehicle architecture has not yet been selected, the thrust requirement is estimated using a representative heavy-lift configuration. A total thrust capability of approximately 1600~N is adopted, corresponding to the maximum take-off mass of approximately 80~kg with a thrust-to-weight ratio of $\approx$ 2 \cite{Liu2017ASystems, DJIDJI}. This value provides preliminary control authority and disturbance margin, but will be refined once the final mass budget and propulsion concept are defined.
+
+
+This places the system within the class of heavy-lift multirotor UAVs, typically realised as octocopter or coaxial octocopter configurations. Empirical data from existing platforms, such as the DJI FlyCart 30, indicate nominal propulsion power levels on the order of several kilowatts for sustained operation \cite{DJIDJI}. Based on these reference systems, a nominal propulsion power of approximately 5.7~kW is adopted for the preliminary budget, corresponding to steady-state flight conditions at moderate load.\\
+
+This magnitude of power demand is consistent with rotorcraft theory, where total power is composed of induced, profile, and parasitic components. In heavy-lift configurations, induced power dominates due to the high thrust requirement, while profile and parasitic contributions increase with rotor size and flight speed \cite{Gong2022ModellingUAVs,Liu2017ASystems}.
+
+
+Secondary power demands arise from onboard computation, sensing, communication, and actuation. The sensing and control subsystem includes flight control hardware, navigation sensors, communication systems, and onboard processing, and is estimated to require approximately 300-600~W depending on the selected architecture and sensor suite. The balloon interaction subsystem introduces additional transient loads associated with actuation (e.g., gripping, tether deployment, or release mechanisms), estimated at approximately 200-500~W during operation.
+
+
+The total nominal onboard power requirement is therefore estimated at approximately 6.2-6.8~kW under steady operating conditions. Peak power requirements will be incorporated in later design stages once subsystem sizing and mission phase modeling are refined.
+
+\vspace{-10pt}
+
+\subsection{Timeline Estimation}
+The timeline allocation is derived from the project Gantt chart defined in the project plan \cite{DSE22}. Effort hours were estimated for each subsystem during the detailed design phase and normalized into percentage shares. These values reflect the expected workload and complexity of each subsystem.
+\vspace{-10pt}
+
+\subsection{Mass budget}
+
+Preliminary mass budget will be the initial estimate of possible design space for different subsystems. The main reason for this is to provide some limitation making the UAS lightweight. With the payload and the configuration that are not yet determined, the initial budget will be estimated based on a few assumptions. First of them is based on the preliminary assumption that the payload in the form of Balloon Interaction Mechanism, sensors and balloon inertial forces during interaction assumed to be approximately 10 kg based on the upper bound for weight of the most mechanisms obtained from the literature study presented in \autoref{ch:Design Options}. Then, $10 \%$ of the maximum estimated balloon mass (50 kg) is assumed necessary for controllability after interception. The approach presented in \cite{Gatti2017CompleteMultirotor} leads to determination of the full multi-rotor or VTOL system weight. Similar approach may be carried out for traditional fixed wing system using literature. Contingencies will be added to the final margin to estimate the uncertainty that is still applied to the design.
+\vspace{-10pt}
+\subsubsection{Multi-Rotor Drone}
+
+With the payload weight $W_{pay}$ estimated, the linear regression using data provided by \cite{Gatti2017CompleteMultirotor} leads to the initial estimation of the total take-off mass to be $W_{T0}=1.891*W_{pay}+1.454=29.819 \, \text{kg}$. Then another statistical relation between the zero weight fraction $\frac{W_0}{W_{TO}}$ and total take-off mass is used to determine what part of the mass is given to the structures and propulsion. The formula results in the $ \frac{W_0}{W_{TO}}=-0.0138\cdot W_{T0}+0.6216=0.21$. With that, the total mass distributed to these subsystems is $6.26 \, \text{kg}$. The initial distribution of the mass budget will be based on the equal division as no clear mechanism or structure was determined yet. This uncertainty will be reflected in the broader contingencies for these subsystems at the conceptual design stage. The part that is left to the battery and harness is the remaining $8.56 \, \text{kg}$.
+\vspace{-10pt}
+\subsubsection{Fixed Wing Drone}
+To estimate the mass budget of the fixed-wing UAS, the UAV database presented by \cite{Hann2020UAVDatabase} was used as a reference dataset. The entries were first filtered to include only fixed-wing configurations, ensuring that the regression was based on aircraft with comparable design characteristics.\\
+
+A linear regression was then performed using payload mass, endurance, and cruise speed as candidate predictors for the maximum take-off weight (MTOW). For the present design, the required endurance was assumed to be approximately $25$ minutes, subjected to change based on further developments. To avoid multicollinearity in the regression model, the variance inflation factor (VIF) was evaluated for the candidate predictors. Based on this analysis, the cruise speed term was removed, leaving payload mass and endurance as the primary predictors. In addition, an interaction term between payload and endurance was included to account for the combined effect of carrying a payload over a given mission duration.\\
+
+Using a payload mass of $15\,\mathrm{kg}$ and an endurance of $25$ minutes, the regression model predicts an MTOW of approximately $67\,\mathrm{kg}$. This result is further supported by the scaling approach presented by \cite{Diogo2024AScaling}, in which the product of payload and endurance is used as an indicator for estimating UAV MTOW. Applying their findings leads to a comparable mass estimate, which provides additional confidence in the order of magnitude obtained from the regression model. Larger MTOW makes the fixed wing drone driving for the mass budget.
+\vspace{-10pt}
+\subsubsection{Mass Budget Allocation}
+The mass budget is split into 4 main categories: propulsion, performance and aerodynamics; sensing, control and electronics; structures and payload (which includes the balloon interaction mechanism). Using the power requirement and the assumed endurance time, the total battery mass is equal to $\approx 11.3kg$ \cite{Ardelean2023UnmannedScaling} \cite{Gatti2017CompleteMultirotor}. Furthermore, due to the increased weight of the battery and based on the distribution presented in \cite{Beard2005AutonomousUAVs}, a mass fraction of $0.26$ has been allocated. Following the same logic, the structures represented $0.28$ of the total mass and the propulsion system is allocated $0.24$. The overall results can be found in \autoref{tab:tech_budget}.
+\vspace{-10pt}
+\subsection{Space Allocation}
+Maximum allowed size for the system may be fully determined once the dimension requirement is finalized. The initial spacing will be then determined in a similar way as the mass, using the dimensional sizing of multi-rotor UAV, and reference fixed-wing drones, based on the total MTOW budget estimated above.
+\vspace{-10pt}
+
+\subsubsection{Multi-Rotor Drone}
+The procedure for the Multi-Rotor Drone sizing will begin with the estimation of how much space is required for the rotors, with given lift. Dimensioning is done using the procedure provided by \cite{Yang2024SizingRange}. Rotor radius is determined for different number of propellers, starting with 3 and ending with 10 propellers. The disk loading $D_L=15 \frac{kg}{m^2}$ is determined using the reference data \cite{DJI2025DJIT100} \cite{DJIDJI}. The weight will be distributed over the $n$ rotors and their loading giving the area of 
+\begin{equation}
+    A=\frac{MTOW}{nD_L} \Rightarrow r=\sqrt{\frac{MTOW}{nD_L\pi}}
+\end{equation}
+Additional spacing factor of $1.1$ was added to avoid too strong aerodynamic interaction, and the propellers were distributed over the smallest possible circle using simple topological analysis. For the calculated cases the drone radii $R$ are in the range from $0.58 \, \text{m}$ to $0.9 \,\text{m}$, and rotor radii $r$ in the range from $0.25 \, \text{m}$ to $0.46 \, \text{m}$ which leaves the largest structure have $2.3 \, \text{m}$ width and length. This already leads to allocation of $0.92 \, \text{m}$ diameter to each propeller. Structures are restricted by the circle diameter of $1.69 \, \text{m}$. The sensing and control are not extremely restricted as the external elements will likely not be staying out of the rotor, thus width and length should be restricted to the minimum rotor size of $0.45 \text{m}$ in this budget. The vertical sizing is mostly relevant for the battery and balloon interaction mechanism. Large DJI Power Expansion Battery \cite{DJI2026DJI2000} which may over perform possible requirements in terms of delivered power and capacity will be treated as the maximal possible size with the dimensions of $0.45\times0.23\times0.23 \, \text{m}$. A similar space might be available to the interaction mechanism if it is placed above the drone center, the $0.45\times0.45\times0.45 \, \text{m}$ could be allocated to it. Finally, other components obtain the height that is the sum of battery and Balloon Interaction Department vertical dimensions which is $0.68 \, \text{m}$.
+\vspace{-10pt}
+\subsubsection{Fixed Wing Drone Sizing}
+
+To estimate the primary geometric dimensions of the fixed-wing UAS, the UAV database presented by \cite{Hann2020UAVDatabase} was used again as a reference dataset. The entries were first filtered to include only fixed-wing configurations, ensuring that the regression was based on aircraft with comparable design characteristics.
+\\
+
+A linear regression was then performed using payload mass, endurance, and cruise speed as candidate predictors for fuselage length and wingspan. For the present design, the required endurance was assumed to be approximately $25$ minutes. To avoid multicollinearity in the regression model, the variance inflation factor (VIF) was evaluated for the candidate predictors. 
+\\
+
+Using a payload mass of $15\,\mathrm{kg}$ and an endurance of $25$ minutes, the regression model predicts a fuselage length of approximately $2.56\,\mathrm{m}$ and a wingspan of approximately $3.63\,\mathrm{m}$. These values represent a first-order estimate of the overall size of the fixed-wing platform and are consistent with UAVs operating in a similar payload and endurance regime.
+\\
+
+The regression models exhibit moderate predictive capability, with coefficients of determination of $R^2 = 0.57$ for length and $R^2 = 0.47$ for wingspan. Cross-validation indicates limited generalization performance, and therefore the obtained dimensions should be interpreted as order-of-magnitude estimates. Nevertheless, the results provide a consistent baseline for subsequent space allocation and configuration development within the conceptual design phase.
+
+
+
+
+
+
+\vspace{-15pt}
+\section{Resource Contingency Evolution}
+
+Due to uncertainty in early design stages, contingency margins are applied to each KPM. These margins decrease as the design matures and system definition improves, as shown in Table~\ref{tab:contingency}.
+
+\begin{table}[h]
+\centering
+\caption{Contingency margins by design maturity}
+\vspace{-5pt}
+\label{tab:contingency}
+\begin{tabular}{lccccc}
+\toprule
+Design Stage & Cost [\%] & Power [\%] & Timeline [\%] & Mass [\%] & Size [\%] \\
+\midrule
+Preliminary & 20 & 30 & 30 & 30 & 30 \\
+Midterm & 13 & 19 & 20 & 21 & 21 \\
+Final & 7 & 10 & 10 & 12 & 12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The cost contingency values are based on cost estimation theory, where contingency is related to uncertainty in the estimate and can be approximated by the standard deviation of the cost distribution \cite{Rothwell2005CostEstimate}. Power contingency follows engineering practice for technical resource margins, where uncertainty decreases as the design matures, consistent with aerospace system design standards \cite{NASA2018SpaceTest}. Timeline contingency is based on established project management guidelines, including the PMBOK framework and NASA scheduling practices, which recommend schedule reserves of approximately 10-30\% depending on project maturity \cite{NASA2020Nasa_schedule_management_hand_book}. Due to lack of similar mass contingency values specifically for the UAV design and the fact that concepts differ in their approach, the larger spacecraft contingencies from AIAA S-120 are used \cite{AmericanInstituteofAeronauticsandAstronautics2015MassSystems}. Contingencies for the volume are assumed to follow random distribution of uncertainties. Then, they can be derived from the mass contingencies and are assumed the same. 
+\vspace{-10pt}
+

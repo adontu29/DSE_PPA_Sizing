@@ -1,0 +1,93 @@
+\begin{titlepage}
+
+\begin{center}
+
+%% Print the title
+{\makeatletter
+\largetitlestyle\fontsize{45}{45}\selectfont\@title
+\makeatother}
+
+%% Print the subtitle
+{\makeatletter
+\ifdefvoid{\@subtitle}{}{\bigskip\titlestyle\fontsize{20}{20}\selectfont\@subtitle}
+\makeatother}
+
+\bigskip
+\bigskip
+
+by
+
+\bigskip
+\bigskip
+
+%% Print the name of the author
+{\makeatletter
+\largetitlestyle\fontsize{25}{25}\selectfont\@author
+\makeatother}
+
+\bigskip
+\bigskip
+
+%% Print table with names and student numbers
+\setlength\extrarowheight{2pt}
+\begin{tabular}{lc}
+    Student Name & Student Number \\\midrule
+    Alex Dontu & 5971063\\
+    Alexandru Minculescu & 5983681\\
+    Andrei Potfalean & 5935830\\
+    Andrei-Cristian Tabără & 5985161\\
+    Daris Kariņš Bērziņš & 5981956\\
+    Frederic Rahlfs & 5917573\\
+    Giovanni Zattoni & 5944422\\
+    Jan Wanatowicz & 6016138\\
+    Marc Arnold Küster & 5982596\\
+    Piotr Blanchard & 5925509\\    
+\end{tabular}
+
+
+\vspace{4.5em}
+
+\noindent{Statement on the Use of Generative AI:}
+
+\begin{center}
+\begin{minipage}{0.7\textwidth}
+\centering
+\textbullet\ Generative AI was used to support text structuring and idea generation. \\[0.3em]
+\textbullet\ Generative AI was used to improve grammar, clarity, and writing style. \\[0.3em]
+\textbullet\ Generative AI was used to assist with code development and LaTeX formatting. \\[0.3em]
+\textbullet\ All outputs were critically reviewed, verified, and adapted by the authors. \\[0.3em]
+\textbullet\ Full responsibility for the content and correctness of this report lies with the authors.
+\end{minipage}
+\end{center}
+
+
+
+
+\vfill
+
+%% Print some more information at the bottom
+\begin{tabular}{ll}
+    Version: & 1.0 \\
+    Tutor: & Theodoros Michelis \\
+    Backup Tutor: & Lourenco Tercio Lima Pereira \\
+    Coaches: & João Pechirra de Carvalho Borrego \\
+    & Jaap Jorritsma \\
+    Duration: & April 20, 2026 - June 26, 2026 \\
+    Faculty: & Faculty of Aerospace Engineering, Delft\\
+    &\\
+    Cover: & NASA \\
+\end{tabular}
+
+\bigskip
+\bigskip
+
+\end{center}
+
+%% Insert the TU Delft logo at the bottom of the page
+\begin{tikzpicture}[remember picture, overlay]
+    \node[above=10mm] at (current page.south) {%
+        \includegraphics{figures/logo-black}
+    };
+\end{tikzpicture}
+
+\end{titlepage}

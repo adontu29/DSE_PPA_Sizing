@@ -1,0 +1,6 @@
+airfoil,family,reynolds,cl_design,cl_max_est,cd_at_design_est,cl_cd_at_design_est,cm_at_alpha0_est,cm_at_cl0_est,cm_at_design_cl_est,alpha_stall_deg_est,polar_source,coordinate_file,note
+sd7037,Selig/Donovan low-Re,788199.3377311177,0.6,1.4257,0.00724,81.51933701657458,-0.0759,-0.07579230769230769,-0.0760173144876325,12.0,xfoil,sd7037.dat,Good low-Re baseline; verify stall softness with XFOIL or UIUC data.
+sd7032,Selig/Donovan low-Re,788199.3377311177,0.6,1.5904,0.00734,84.20980926430518,-0.0926,-0.0912,-0.09286830122591944,12.0,xfoil,sd7032.dat,Available coordinate file; treated like the SD703x low-Re baseline.
+e387,Eppler low-Re,788199.3377311177,0.55,1.3555,0.00717,78.28451882845188,-0.079,-0.079,-0.07936021126760563,11.5,xfoil,e387.dat,Efficient at low Re but laminar-bubble sensitive.
+s1223,Selig high-lift,788199.3377311177,0.8,2.3771,0.01384,60.41184971098266,-0.2708,-0.1265,-0.2534243529411765,13.5,xfoil,s1223.dat,High lift candidate; pitching moment must be checked for trim cost.
+naca0012,Symmetric reference,788199.3377311177,0.3,1.3177,0.00775,37.2,0.0,0.0,-0.0005575317604355717,12.0,xfoil,XFOIL NACA 0012,Conservative canard/control reference with near-zero moment.

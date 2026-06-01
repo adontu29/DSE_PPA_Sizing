@@ -1,0 +1,153 @@
+\chapter{Mission Architecture}
+\label{ch:mission_architecture}
+\todo{not done yet. restructure and finish. }
+
+
+
+
+% Prior to performing the Functional Analysis, it is \textbf{highly recommended} to establish the \textbf{mission architecture}
+
+% \begin{itemize}
+%     \item The mission architecture defines the elements that make up the mission
+%     \item Reduce design scope by defining which elements are \textbf{tradeable}, i.e. if there is more than one option per element
+%     \item Create a schematic of the mission architecture, shows interaction between elements
+%     \item Also advised to define the \textbf{mission concept}: how the elements work together to meet the needs of the users
+% \end{itemize}
+
+
+
+
+The mission architecture defines the main elements that are required to perform the balloon recovery mission and describes how these elements interact during operation. At the baseline stage, the objective is not yet to select a final physical configuration, but to establish a clear system level view of the mission. This allows the team to identify which parts of the mission are fixed by the assignment, which parts remain open for trade-offs, and how later subsystem decisions must fit together.\\
+
+The mission considered in this project is an aerial intervention mission. A free floating, uncooperative balloon is identified, after which a small unmanned aerial system is deployed to intercept and recover the balloon, bringing it to a safe end state. This safe end state may be the result of guided descent, controlled deflation or another non-destructive condition in which the balloon no longer creates a hazard to people, infrastructure, airspace users or the environment.\\
+
+The mission requires knowledge of the target state, including its approximate position and estimated trajectory. This information may be generated onboard the UAS, provided by a ground segment, or produced through a combination of onboard and external sensing.   \\
+
+The architecture is therefore centred around four interacting mission elements: the target balloon, the airborne UAS, the ground segment, and the operational environment. The target balloon is treated as an external and uncooperative object, as it does not provide navigation data, nor does it actively assist the mission, and may drift under wind disturbances. The airborne UAS is the main physical system to be designed and includes the aerial platform, propulsion system, power system, flight-control hardware, communication hardware, and the balloon interaction mechanism. Depending on the selected architecture, additional onboard processing may be required for navigation, target tracking, autonomy or interaction control. However, the allocation of sensing, processing and decision-making between the airborne segment and the ground segment is kept open at this stage. The operational environment includes the atmosphere, wind field, terrain, airspace regulations, third parties, and  potential recovery zones.\\
+
+\section{Mission Concept}
+
+The mission starts when a balloon hazard is identified. This trigger may originate from any external or internal (e.g. ground station) monitoring source. Once the operational area and initial target information are available, the mission is assessed with respect to the applicable safety, weather, energy and airspace constraints. If the mission is feasible, the UAS is prepared and launched.\\
+
+After launch, the UAS begins a balloon interception trajectory. During this phase, the system uses onboard navigation and potential communication with the ground segment while maintaining safe separation from people, infrastructure and other airspace users. Once the target is within range, the interaction phase commences. Depending on the concept selected later in the design process, the UAS may then capture, restrain, vent, guide, or otherwise control the balloon in another way. The selected interaction strategy must be non-explosive, non-pyrotechnic, non-destructive in general and must avoid uncontrolled descent or hazardous falling debris. After interaction, the system must confirm that the balloon has reached a safe condition and that any remaining risk to the surrounding environment is acceptable.\\
+
+Finally, the UAS returns to a landing or recovery area. Any recovered balloon material, payload, or expendable mission hardware ( such as an expendable tether or net)  is secured. Mission data is logged for post-flight inspection, validation and maintenance planning. The mission is considered closed only after the UAS has landed safely and the balloon hazard has been confirmed as contained.\\
+
+The mission architecture is decomposed into the main elements shown in \autoref{tab:mission_elements}. These elements are used to structure the functional analysis, requirements flow-down, design option tree, and trade-off process. At this stage, the architecture is kept deliberately solution-neutral. In particular, the allocation of sensing, tracking, processing, and decision-making between the airborne segment and the ground segment is not fixed yet. This is important because the project contains three major interdependent design choices: the aerial platform and propulsion concept, the sensing and tracking approach, and the balloon interaction strategy.\\
+
+
+
+
+
+\begin{table}[H]
+    \centering
+    \caption{Main mission architecture elements.}
+    \label{tab:mission_elements}
+    \begin{tabular}{p{0.24\textwidth} p{0.66\textwidth}}
+        \toprule
+        \textbf{Mission element} & \textbf{Role in the mission} \\
+        \midrule
+
+        Target balloon & External uncooperative object to be located, tracked, intercepted, and brought to a safe end state. Its position, drift rate, size, payload, lifting gas and configuration influence the required sensing and tracking approach, strategy and interaction concept. \\
+
+        Airborne UAS & Main airborne element of the mission and the primary physical system to be designed. It provides the flight capability required to reach and interact with the balloon and carries the equipment needed for the selected interaction strategy.  \\
+
+        Ground segment & External support element that may provide additional mission support\\
+        % mission authorization, operator supervision, command and telemetry exchange, pre-flight checks, contingency decisions and post-mission recovery support. Depending on the selected architecture, the ground segment may also contribute to target detection, tracking, data processing or interception guidance. \\
+
+        Sensing and tracking architecture & Maintains sufficient knowledge of the target state, including its approximate position and trajectory. This function may be performed by onboard or ground based sensors and in combination with external facilities.  \\
+
+        Balloon interaction system & Mission element responsible for transforming the balloon from an uncontrolled drifting object into a controlled and safe end state.  \\
+
+        Operational environment & Includes wind, visibility, terrain, airspace restrictions, third parties, infrastructure, and possible landing or recovery zones.  \\
+
+        Recovery and logistics support & Covers post-mission material retrieval, inspection, maintenance, replacement of mission-specific equipment where needed, and preparation for the next deployment. \\
+
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+
+
+% \section{Architectural Flow}
+
+% The mission architecture can be represented as a sequence of operational phases. These phases describe how the main mission elements work together from the initial trigger to mission closure:
+
+% \begin{enumerate}
+%     \item Mission trigger: A balloon hazard is detected or reported by an external source.
+
+%     \item Mission assessment: The operational area, weather conditions, airspace constraints, available target information, and system readiness are evaluated.
+
+%     \item Launch and transit: The airborne segment is launched and navigates toward the assigned search or intercept area, supported by the ground segment (where and if applicable).
+
+%     \item Target acquisition: The system acquires the balloon and confirms it as the intended target. This may be achieved through onboard sensing, ground-based sensing or a combination of these methods.
+
+%     \item Tracking and prediction: The system estimates the target state and predicts its short-term motion under wind drift. The required sensing, processing and prediction functions may be allocated to the airborne segment, the ground segment, or both. % here also 
+
+%     \item Interception planning: A safe approach path and interaction geometry are generated based on the estimated target state, operational constraints, and selected interaction strategy.
+
+%     \item Controlled approach: The airborne segment approaches the balloon while maintaining safe separation, stable flight, and communication with the ground segment.
+
+%     \item Balloon interaction: The selected interaction mechanism is used to capture, restrain, guide, reduce the buoyancy of, or otherwise control the balloon in a non-destructive manner.
+
+%     \item Hazard containment: The balloon is brought to a safe end state and the absence of uncontrolled descent or hazardous debris is verified.
+
+%     \item Return and recovery: The airborne segment returns to a safe landing or recovery zone, while recovered balloon material, payload, or mission-specific recovery equipment is secured where applicable.
+
+%     \item Mission closure: Mission data are logged, the system is inspected, and the airborne and ground segments are prepared for reuse, maintenance, or the next deployment.
+% \end{enumerate}
+
+% This architectural flow is intentionally kept independent of a specific final design. It can therefore support several candidate concepts, such as a multirotor with a capture device, a fixed-wing or hybrid platform with a recovery mechanism, or a system using controlled deflation and guided descent.
+
+
+
+
+
+
+
+
+
+% \subsection{Tradeable Mission Architecture Elements}
+% 
+% Certain elements of the mission architecture directly influence the feasibility, safety, cost, sustainability, and operational complexity of the final system. These elements are kept open at baseline level and will later be combined into system concepts for trade-off analysis.
+
+% \begin{itemize}
+%     \item \textbf{Aerial platform concept:} The UAS may be based on a multirotor, fixed-wing, hybrid VTOL, or lighter-than-air platform. This choice affects endurance, manoeuvrability near the balloon, payload capacity, safety, and operational cost.
+
+%     \item \textbf{Propulsion and energy architecture:} Although the project requires electric propulsion, the specific architecture remains tradeable. Options include battery-electric multirotor propulsion, distributed electric propulsion, or hybrid lift-and-cruise electric propulsion. This affects endurance, redundancy, noise, and available power for payload systems.
+
+%     \item \textbf{Target detection and tracking approach:} The balloon may be detected and tracked using onboard vision, ground-based sensing, external target coordinates, GNSS-assisted localisation, or a combination of these. This choice affects autonomy, robustness, system complexity, and dependence on external infrastructure.
+
+%     \item \textbf{Autonomy and supervision level:} The mission may be executed under manual control, supervised autonomy, or higher-level autonomous navigation and interaction. This affects safety, operator workload, software complexity, certification difficulty, and failure management.
+
+%     \item \textbf{Balloon interaction strategy:} The UAS may interact with the balloon through capture, tethering, guided descent, gradual deflation, restraint, or a combination of these. This is one of the most important tradeable elements because it drives the payload design, risk level, recovery success, and sustainability impact.
+
+%     \item \textbf{Recovery end-state:} The mission may aim to retrieve the balloon and payload, guide them to a safe landing area, deflate the balloon in a controlled manner, or secure the balloon until ground recovery can occur. This affects safety, mission duration, required payload capacity, and post-mission logistics.
+
+%     \item \textbf{Ground segment involvement:} The ground segment may only provide operator supervision and command links, or it may also support target detection, tracking, trajectory prediction, and mission planning. This affects onboard system complexity, communication requirements, and operational flexibility.
+
+%     \item \textbf{Communication architecture:} The system may rely on direct radio control, telemetry links, video downlink, cellular communication, or a mixed architecture. This affects range, reliability, latency, operator awareness, and contingency management.
+
+%     \item \textbf{Launch and recovery concept for the UAS:} The UAS may be hand-launched, vertically launched, runway-launched, or deployed from a vehicle or fixed base, depending on the selected platform. The recovery of the UAS may occur through vertical landing, runway landing, parachute recovery, or operator retrieval.
+
+%     \item \textbf{Operational deployment concept:} The system may operate from a fixed response location, a mobile ground team, or a distributed network of possible launch sites. This affects response time, logistics, cost per deployment, and coverage area.
+% \end{itemize}
+% % Several mission elements are fixed by the assignment, while others remain open for design trade-off. The fixed elements define the minimum mission capability: the system must use an unmanned aerial platform, must operate electrically, must interact with the balloon in a non-destructive and controlled way, and must avoid uncontrolled descent or hazardous falling debris. These fixed elements form the design constraints.
+
+
+
+% \section{Mission Architecture Interfaces}
+
+
+
+
+% \section{Baseline Mission Architecture}
+
+% % The baseline mission architecture is shown conceptually in Figure~\ref{fig:mission_architecture}. The UAS is the central active element of the mission. It receives mission commands and constraints from the ground segment, uses onboard navigation and sensing to locate and track the balloon, interacts physically with the target, and returns mission data and health information to the operator. The operational environment affects both the UAS and the balloon, mainly through wind, visibility, airspace constraints, and terrain.
+
+
+
+%  \section{Assumptions and Scope Limitations}
+
+% Just make a section at the beginiing maybe combine the chapter with the next chapter with the functional flow so less stuff repeat 

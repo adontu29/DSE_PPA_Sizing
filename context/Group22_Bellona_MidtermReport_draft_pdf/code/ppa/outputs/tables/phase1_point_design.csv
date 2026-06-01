@@ -1,0 +1,2 @@
+wing_loading_n_m2,power_loading_w_n,wing_area_m2,required_electric_power_w,required_shaft_power_w,active_constraint,mtow_kg,thrust_to_weight_design,hover_power_w,climb_power_w,cruise_power_w,stall_wing_loading_max_n_m2,stall_margin_to_limit_fraction
+77.18452547498191,28.963506733669128,6.3527306410523074,14201.748665486817,12142.495108991228,hover,50.0,1.3,14201.748665486817,9213.769873153067,1567.259151905504,96.48065684372739,0.2

@@ -1,0 +1,197 @@
+
+% mainmatter/03-Literature-Study.tex
+% Literature Study: Existing Balloon Recovery Solutions and Analogous Technologies
+
+\chapter{Literature Study on Existing Balloon Recovery Solutions} \label{ch:Literature study}
+
+\todo{this kinda shouldnt be in here}
+
+\section{Scope and Objective}
+
+
+
+
+
+This chapter presents a systematic literature survey of existing balloon recovery, interception, and neutralisation solutions, together with broader analogues from adjacent engineering fields. The objective is twofold: (i) to establish the state-of-the-art against which the project design requirements can be benchmarked, and (ii) to identify concepts and subsystems that are directly transferable to the proposed UAS architecture.
+
+%The 's main mission is to detect, approach and interact with Balloon-Based Observation and Surveillance System.  Balloon Object Observation Based System
+
+The survey is organised by functional and technological category rather than by application domain, recognising that the most mature solutions for capturing an uncooperative airborne object may originate from counter-UAS, space debris removal, aerial manipulation, or scientific ballooning rather than from balloon-specific applications. This categorical approach enables the design team to select and combine the most promising sub-system architectures without being constrained by domain silos.
+
+\section{Literature study}
+
+The literature study covers eight thematic areas: %merged into six main categories for clarity:
+
+\begin{enumerate}
+        
+    \item \textbf{Balloon tracking and trajectory prediction}  Detection, localization and short term motion prediction of drifting airborne balloons under uncertain wind conditions. 
+
+    \item \textbf{Balloon target characteristics}  Physical, aerodynamic and operational characteristics of low and high altitude balloons, including size, materials, payload and expected failure or deflation modes. 
+
+
+	\item \textbf{Counter-UAS net-capture systems}  Commercial and academic capture drones, including net-launching, tether mechanisms, and parachute-assisted descent.
+	
+	\item \textbf{Balloon-specific interception, historical and modern}  Military and civilian precedents, from WWII Fu-Go balloons to the 2023 Chinese balloon incident, and contemporary laser-based interception.
+	
+	\item \textbf{Controlled deflation and scientific-balloon termination}  Rip panels, destruct valves, and non-pyrotechnic actuation strategies used by NASA CSBF, CNES, and JAXA.
+	
+	\item \textbf{Tethered and towed recovery}  Fulton STARS, Corona mid-air retrieval, and space-debris capture systems (RemoveDEBRIS, ClearSpace-1).
+	
+	\item \textbf{Aerial manipulation and soft grasping}  Academic research on compliant end-effectors, cooperative multi-drone systems, and bio-inspired grippers.
+	
+	\item \textbf{Guided descent and parachute-assisted recovery}  Ballistic recovery systems, parafoil guidance, and controlled deployment under the captured balloon.
+
+
+\end{enumerate}
+
+Each section describes working principles, platform specifications, technology readiness level, demonstrated performance, and strengths/weaknesses relative to the project requirements (non-pyrotechnic, electric-only, non-destructive, budgeting constraints, public safety constraints and environmental constraints.
+
+
+
+%\section{Literature study}
+\subsection{Balloon tracking and trajectory prediction}
+
+\subsubsection{Tang et al.: trajectory prediction for rapid recovery of zero-pressure balloons}
+Tang et al.\ investigate the trajectory prediction of a high-altitude zero-pressure balloon system with the specific aim of supporting rapid recovery in limited airspace. Although the paper does not address drone-based interception directly, it is highly relevant to the present project because it frames recovery as a prediction and mission-planning problem rather than only as a terminal capture problem. The study is therefore most useful as a precedent for target-motion modelling, drift estimation and recovery-zone prediction. 
+
+\paragraph{Trajectory prediction approach:} The authors develop a comprehensive simulation framework that combines thermal dynamic, atmospheric, Earth, wind, geometry and exhaust models. Based on these coupled models, they analyse the effect of launch uncertainties and simulate the full balloon trajectory across all mission phases. For the present project, the main takeaway is that meaningful prediction of balloon motion requires more than simple wind advection assumptions; balloon-specific thermal and physical behaviour must also be considered.
+
+\paragraph{Recovery relevance:} A key contribution of the paper is that it links trajectory prediction to operational recovery performance. The authors show that, when a control strategy is applied, the landing vertical speed can approach zero and the lateral drift range can be reduced relative to uncontrolled flight. For the balloon-recovery project, this suggests that interception and retrieval planning could benefit from a predictive layer that estimates likely future target position, descent behaviour and recovery area before close-range engagement takes place. \cite{Tang2022TrajectoryPrediction}
+
+\paragraph{Limitations for the present project:} The paper considers the controlled recovery of the balloon flight system itself rather than close-range interception of an uncooperative balloon by a separate UAV. It therefore provides little direct guidance on capture mechanisms, soft-contact interaction or restrained descent after interception. Its main relevance lies instead in informing the tracking, prediction and mission-planning architecture of the proposed system. \cite{Tang2022TrajectoryPrediction}
+
+
+
+% \subsection{Trajectory prediction for rapid recovery of zero-pressure balloons}
+
+% % Tang et al.\ investigate trajectory prediction as an enabling function for the rapid recovery of a high-altitude zero-pressure balloon system. The paper is primarily relevant to the present project because it treats recovery not as a purely post-flight activity, but as a problem that can be improved through predictive modelling of the balloon trajectory over the full mission profile. The authors develop a comprehensive simulation framework combining thermal, atmospheric, Earth, wind, geometry, and exhaust models in order to estimate the balloon trajectory during ascent, float, and descent. \cite{Tang2022TrajectoryPrediction}
+
+% % A key contribution of the work is that it explicitly links prediction accuracy to operational recovery performance. The study examines how uncertainties in launch parameters influence the resulting trajectory and shows that, when a control strategy is applied, the balloon system can achieve a near-zero landing vertical speed while also reducing lateral drift compared with uncontrolled flight. This is particularly relevant for missions conducted in constrained or limited airspace, where both safe descent and a restricted landing footprint are important. \cite{Tang2022TrajectoryPrediction}
+
+% % For the present DSE project, this literature is valuable in two ways. First, it shows that balloon interception and recovery should not be approached only as a terminal guidance problem; upstream trajectory forecasting can strongly improve recoverability and reduce the search area. Second, it highlights that any realistic prediction method must account for balloon-specific physical behaviour, especially thermal effects, solar-radiation-driven altitude changes, and wind-driven drift. Although Tang et al.\ consider a scientific zero-pressure balloon rather than an uncooperative balloon intercepted by a drone, the modelling logic remains useful as a reference for estimating target motion, likely recovery zones, and timing constraints for interception planning. \cite{Tang2022TrajectoryPrediction}
+
+% % The main limitation, from the perspective of this project, is that the paper addresses prediction and controlled recovery of the balloon flight system itself rather than close-range drone interception of a foreign or non-cooperative target. It therefore informs the tracking and mission-planning layer more directly than the physical interception mechanism. Nevertheless, it provides a strong basis for defining trajectory-prediction requirements and for understanding how environmental and balloon-state uncertainties propagate into recovery difficulty. \cite{Tang2022TrajectoryPrediction}
+
+
+
+\subsection{Balloon target characteristics}
+
+
+
+
+
+
+
+
+
+\subsection{Counter-UAS net-capture systems}
+
+
+\subsubsection{Net-launching mechanism for UAV-based aerial target capture}
+Meng et al.\ present a dedicated net-launching mechanism designed for a UAV to capture an aerial moving target at standoff range. The paper is highly relevant to the present project because it demonstrates a lightweight, non-contact interception mechanism that can be integrated on an electric multirotor platform and used to physically restrain an airborne target without requiring direct collision or a cutting-based interaction. The study is therefore most useful as a precedent for \emph{capture-at-distance}, launcher integration and restrained interception of an uncooperative airborne object. \cite{Meng2018NetLaunching}
+
+\paragraph{Platform:} The mechanism is developed specifically for integration on a UAV platform with limited payload and actuation capacity. The authors define mass, range, capture time, precision, and counteraction as key design requirements, and report a prototype mass of 850\,g, which is sufficiently low to be carried by their multirotor test vehicle. For the present project, this supports the feasibility of using an electric multirotor as a carrier for a standoff interception mechanism, particularly in cases where hover capability, accurate positioning, and safe close-range manoeuvring are more important than cruise efficiency. \cite{Meng2018NetLaunching}
+
+\paragraph{Sensing:} The paper does not focus strongly on sensing or autonomous target detection. Instead, the mechanism is designed around assumed target position accuracy and is evaluated in controlled ground experiments rather than in a full airborne tracking loop. Nevertheless, the stated requirement of capturing a target 3\,m away while remaining within a limited position error implies that the launcher would need to be paired with a reasonably accurate tracking and alignment system at the vehicle level. For the balloon-recovery project, the main takeaway is that a net-launching concept of this type is compatible with a vision-based or operator-supervised targeting chain, but the sensing architecture would need to be developed separately. \cite{Meng2018NetLaunching}
+
+\paragraph{Interaction method:} The proposed interaction method is based on launching four spring-driven bullets connected to the corners of a square nylon net. Once released, the bullets stretch the folded net in flight so that it can envelop and entangle the aerial target at standoff range. In repeated experiments, the net reached the board within 0.4\,s, 75\% of the center marks fell within a radius of 100\,mm, and the measured average launch counterforce was 1.2332\,N. For the present project, this makes the paper one of the strongest analogues for a \emph{capture-first} strategy, where the target is first restrained before any later deflation, towing, or guided descent phase is initiated. Its main limitation is that the method is demonstrated on small rigid micro-UAV targets rather than on large, flexible balloon envelopes, so risks such as deformation, entanglement with the carrier UAV, and controlled post-capture descent remain unresolved. \cite{Meng2018NetLaunching}
+
+
+
+
+
+\subsubsection{UAV Hunter: vision-assisted net capture}
+\cite{Zhang2024UAVDefense} describe UAV Hunter, an anti-UAV system that uses one drone to detect, track, and capture another using a tethered net. While it is not a balloon-recovery system, it is a useful analogue because it combines an airborne platform, onboard sensing, and a non-pyrotechnic interception mechanism in a single system.
+
+\paragraph{Platform:} The system uses a six-rotor multirotor as the interception platform. This makes it relevant as a reference for close-range balloon interception, where hover capability and precise positioning are important.
+
+\paragraph{Sensing:} UAV Hunter uses a dual-mode visible/infrared sensor pod with onboard real-time detection and tracking. For this project, it mainly shows that a compact vision-based sensing chain can support target acquisition and final interception alignment.
+
+\paragraph{Interaction method:} The system uses a pneumatically launched tether-net to capture a target without destructive effects. Its main relevance is as an analogue for non-pyrotechnic aerial capture and retention. Its main limitation is that it was demonstrated on small rigid UAVs rather than large flexible balloons, so direct transfer to balloon recovery is limited.
+
+
+\subsubsection{Anti-drone device based on capture technology}
+\cite{Chen2022AnTechnology} present a nondestructive aerial capture device intended to entangle an illegal drone using a deployable net. The work is relevant as a compact analogue for aerial capture hardware, especially because it emphasizes rapid deployment, adjustable geometry, and prevention of loose debris during interception, although it is not a balloon-specific recovery system.
+
+\paragraph{Platform:} The device is designed to be mounted on a carrier drone rather than being a complete standalone UAS. For this project, its main value is as a reference for a lightweight add-on interception mechanism that could be integrated onto a multirotor platform.
+
+\paragraph{Sensing:} Sensing is not a major contribution of this paper. The concept assumes that the carrier drone has already approached and aligned with the target before launch, so the paper is mainly relevant to the mechanical interception stage rather than target detection or tracking.
+
+\paragraph{Interaction method:} The device uses a spring-driven net launcher with one central and six surrounding launch mechanisms. After release, the net expands and wraps around the target while remaining connected to the device, reducing the risk of loose debris. Its relevance to the balloon-recovery project is that it demonstrates a fast, non-destructive, non-pyrotechnic capture concept, but its limitation is that it was developed for small rigid drones rather than large flexible balloons. 
+
+
+\subsection{Balloon-specific interception, historical and modern}
+
+\cite{Krauchi2016ReturnMeasurements} presents the Return Glider Radiosonde (RGR), an autonomous balloon-borne system designed to recover expensive atmospheric research instruments. Traditional radiosondes descend via parachute and are often lost or difficult to retrieve, but the RGR uses a fixed-wing glider to return payloads to a preprogrammed landing site. This system was specifically developed for measuring upper-air radiation profiles using built-in pyranometers and pyrgeometers.The RGR is a tailless flying wing made of durable Expanded Polypropylene (EPP) foam with a 1.4-meter wingspan, weighing under 2 kg. It is lifted by a weather balloon to a preset altitude, where a release mechanism cuts the tether string. Navigation is managed by a PIXHAWK autopilot using dual GPS/GLONASS receivers. Upon reaching the target, the RGR spirals down and deploys a parachute 100 meters above ground for a soft landing. Test flights up to 24 km have confirmed its reliability and operational readiness.
+
+\paragraph{Platform:} A tailless "flying wing" glider designed for high-altitude research. It has a 1.4-meter wingspan and is built from Expanded Polypropylene (EPP) foam, which is lightweight, impact-resistant, and able to withstand extreme stratospheric temperatures. To keep weight under 2 kg, the glider typically operates without a motor, using its aerodynamic shape to fly. All flight electronics and batteries are protected inside insulated Styrofoam boxes in the center , while scientific instruments are integrated directly into the wings to avoid blocking measurements.
+
+\paragraph{Sensing:} As this is a cooperative internal deploy system, the sensing aspect is not relevant for the project that the literature study is done for.
+
+\paragraph{Interaction method:} The Balloon Interaction is managed by a specialized release mechanism that handles the full transition from balloon-lifted ascent to autonomous glider flight. During the climb, the glider is held in a steady horizontal position by a three-point suspension tether. When the autopilot detects that the pre-set GPS altitude has been reached, it activates a relay switch to send an electric current through a tungsten wire. This wire heats up and burns through the tether string, completely detaching the glider from the balloon. Once released, the autopilot immediately takes over to stabilize the aircraft and begin its guided flight back to the landing site.
+
+
+
+
+\subsection{ Controlled deflation}
+
+
+\subsubsection{Altitude control of long-duration balloons}
+Voss et al.\ analyse several methods for controlling the altitude of long-duration balloons and introduce a concept referred to as differential expansion. Although the paper is not concerned with UAV interception directly, it is relevant to the present project because it demonstrates that controlled descent of a balloon can be achieved through gradual modification of buoyancy rather than through abrupt destruction of the envelope. This is closely aligned with one of the mission directions considered in the current project, namely a UAV that establishes temporary attachment to the balloon and then controls its descent through a metered deflation interface. The study is therefore useful mainly as background for understanding controlled balloon descent, buoyancy management, and the operational logic behind non-destructive intervention. \cite{Voss2005AltitudeBalloons}
+
+\paragraph{Platform:} The paper considers long-duration balloon systems rather than UAVs, and compares three altitude-control architectures: air ballast, mechanical compression, and differential expansion. For the present project, the platform-level relevance lies in the fact that these systems show that a balloon’s altitude can be intentionally changed without immediate structural failure. This supports the broader mission logic of the project, in which the recovery UAV would not simply disable the balloon, but would interact with it in a way that produces a gradual and controllable loss of lift. \cite{Voss2005AltitudeControl} 
+
+\paragraph{Sensing:} The paper does not develop a sensing chain for interception, but it explicitly links balloon altitude control to operational goals such as avoiding restricted airspace and achieving rudimentary navigation. For the present project, this is relevant because it highlights that altitude is a key control variable in balloon operations and may strongly influence where and how recovery becomes feasible. It also suggests that any UAV-based recovery concept relying on controlled deflation should account for how changes in buoyancy affect descent behaviour, drift, and likely landing footprint. \cite{Voss2005AltitudeControl}
+
+\paragraph{Interaction method:} The paper does not propose a mechanical capture or interception mechanism, but it is highly relevant to the present project at the level of descent logic. Its core contribution is the demonstration that gradual buoyancy control can provide efficient and predictable altitude change over time. In the context of the current mission, this supports the idea that a UAV-attached needle or venting interface could aim not for sudden rupture, but for controlled gas release that drives a managed descent. The main limitation is that Voss et al.\ study internal balloon control architectures designed into the balloon system itself, whereas the present project considers an external UAV imposing controlled deflation on an uncooperative target. Even so, the paper helps justify the fundamental assumption that controlled loss of buoyancy is a credible recovery pathway. \cite{Voss2005AltitudeControl}
+
+
+
+\subsection{ Tethered and towed recovery}
+
+
+
+
+
+
+
+\subsection{ Aerial manipulation and soft grasping}
+
+
+
+\subsubsection{Dynamic grasping with a “soft” drone}
+Fishman et al.\ present what they describe as the first prototype of a \emph{soft drone}: a quadrotor in which the conventional rigid landing gear is replaced by a soft tendon-actuated gripper to enable aggressive dynamic grasping. The paper is highly relevant to the present project because it addresses a core challenge that also appears in balloon interception, namely how an aerial vehicle can make physical contact with a target under positioning uncertainty without transmitting large destabilising forces through a rigid impact. The study is therefore useful mainly as a precedent for contact design, soft end-effector integration, and aerial interaction with fragile or uncertain targets. \cite{Fishman2021DynamicPractice}
+
+\paragraph{Platform:} The system is built around a quadrotor platform whose standard landing gear is replaced by a soft tendon-actuated gripper. This is important because the compliance is not treated as an add-on manipulator only, but as an integral part of the vehicle’s contact architecture. For the present project, this supports the idea that a balloon-interaction UAV could benefit from a platform-level design in which the contact mechanism is inherently compliant, rather than relying on a rigid tool that risks tearing the balloon envelope or destabilising the vehicle during first contact. \cite{Fishman2021DynamicPractice}
+
+\paragraph{Sensing:} The paper combines quadrotor control with soft-robotics modelling and validates the system in simulation and in a motion-capture environment, but it does not focus on a full autonomous long-range perception pipeline. Its relevance for the present project lies instead in the way it reduces the burden on sensing and positioning accuracy: the soft gripper is explicitly motivated by the fact that rigid grippers require precise positioning and transmit large contact forces, whereas compliance tolerates imprecision and dampens contact. For a balloon-recovery mission, this is valuable because close-range alignment with a deformable, moving envelope is likely to remain uncertain even with good tracking, and a compliant interface can compensate for residual positioning errors at the moment of contact. \cite{Fishman2021DynamicPractice}
+
+\paragraph{Interaction method:} The proposed interaction method is dynamic grasping through a tendon-actuated soft gripper that passively conforms to the target object. The key contribution is not only that the drone can grasp unknown-shape objects, but that the softness of the end-effector enables contact under motion and uncertainty where rigid alternatives would fail. The authors report that their physical prototype achieved 91.7\% successful grasps across 23 trials. For the present project, the main relevance is conceptual: it supports the use of a soft, compliant contact stage before or during balloon attachment, for example to stabilise the UAV against the envelope before inserting a controlled venting interface or tensioning attachment tapes. Its main limitation is that the paper studies grasping solid objects of unknown shape rather than attaching to a large thin membrane under internal pressure, so it does not directly resolve issues such as puncture control, gas leakage or load distribution on a balloon envelope. \cite{Fishman2021DynamicPractice}
+
+
+
+
+
+\subsection{ Guided descent and parachute-assisted recovery}
+
+
+
+\section*{3.4 Main Design Option Tree Findings}
+
+The literature survey directly informs the Design Option Tree (Chapter~\ref{ch:design-options}) by supplying:
+
+\begin{itemize}
+	\item \textbf{Platform options}  multirotor, hybrid VTOL, tethered drone, cooperative multi-drone, derived from counter-UAS and space-debris precedent.
+	
+	\item \textbf{Capture mechanism options}  tethered net (RemoveDEBRIS heritage), adhesive rip-patch (novel concept), soft gripper (Stanford SNAG/JPL gecko), snare/hook (Corona/Fulton), derived from the categories above.
+	
+	\item \textbf{Retention and descent options}  tow home, drogue-chute release (Fortem DrogueNet), guided parafoil (Airborne Systems Onyx), each with cost, mass, and safety trade-offs.
+	
+	\item \textbf{Actuation options}  nichrome burn-wire (TRL 9, < 30g, < €20 BOM), archery-release servo (TRL 9, < 50g), electromagnetic solenoid (TRL 8, < 100g), with pyrotechnic options explicitly excluded.
+	
+	\item \textbf{Potentially infeasible options}  laser systems (> €5k for 30W fiber laser + Jetson + gimbal), manned aircraft interception (not UAS-scale), pyrotechnic cutters (civil airspace non-compliance).
+\end{itemize}
+
+
+
+\newpage

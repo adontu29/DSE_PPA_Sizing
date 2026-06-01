@@ -1,0 +1,215 @@
+\chapter{Return on Investment and Operational Profit}
+\label{sec:roi}
+
+\setlength{\parskip}{0.3em}
+\setlength{\abovedisplayskip}{6pt}
+\setlength{\belowdisplayskip}{6pt}
+\setlength{\abovedisplayshortskip}{4pt}
+\setlength{\belowdisplayshortskip}{4pt}
+\setlength{\textfloatsep}{8pt}
+\setlength{\floatsep}{8pt}
+\setlength{\intextsep}{8pt}
+\vspace{-10pt}
+This section establishes a first-order estimate of the Return on Investment (RoI) of the proposed UAS. In accordance with the Design Synthesis Exercise requirements, the RoI is derived from market price, market volume, achievable market share, development cost, production cost, and direct operational cost.
+
+\vspace{-10pt}
+\section{Key Assumptions and Limitations}
+
+The presented economic analysis is based on a number of simplifying assumptions, required due to the early design stage of the project.
+\vspace{-5pt}
+\begin{itemize}[noitemsep, topsep=2pt]
+
+\item \textbf{Preliminary design stage:}
+The system has not yet undergone detailed design. All cost estimates are first-order engineering approximations based on comparable systems and component benchmarks.
+
+\item \textbf{No operational expenses (OPEX):}
+Costs such as salaries, office and administrative expenses, R\&D overhead, sales and marketing, legal, IT infrastructure, and general operational expenditure are not included. The analysis focuses solely on development and production costs.
+
+\item \textbf{No liabilities or financing costs:}
+No debt financing, interest payments, or liabilities are considered. The project is treated as fully equity-funded.
+
+\item \textbf{Constant unit cost:}
+Production cost per unit is assumed constant, neglecting economies of scale or learning curve effects.
+
+\item \textbf{Fixed market price:}
+The system price is assumed to remain at the requirement limit of \texteuro{}5000, without competitive pricing dynamics.
+
+\item \textbf{Conservative market penetration:}
+A 10\% market share is assumed, representing cautious adoption in a novel and unproven market.
+
+\item \textbf{Operational costs borne by customer:}
+All mission-related costs are assumed to be covered by the operator and do not contribute to company revenue or cost.
+
+\item \textbf{No residual value:}
+The system is assumed to have no resale or salvage value at the end of its lifetime.
+
+\item \textbf{No development cost included:}
+The system is developed within an academic setting without financial compensation. Therefore the development cost is assumed to be negligable at this stage of the project. Prototypign and testing, subject to timeline considerations, might occur at later stages but are currently not considered.
+ This results in an optimistic economic estimate compared to real-world implementation.
+
+\end{itemize}
+
+All assumptions are intentionally conservative to avoid overestimation of economic performance at this stage.
+\vspace{-10pt}
+\section{Business Model, Market Price, and Market Volume}
+
+This section defines the commercial assumptions used for the preliminary return-on-investment estimate. It first describes the revenue model and the assumed market price of the system. It then estimates the relevant market volume, the obtainable market share, and the corresponding number of units expected to be sold over the analysis period. These values form the basis for the revenue calculation in the following sections.
+\vspace{-10pt}
+\subsection*{Business Model \& Market Price}
+
+The proposed system follows a product-based business model, where revenue is generated through direct sales of the UAS to operators (e.g.\ airport authorities and national agencies). 
+
+Operational costs are borne by the customer and are therefore not included in the developer's cost structure.
+
+The system acquisition cost is constrained by design requirements to a maximum of $P_{\text{unit}} = \text{\texteuro{}}5000$. This value is adopted as the market price.
+\vspace{-10pt}
+
+\subsection*{Market Volume and Share}
+
+The market volume is derived from the estimated number of relevant balloon interception events:
+
+\begin{itemize}[noitemsep, topsep=2pt]
+\item Total Addressable Market (TAM): 400-500 events/year (global)
+\item Serviceable Available Market (SAM): 150-200 events/year
+\item Serviceable Obtainable Market (SOM): 10\% of SAM $\rightarrow$ 15-20 events/year
+\end{itemize}
+
+\vspace{-10pt}
+\subsection*{System Capacity and Unit Sales}
+
+Each UAS is assumed to perform approximately 20 missions per year. Based on this operational capacity and a 5-year horizon, a conservative estimate of $N_{\text{units}} = 10$ systems sold is adopted.
+
+
+\vspace{-15pt}
+
+\section{Production (COGS) and Development Cost}
+The production cost per unit is derived from the Cost of Goods Sold (COGS), as summarised in Table~\ref{tab:cogs}. In addition to the production cost, the development cost is considered separately within the same cost category because no direct development cost is included in this analysis.
+
+\begin{table}[h]
+\centering
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{0.9}
+\caption{Cost of Goods Sold (COGS) per UAS unit}
+\label{tab:cogs}
+\begin{tabular}{lc}
+\toprule
+\textbf{Category} & \textbf{Cost per Unit (\texteuro{})} \\
+\midrule
+Airframe \& Structure & 800 \\
+Avionics \& Sensors & 900 \\
+Propulsion System & 700 \\
+Mission Payload & 400 \\
+Assembly \& Integration & 150 \\
+Packaging \& Logistics & 100 \\
+\midrule
+\textbf{Total Production Cost} & \textbf{3050} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The COGS values are derived using first-order engineering estimates based on typical small-UAS component costs. Thus, the production cost is $C_{\text{prod}} = 3{,}050 \text{ €}$ per unit.
+
+\begin{itemize}[noitemsep, topsep=2pt]
+
+\item \textbf{Airframe \& Structure (800 \texteuro{}):}  
+Based on carbon-fibre multirotor frame kits and structural components such as landing gear and fasteners. Cost benchmarked against industrial hexacopter frames (e.g. 1550 mm wheelbase class) \cite{DroneAssemble2024IndustrialPricing}.
+
+\item \textbf{Avionics \& Sensors (900 \texteuro{}):}  
+Includes flight controller (e.g. Pixhawk 6X), GNSS module, companion computer, and wiring. Cost derived from commercially available avionics components used in autonomous UAV systems \cite{MotioNew2024PixhawkComparison}.
+
+\item \textbf{Propulsion System (700 \texteuro{}):}  
+Covers motors, ESCs, and propellers sized for heavy-lift multirotor configurations. Cost based on industrial-grade propulsion components for 12S systems \cite{DroneAssemble2024IndustrialPricing}.
+
+\item \textbf{Mission Payload (400 \texteuro{}):}  
+Includes interception mechanism, actuators, and mounting hardware. Cost derived from comparable actuator systems and lightweight mechanical subsystems, including servos and custom integration components \cite{DSLRProsDSLRpros}.
+
+\item \textbf{Assembly \& Integration (150 \texteuro{}):}  
+Labour cost associated with assembly, wiring, calibration, and testing. Based on typical integration effort for small-scale UAV systems.
+
+\item \textbf{Packaging \& Logistics (100 \texteuro{}):}  
+Includes packaging materials, transport, and delivery. Estimated based on standard logistics costs for small technical equipment.
+
+\end{itemize}
+\vspace{-5pt}
+No direct development cost is included in this analysis. The system is developed within the context of the Design Synthesis Exercise, where engineering work is performed by students and is not associated with financial compensation. Thus, the cost of development is $C_{\text{dev}} = \text{0 \texteuro{}}$.
+\vspace{-15pt}
+
+\section{Direct Operational Cost (Operator Perspective)}
+
+Although operational costs are not incurred by the developer, they are critical for assessing system affordability. The values are presented in \autoref{tab:opex}.
+
+\begin{table}[h]
+\centering
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{0.9}
+\caption{Operational cost per mission (operator perspective)}
+\vspace{-5pt}
+\label{tab:opex}
+\begin{tabular}{lc}
+\toprule
+\textbf{Cost Component} \& \textbf{Cost per Mission (\texteuro{})} \\
+\midrule
+Energy (battery charging / degradation) & 50 \\
+Consumables (tether, recovery bag, minor components) & 80 \\
+Maintenance and wear (motors, propellers, inspection) & 100 \\
+Operator labour (deployment, monitoring, recovery) & 70 \\
+\midrule
+\textbf{Total Operational Cost} \& \textbf{300} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The operational costs are derived from typical small-UAS mission characteristics:
+
+\begin{itemize}[noitemsep, topsep=2pt]
+
+\item \textbf{Energy (50 \texteuro{}):}  
+Based on LiPo battery degradation and replacement costs distributed over approximately 150-250 charge cycles, which is typical for high-capacity UAV batteries \cite{Grepow/Tattu2024TattuBattery, Linden2002HandbookBatteries}. The cost reflects both energy consumption (electricity) and battery wear per cycle, with additional margin for charging inefficiencies.
+
+\item \textbf{Consumables (80 \texteuro{}):}  
+Includes mission-specific expendables such as tethers, recovery materials, and minor components. Such consumables are common in UAV operations involving payload deployment or physical interaction and are typically treated as per-mission expendable costs \cite{ValerdiCostVehicles, DronesEASA}.
+
+\item \textbf{Maintenance (100 \texteuro{}):}  
+Covers wear of propulsion components (motors, propellers) and structural elements over approximately 100 missions. UAV lifecycle and cost models identify propulsion systems and mechanical components as primary contributors to maintenance cost due to fatigue and operational wear \cite{Thibbotuwawa2019EnergyRouting, ValerdiCostVehicles}.
+
+\item \textbf{Operator labour (70 \texteuro{}):}  
+Based on approximately 1 hour of operation per mission and an operator cost of 60-80 \texteuro{}/hour, consistent with technical personnel wages and UAV operational practices \cite{HourlyEurostat, DronesEASA}.
+
+\end{itemize}
+\vspace{-10pt}
+\begin{equation}
+C_{\text{op}} = \text{300 \texteuro{}} \quad \text{per mission}
+\end{equation}
+
+This value remains below the requirement limit of \text{500 \texteuro{}} per deployment.
+
+\vspace{-10pt}
+\section{Revenue and Cost Estimation}
+
+\begin{equation}
+\text{Revenue} = N_{\text{units}} \cdot P_{\text{unit}} = 50{,}000 \text{ €} 
+\quad \text{and} \quad 
+\text{Cost} = N_{\text{units}} \cdot C_{\text{prod}} = 30{,}500 \text{ €}
+\end{equation}
+
+The revenue is solely generated through system sales, as the operational costs are borne by the customer. The total cost consists only of production cost, reflecting the absence of development expenditure in the project context.
+
+\vspace{-15pt}
+\subsection{Return on Investment}
+
+The economic performance of the system is evaluated through the Return on Investment (RoI), incorporating corporate taxation.
+
+\begingroup
+\setlength{\jot}{4pt} % This reduces the gap between lines
+\begin{gather}
+    \text{Gross Profit} = \text{Revenue} - \text{Cost}= 50{,}000 - 30{,}500 = 19{,}500 \text{ €} \\
+    \text{Tax} = 0.19 \cdot 19{,}500 = 3{,}705 \text{ €} \\
+    \text{Net Profit} = 19{,}500 - 3{,}705 = 15{,}795 \text{ €} \\
+    \text{RoI} = \frac{\text{Net Profit}}{\text{Cost}} = \frac{15{,}795}{30{,}500} = 51.8\%
+\end{gather}
+\endgroup
+
+The positive RoI indicates that, under the current assumptions, the system is economically viable. This result is primarily driven by the absence of development cost, and therefore represents an optimistic estimate of economic performance.
+
+In a real-world scenario, the inclusion of development cost would significantly reduce the RoI.
+

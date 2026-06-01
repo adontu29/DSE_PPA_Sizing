@@ -1,0 +1,307 @@
+
+\vspace{-20pt}
+\chapter{Design option Structuring} \label{ch:Design Options}
+\vspace{-12pt}
+
+
+Before the conceptual designs are selected for progression to the Conceptual Design Phase, the design space is first reduced to a manageable set of feasible candidates. This pruning step is not intended to replace the formal trade-off, rather, it acts as an initial screening against major feasibility constraints and requirement conflicts. Options that cannot realistically satisfy the mission, safety, cost, or implementation constraints are therefore eliminated at this stage. Sustainability is also considered using the drivers defined in \autoref{ch:sustainability}, ensuring that concepts with clear life-cycle or environmental disadvantages are not carried forward unnecessarily. In particular, options are rejected if they rely on combustion propulsion, pyrotechnic or explosive mechanisms, uncontrolled balloon destruction, unacceptable debris generation or interaction methods that cannot support controlled recovery. For the remaining options, sustainability is treated as a qualitative discriminator.
+
+The DOTs therefore do not directly select the final design. They first reduce the option space, after which compatible retained options are combined into a small number of integrated concepts for the trade-off.
+
+
+% \chapter{Design Option Structuring}
+% \label{ch:design_options}
+
+% Before the conceptual designs are selected for the Midterm trade-off, the design space is reduced to a manageable set of feasible candidates using Design Option Trees (DOTs). The DOTs are used as OR-trees: each branch represents an alternative way of satisfying a design choice, rather than a decomposition into functions or subsystems.
+
+% Three DOTs are considered because they correspond to the main system-level design choices of BELLONA: the aerial platform, the detection and tracking architecture, and the balloon interaction strategy. These choices are strongly coupled. The platform determines controllability, payload capacity, endurance and energy demand; the sensing architecture determines the level of autonomy and terminal tracking accuracy; and the interaction strategy determines whether the balloon can be brought to a controlled post-contact state.
+
+% Following the baseline feedback, the DOTs are not used only to list possible technologies. They are also used to document why options are retained, conditionally retained, or pruned before the Midterm trade-off. Options are removed when they violate mandatory constraints such as electric-only operation, non-pyrotechnic interaction, debris prevention, controlled recovery, cost feasibility, or acceptable implementation complexity. Options that remain uncertain but potentially useful are retained conditionally and require further verification during the next design phase.
+
+% The complete DOT figure is provided in \autoref{sec:design-option-tree}. Retained options are shown in green, conditionally retained options in yellow, and pruned options in red. Short pruning or retention reasons are included directly in the updated DOT figure where possible, so that the tree remains understandable without relying only on the surrounding text.
+
+\vspace{-10pt}
+\section{DOT 1: Possible mission platforms}
+\label{sec:dot_platform}
+
+The mission platform determines payload capacity,  controllability near the target, and operational range and altitude capabilities. Ruggiero, Lippiello and Ollero's aerial manipulation review \cite{Ruggiero2018AerialReview} provides the top-level classification (rotorcraft, hybrid VTOL, fixed-wing, lighter-than-air, flapping-wing, cooperative multirotor teams), which is inherited by DOT 1 in \autoref{sec:design-option-tree}.
+
+In this section only the aerial platforms will be discussed, as a ground-based system would be fundamentally impractical for a controlled capture. This is due to the necessary height being nearly impossible to reach from the ground, as well as control being unfeasible from such distance. 
+
+From a sustainability perspective, the aerial platform mainly affects mission energy demand, acoustic performance, repairability and operational re-use. This also immediately prunes any other non-electrically powered vehicles, such as a rocket.
+\vspace{-10pt}
+\paragraph{Rotary Wing:} The dominant class in state-of-the-art counter-UAS analogues. Rotorcraft are favourable from a sustainability perspective because their hover capability allows controlled low-speed interaction, reducing the risk of balloon fragmentation or payload release during contact. The Delft Dynamics DroneCatcher is a quadrotor net-gun platform \cite{DroneCatcher}; Fortem's DroneHunter F700 is a hexacopter radar-guided interceptor with (allegedly) more than $4500$ captures \cite{Fortem}; the UAV Hunter system of Zhang et al. \cite{Zhang2024UAVDefense} also uses a hexacopter for additional payload weight and redundancy, allowing operational capability with 2 motor failure; Fishman et al.'s soft-gripper drone \cite{Fishman2021DynamicPractice} and Mellinger et al.'s aerial-grasping work \cite{Mellinger20112011Systems} use quadrotors. Helicopters and coaxial rotor systems are removed from the tree due to their increased cost and complexity, making them unfeasible given the per-sortie cost requirement and the level of autonomy required.
+\vspace{-10pt}
+\paragraph{Hybrid VTOL:} Tilt-rotor, tilt-wing, and tail-sitter configurations are only briefly mentioned in \cite{Ruggiero2018AerialReview}, likely because these architectures were less prominent in the aerial manipulation literature covered by the review. In recent years, these configurations have become increasingly relevant in counter-UAS technology, with examples including systems developed by companies such as TYTAN Technologies and Helsing. The tilt-wing configuration is pruned at this stage, as its increased structural weight and added complexity are not justified when other platform architectures can provide comparable operational capabilities with fewer disadvantages. The other options options are retained for further consideration. However, they may introduce additional challenges related to mechanical complexity, control integration, and sustained hover near the balloon
+\vspace{-10pt}
+\paragraph{Fixed-wing:} A fixed-wing platform with a capture payload is outlined in Kilian et al.'s counter-UAS patent \cite{Kilian2018UnmannedUAVs}. It offers superior endurance but cannot hover, so balloon contact would require a fly-by. Given the narrow capture tolerances on a $2$--$6\,\mathrm{m}$ drifting balloon and the wind constraint, conventional fixed-wings are retained, while non-conventional designs are pruned due to the many challenges regarding certification and design.
+\vspace{-10pt}
+\paragraph{Lighter-than-air and flapping-wing:} While offering significant disadvantages in maneuverability and near-target hover, these options are retained due to offering a cheap and relatively payload-efficient option.
+\vspace{-10pt}
+
+%\paragraph{Flapping Wing:} While very payload-efficient, these designs are too unproven to be safely employed, and thus are pruned.
+
+\section{DOT 2: Detection and Tracking}
+\label{sec:dot_sensing}
+
+% The detection-and-tracking architecture must acquire a low radar cross-section,  slow-moving target at up to TBD AGL and hand it over to a terminal tracker with centimetre-scale relative accuracy at contact. The literature organises the option space into four top branches: passive optical, active sensing, cooperative signal from target, and hybrid cued architectures which form DOT2 (Figure\ref{fig:dot_sensing}).
+
+
+The detection-and-tracking architecture must acquire a low radar-cross-section, slow-moving target at up to TBD AGL and hand it over to a terminal tracker with sufficient relative accuracy for close-range interaction. The literature organizes the option space into four top-level branches: passive optical sensing, active sensing, cooperative signals from the target, and hybrid-cued architectures, which form DOT 2 in \autoref{sec:design-option-tree}. In addition to detection performance, the options are assessed by their effect on mission efficiency and interaction reliability. Solutions that reduce search time, false detections and failed approach attempts are preferred, while heavier or more power-demanding sensors are treated cautiously because they increase platform size, battery demand and system complexity.
+
+\vspace{-10pt}
+\paragraph{Passive sensing:}
+RGB cameras with YOLO-family algorithms are widely used in anti-UAS applications because they offer low-cost, low-mass, and mature real-time object detection. Reported examples include Zhang et al.'s UAV Hunter, which uses PP-YOLO Tiny with improved ByteTrack onboard and achieves $95.2\%$ mAP at $42.5\,\mathrm{FPS}$ \cite{Zhang2024UAVDefense}, and Opromolla et al., who report more than $90\%$ correct detection with YOLOv2 and $0.04$--$0.08^\circ$ line-of-sight accuracy \cite{Opromolla2019AirborneLearning}. However, RGB sensing depends strongly on illumination and visibility, so it is not sufficiently robust as a standalone primary sensor for operation under varying light and weather conditions. It is therefore retained mainly for target confirmation, classification, and tracking in favorable visibility.
+
+LWIR thermal imaging is retained as a complementary passive sensor because it improves operation in low-light conditions and is used in dual-mode anti-UAS payloads such as UAV Hunter \cite{Zhang2024UAVDefense}. However, LWIR is not fully all-weather either, as fog, precipitation, cloud cover, and low thermal contrast can still reduce detection performance. Passive EO/IR sensing is therefore useful but insufficient as a standalone sensing architecture under the broadest operational conditions. It should be combined with external cueing, active sensing, or explicitly defined weather limitations. IRST is eliminated due to cost and integration complexity for a system constrained to $\leq$\,\euro\,5000.
+\vspace{-10pt}
+
+\paragraph{Active sensing:} Onboard 3D LiDAR is demonstrated by Pliska et al. for safe mid-air drone interception: a volumetric occupancy-map LiDAR combined with an Interacting Multiple Model state estimator robustly tracks agile targets and enables Fast Response Proportional Navigation \cite{Pliska2024TowardsCapture}; RemoveDebris uses a flash-imaging LiDAR fused with a colour camera for vision-based navigation \cite{Forshaw2020TheLaunch}. Onboard radar is used by Fortem DroneHunter \cite{Fortem} and discussed in \cite{Parry2023ReviewAircraft}; however, the literature review also notes that a dry latex/polyethylene balloon has an X/Ku-band RCS in the $10^{-3}$-$10^{-2}\,\mathrm{m}^2$ range and returns no micro-Doppler \cite{Fortem}. Onboard radar is therefore eliminated on the combination of cost and integration complexity. LiDAR is retained only as an optional terminal sensor because it may reduce contact uncertainty during the final approach, but its power demand, mass and cost make it less attractive as a primary search sensor. A Sensor added for completeness is Sonar, which is too heavy and not accurate enough and is therefore being pruned.
+
+% LiDAR is retained as a mid-range sensor           
+\vspace{-10pt}
+
+\paragraph{Cooperative signal from target:} A GNSS beacon is flight-proven on High-Altitude Balloons payloads with global coverage \cite{Clark2019AnPayloads}. However, the target is an uncooperative balloon by requirement, so all cooperative options are eliminated at the top level of this branch. They remain on the tree as a reminder that, if an operational concept evolves where the balloon does carry a beacon (for example recovery of own lost payloads), the branch becomes relevant. 
+
+
+\vspace{-10pt}
+
+\paragraph{Ground communication:} Opromolla et al. demonstrate that using hybrid cues cuts search area by approximately $75\%$ and reduces false alarms \cite{Opromolla2019AirborneLearning}; the NORAD/Fortem counter-UAS community uses an analogous flow with external tracking to onboard vision to terminal-tracking \cite{Fortem}. For the present mission a ground-based spotter or institutional radar at the test range (coarse cue) handing over to onboard sensing is the best match to the $\leq$\,\euro\, 500 per-deployment budget.
+
+\vspace{-15pt}
+\section{DOT 3: Balloon Interaction Strategy}
+\label{sec:dot_interaction}
+
+The balloon interaction strategy is the most complex and creative element, since no fielded UAS currently exists for gentle, non-pyrotechnic capture and recovery of a $2$-$6\,\mathrm{m}$ uncooperative balloon. This subsystem determines whether the mission ends in controlled recovery or whether the intervention creates additional hazards or debris. Therefore, interaction options are pruned not only for technical feasibility, but also for their ability to keep the balloon and payload controlled after contact, minimise disposable mission hardware and allow inspection, reset or reuse after deployment. The DOT is structured around three sequential decision nodes: (1) first contact and handling, (2) method to make the balloon descend, and (3) method to handle the descent, both vertically and laterally. Each node branches independently, allowing options to be combined across the three stages into complete mission concepts.
+\vspace{-10pt}
+%---------------------------------------------------------------
+\subsection{Node 1: First contact and handling}
+%---------------------------------------------------------------
+
+First contact options split into non-direct control and direct control.
+\vspace{-10pt}
+\subsubsection*{Non-direct control}
+
+Non-direct control encompasses tether/lasso approaches and net-based systems.
+\vspace{-10pt}
+
+\paragraph{Tether / Lasso}
+Three sub-options are identified:
+\vspace{-8pt}
+
+\begin{itemize}[leftmargin=*]
+
+    \item Line-snag / V-yoke: The Fulton STARS and Corona JC-130 capsule systems flew a V-yoke through a suspension line and locked it with a spring-loaded anchor \cite{Killianetal}. One adaptation could feasibly replace the fly-through with a hover-and-grasp solution. This branch is the highest-tolerance option because it targets the balloon's own load line rather than the envelope.
+
+    \item Cooperative tether closure: A secondary UAS closes and secures the tether line after the primary vehicle has engaged the balloon load line, distributing the restraint force across two platforms. This is retained as an additive sub-system pairable with the line-snag approach.
+
+
+
+\end{itemize}
+\vspace{-20pt}
+
+\paragraph{Net}
+Five net sub-options are identified:
+\vspace{-8pt}
+\begin{itemize}[leftmargin=*]
+
+    \item Cooperative Multi-UAV Net: A shared net between three or more cooperating multirotors, as demonstrated by \cite{Ritz2012CooperativeCatching}. This is the highest-lift option available inside the \euro\,5000 budget in which a $3\times3\,\mathrm{m}$ or larger capture aperture can be opened without ballistic deployment. Its advantage is that the net does not need to be ballistically launched and can remain attached to the vehicles, reducing unrecovered hardware risk. Cooperative suspended-load transport \cite{Sun2025MLoad} and cooperative two-UAV vision-based tracking \cite{Opromolla2019AirborneLearning} further support this approach.
+
+    \item Radial Bullet Open Net: A circular net is opened in flight by perimeter-mounted bullets. The mechanism is analysed by Shan, Guo and Gill for space-debris capture \cite{Shan2017DeploymentRemoval}, demonstrated in orbit by the RemoveDebris mission \cite{Forshaw2020TheLaunch, Aglietti2020TheOperations}, and implemented in UAS cases by UAV Hunter \cite{Zhang2024UAVDefense}, Chen et al.\ \cite{Chen2022AnTechnology}, Benvenuto et al.\ \cite{Benvenuto2015DynamicsRemoval} and Meng et al.\ \cite{XinMeng20182018China}. Pneumatic actuator variants (CO$_2$ or compressed air, as on DroneCatcher \cite{DroneCatcher} and Fortem DroneHunter \cite{Fortem}) and electromechanical or spring-with-cam-latched-trigger variants \cite{Chen2022AnTechnology, XinMeng20182018China} are retained; pyrotechnic deployment is eliminated because it violates the non-pyrotechnic requirement.
+
+    \item Snare-loop closure net: Active neck closure by motor-driven winches prevents reopening after capture, as seen in the RemoveDebris mission \cite{Forshaw2020TheLaunch, Aglietti2020TheOperations} and the Benvenuto closure pattern \cite{Benvenuto2015DynamicsRemoval}. This is retained as an additive closure sub-system rather than a standalone capture option.
+
+    \item Curtain-net drop: A curtain unrolled from a sling-box above the target \cite{Killianetal}. This is a feasible option but remains insufficiently mature.
+
+    \item Hanging-net sweep: Pliska et al.\ explicitly reject launched nets in favour of a hanging net that permits multiple attempts \cite{Pliska2024TowardsCapture}. This is retained as a low-risk fallback.
+
+\end{itemize}
+\vspace{-15pt}
+\subsubsection*{Direct control}
+
+Direct control encompasses mechanical grasping, adhesion, suction, and electromagnetic approaches.
+\vspace{-10pt}
+\paragraph{Mechanical grasping}
+Five sub-options are identified:
+\vspace{-8pt}
+
+\begin{itemize}[leftmargin=*]
+
+    \item Enveloping soft gripper: Four silicone fingers mounted in place of the landing gear, demonstrated on a quadrotor with $91.3\%$ successful grasps across 23 trials by Fishman et al.\ \cite{Fishman2021DynamicPractice}.
+
+    \item Rigid clamp: Mellinger et al.'s impactive gripper for quadrotor grasping \cite{Mellinger20112011Systems} is proven at UAV scale but is point-loading; retained with caution and only for tether engagement to avoid damaging the payload or balloon.
+
+    \item Talon/Pincer claw: The bistable claw design of Zhang et al.\ provides a $<\!\SI{100}{\gram}$ electric talon that closes on contact with the tether \cite{Zhao2025DesignDrones}. Due to this having a considerable risk of deflating the balloon in an uncontrolled manner, this is pruned.
+
+    \item Articulated robotic arm: The full robotic arm architecture reviewed in \cite{Ruggiero2018AerialReview} is representative; however, it most likely exceeds the budget limit. Due to increased cost and complexity this is pruned.
+
+    \item Cooperative clamping: Two or more UAS approach the balloon or payload from opposing sides and apply coordinated inward clamping forces, distributing contact load across multiple platforms. While reducing single platform requirements, the chance of bladestrike and deflation is high, pruning this option.
+
+\end{itemize}
+\vspace{-15pt}
+\paragraph{Adhesion}
+
+Two sub-options are identified:
+\vspace{-10pt}
+
+\begin{itemize}[leftmargin=*]
+
+    \item Gecko-pad array: The JPL/Stanford gecko-inspired gripper grasps large flat and curved uncooperative objects in microgravity \cite{Jiang2017AMicrogravity}. Its effectiveness on balloon materials must be verified.
+
+    \item Regular adhesive: Conventional pressure-sensitive adhesive pads applied to the contact surface of the UAS. Retained subject to compatibility testing with balloon envelope materials.
+
+\end{itemize}
+\vspace{-10pt}
+\paragraph{Suction}
+Two sub-options are identified:
+\vspace{-10pt}
+
+\begin{itemize}[leftmargin=*]
+
+    \item Active pneumatic: A powered suction cup generating continuous negative pressure to maintain contact with the balloon envelope.
+
+    \item Passive suction cup: A passive elastomer cup relying on contact geometry for initial adhesion, requiring no continuous power but susceptible to loss of seal under relative motion. The strength is not consistent enough to pass the risk assessment, therefore being pruned
+
+\end{itemize}
+\vspace{-15pt}
+\paragraph{Electromagnetic}
+Two sub-options are identified. A regular magnet and an electromagnet are both considered, but both are conditional on the presence of ferromagnetic material in the balloon or payload structure. As this cannot be guaranteed, this is pruned.
+\vspace{-10pt}
+%---------------------------------------------------------------
+\subsection{Node 2: Method to make the balloon descend}
+%---------------------------------------------------------------
+
+Once contact is established, the method of inducing descent splits into three independent families: addition of weight, decrease in buoyancy, and uncontrolled deflation.
+\vspace{-8pt}
+\subsubsection*{Addition of weight}
+
+\begin{itemize}[leftmargin=*]
+
+    \item External ballast: Two sub-options are distinguished. A solid ballast mass is attached to the balloon or flight train. A liquid/slushy ballast is preferred where gradual or controllable weight addition is desired. This is pruned due to the risk of uncontrolled descent and the difficulty of transporting sufficient payload.
+
+    \item Integrated thrust: The UAS applies sustained downward thrust directly. Two sub-options are identified: bi-directional propeller configurations that can generate both lift and downward thrust, and a configuration where the UAS has sufficient control authority to use the drone as ballast by throttling rotors below hover equilibrium.
+
+    \item Ground-connected tether: A long tether line runs from the UAS down to a ground anchor or ground vehicle, converting the UAS into a powered winch-point rather than a free-flying carrier. This limits operational altitude to the tether length but eliminates the endurance constraint for sustained hold-down after capture.
+
+    \item Payload grabber:
+    Rather than acting on the envelope, a gripper engages the payload crate or tether attachment point at the bottom of the flight train and applies a sustained downward force sufficient to initiate a controlled descent without any envelope interaction. This is particularly relevant for the hybrid/smuggling target, where the rigid cargo crate provides a well-defined grasp point.
+
+\end{itemize}
+\vspace{-18pt}
+\subsubsection*{Decrease in buoyancy}
+
+Buoyancy reduction splits into two paths: decrease of delta-rho (gas density differential) and decrease in volume through deflation.
+\vspace{-10pt}
+\paragraph{Controlled deflation}
+
+Controlled deflation is the branch with the largest literature gap and, therefore, the largest novelty opportunity. Four options are retained:
+
+\begin{itemize}[leftmargin=*]
+
+    \item Engage existing vent: Some long-duration balloons expose a venting architecture \cite{Voss2005AltitudeBalloons}. Due to the uncertainty in position and even existance of a vent line, this is pruned.
+
+    \item Needle/strike contact: A drone-mounted hollow needle is inserted through the envelope wall, either as a direct puncture or to seat a one-way valve that allows gas to escape at a controlled rate without requiring the needle to remain in place (insert valve variant). Due to the difficulty of puncturing with precision and not rupturing the balloon, this is pruned.
+
+    \item Insert valve: As above; a one-way valve is seated in the needle aperture, giving a self-regulating, controlled leak without sustained UAS contact.
+
+    \item Active venting module: A motorised vent patch is adhesively bonded to the envelope by the UAS. Once bonded, a servo-actuated flap opens the vent to a pre-set aperture and can be throttled or closed remotely, giving continuous descent-rate authority after the UAS has disengaged.
+
+\end{itemize}
+\vspace{-15pt}
+\paragraph{Uncontrolled deflation}
+
+These options are retained for completeness but are pruned out for debris and safety reasons:
+\vspace{-8pt}
+\begin{itemize}[leftmargin=*]
+
+    \item Concentrated energy weapon: Directed energy to rupture the envelope; introduces uncontrolled burst and debris.
+
+    \item Projectile weapon: Ballistic puncture \cite{Fortem}; violates the non-pyrotechnic and debris constraints.
+
+    \item Propeller puncture: Demonstrated in counter-balloon operations \cite{Fortem} and amateur work. Violates debris constraints, carrying the risk of the balloon falling uncontrollably after a point puncture.
+
+
+    \item Adhesive rip-patch with burn-wire initiator: An adhesive patch, drone-applied to the envelope, containing a burn-wire embedded along a pre-defined tear line. A short high-current pulse through the wire thermally perforates the balloon along this line; the drone then retreats and the resulting tension propagates the tear into a large vent while the patch remains attached to the drone. This transfers the rip-panel concept \cite{Yajima2009ScientificApplications} to drone scale, where the burn wire acts as a trigger exactly as a rip-line actuator does on a full-scale scientific balloon. Feasibility is supported by the NRL burn-wire actuator \cite{NRL2019}, flight-proven for CubeSats with more than 400 firings and zero failures, and the open-source HAB cutdown toolkit \cite{Clark2019AnPayloads}.
+
+\end{itemize}
+\vspace{-15pt}
+%---------------------------------------------------------------
+\subsection{Node 3: Method to handle the descent}
+%---------------------------------------------------------------
+
+Once descent is initiated, the third node governs how the falling system is managed. Options are split into increased drag and increase lift. Since this is highly platform dependent, and no unfeasible options are present, no pruning occurs.
+\vspace{-10pt}
+\subsubsection*{Increase drag}
+
+\begin{itemize}[leftmargin=*]
+
+    \item Active drag — controlled orientation: The UAS or a dedicated actuator continuously orients the balloon and payload to change drag area during descent.
+
+    \item Passive drag — two sub-options:
+    \begin{itemize}
+        \item Parachute systems: A cable-plus-drag-parachute (DrogueNet philosophy \cite{Fortem}) handles a captured balloon exceeding the tow budget.
+        \item Drag surfaces: Fixed or deployable surfaces that set a terminal descent rate without active control, including variable-drag devices.
+    \end{itemize}
+
+\end{itemize}
+\vspace{-20pt}
+
+\subsubsection*{Increase lift}
+
+\begin{itemize}[leftmargin=*]
+
+    \item Aerodynamic lift: Two sub-options are identified:
+    \begin{itemize}
+        \item Increase rotor thrust: The UAS or a cooperative multirotor team \cite{Sun2025MLoad} provides sustained upward thrust to arrest or slow the descent, preferring a UAS-towed return to base \cite{DroneCatcher, Fortem} for lighter captures.
+        \item Lifting surfaces: Fixed wings or gliding surfaces (GPS-guided parafoil \cite{Slegers2005ModelSystem, Ward2014ParafoilShift}; low-altitude parachute-assisted airdrop \cite{ParaZero}) generate aerodynamic lift to regulate descent rate.
+    \end{itemize}
+
+    \item Buoyant lift: Two sub-options are identified:
+    \begin{itemize}
+        \item Gas envelope: A secondary buoyant envelope attached to the flight train provides passive lift to slow descent.
+        \item Variable buoyancy system: An actively controlled buoyancy device modulates lift throughout the descent to achieve a target descent rate.
+    \end{itemize}
+
+\end{itemize}
+
+
+\vspace{-20pt}
+\section{Concepts Carried Forward to the Midterm Trade-off}
+\label{sec:concepts_carried_forward}
+
+%The Design Option Trees are used as a screening and concept-generation tool rather than as three independent final trade-offs. First, infeasible options are removed from each DOT using mandatory constraints such as electric-only operation, non-pyrotechnic interaction, debris prevention, controlled recovery, cost feasibility and acceptable implementation complexity. This prevents clearly unsuitable options from entering the formal Midterm trade-off.
+
+After the screening step, the retained and conditionally retained options are combined into a limited number of integrated system concepts. A full permutation of all retained DOT options is not used, because this would create a very large number of combinations, many of which would be physically incompatible or operationally unrealistic. Instead, only combinations that form a complete and internally consistent mission architecture are carried forward. Each concept must include an aerial platform, a detection and tracking architecture, a balloon interaction method and a recovery or descent-management approach.
+
+The Midterm trade-off will therefore compare complete concepts rather than isolated technologies. This ensures that the selected concept is judged on system-level performance. The concepts carried forward are summarised in \autoref{tab:concepts_forward}.
+\vspace{-5pt}
+\begin{longtable}{p{0.10\textwidth} p{0.23\textwidth} p{0.25\textwidth} p{0.32\textwidth}}
+% --- Caption only at the beginning ---
+\caption{Integrated concepts carried forward to the Midterm trade-off.} \label{tab:concepts_forward} \\
+\toprule
+\textbf{Concept} & \textbf{Platform} & \textbf{Detection and tracking} & \textbf{Interaction and recovery strategy} \\
+\midrule
+\endfirsthead
+
+% --- Header for subsequent pages (no caption) ---
+\toprule
+\textbf{Concept} & \textbf{Platform} & \textbf{Detection and tracking} & \textbf{Interaction and recovery strategy} \\
+\midrule
+\endhead
+
+% --- Footer for the last page ---
+\bottomrule
+\endlastfoot
+
+% --- Table Content ---
+C1 & Single multirotor & External cueing with onboard RGB/LWIR terminal tracking & Curtain net drop followed by UAS-assisted controlled descent. \\ \addlinespace
+C2 & Cooperative multirotor team & External cueing with onboard visual tracking shared between vehicles & Cooperative net capture followed by shared-load descent \\ \addlinespace
+C3 & Hybrid VTOL concept & External cueing with onboard target confirmation sensor &  Payload grasping using two wide aluminum arms, descent based on the increased weight of the envelope. \\ \addlinespace
+C4 & Cooperative multirotor team & External cueing with onboard target confirmation sensor &  Cooperative net capture and enclusure of the balloon envelope, followed by guided recovery using a parafoil after controlled deflation of the balloon. \\ \addlinespace
+C5 & Hybrid VTOL concept & External cueing with onboard target confirmation sensor &   Grabbing using a hook on the tethers, descent based on balloon envelope dragging towards the recovery area. \\
+
+\end{longtable}
+\vspace{-10pt}
+Concepts based on combustion propulsion, pyrotechnic deployment, propeller puncture, projectile puncture, uncontrolled rupture, purely cooperative target beacons, onboard radar-only detection, lighter-than-air platforms, and flapping-wing platforms are not carried forward. These options either violate mandatory requirements or introduce excessive safety, cost, maturity or integration risk.
+
+The trade-off will be performed at the integrated-concept level. Sensitivity analysis will then be used to check whether the preferred concept remains robust when the weighting of the main criteria is varied.

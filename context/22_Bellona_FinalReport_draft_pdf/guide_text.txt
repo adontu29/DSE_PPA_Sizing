@@ -1,0 +1,1780 @@
+﻿
+
+
+
+Project Guide Design Synthesis Exercise
+
+Autonomous Aerial System for Safe Balloon Recovery
+Design a small unmanned aerial system (UAS) capable of locating, intercepting, and safely disabling or recovering a free-floating balloon in a controlled manner.Design a small unmanned aerial system (UAS) capable of locating, intercepting, and safely disabling or recovering a free-floating balloon in a controlled manner.
+Design a small unmanned aerial system (UAS) capable of locating, intercepting, and safely disabling or recovering a free-floating balloon in a controlled manner.
+
+
+Design a small unmanned aerial system (UAS) capable of locating, intercepting, and safely disabling or recovering a free-floating balloon in a controlled manner.
+
+
+
+
+High-altitude balloons are widely used for meteorology, environmental sensing, and commercial experiments. Occasionally, such balloons drift into restricted or populated airspace, creating a need for safe, controlled recovery without damage to people, infrastructure, or the environment.
+
+
+
+This document has been made for a normal execution of Design Synthesis Exercise. 
+
+
+
+Distribution List
+
+Primary Tutor
+Theodoros Michelis
+t.michelis@tudelft.nl
+Backup Tutor
+Lourenco Tercio Lima Pereira
+L.T.LimaPereira@tudelft.nl
+Coaches
+João Pechirra de Carvalho Borrego
+J.H.Borrego@tudelft.nl
+
+Jaap Jorritsma
+J.Jorritsma@tudelft.nl
+
+
+
+The awesome Team
+DarisBerzinš
+D.K.Berzins@student.tudelft.nl
+
+Piotr Blanchard
+P.J.S.Blanchard@student.tudelft.nl
+
+Alex Dontu
+A.Dontu@student.tudelft.nl
+
+Marc Küster
+M.A.Kuster@student.tudelft.nl
+
+AlexandruMinculescu
+A.T.Minculescu@student.tudelft.nl
+
+Andrei Potfalean
+A.Potfalean-1@student.tudelft.nl
+
+Frederic Rahlfs
+F.M.Rahlfs@student.tudelft.nl
+
+Andrei Tabara
+A.C.Tabara@student.tudelft.nl
+
+Jan Wanatowicz
+J.A.Wanatowicz@student.tudelft.nl
+
+Giovanni Zattoni
+G.Zattoni@student.tudelft.nl
+
+CHANGE RECORD
+
+issue
+date
+pages affected
+brief description of change
+1
+
+all
+New document
+2
+April 10, 2017
+
+Appendix A - DIDs added
+3
+April 12, 2018
+
+PM/SE Ch. 4 added + Update all DIDs (App A)
+4
+April 6, 2020
+all
+Updated with comments TAs 2019
+5
+April 15, 2024
+
+Updated with removed covid notification
+6
+January 13., 2025
+
+Updated several hard dates to weeks in DSE
+7
+January 5, 2026
+
+Updated mainly Section 2.5 and Chapter 4 on optional PMSE elements as a trial
+
+
+
+
+
+
+TABLE OF CONTENTS
+1.The Design Synthesis Excercise6
+1.1The scope and objectives6
+2.The Assignment7
+2.1Context7
+2.2Project Objective and Top-Level Requirements7
+2.3Main Topics7
+2.4Project outline7
+2.5The Deliverable Items8
+2.6References in deliverable reports10
+2.7Meetings and Reviews10
+2.7.1Status Meetings10
+2.7.2Milestone Reviews10
+2.7.3OS Symposium Day11
+3.Organisation12
+3.1Global planning12
+3.2Coaching and assistance12
+3.3Project Facilities12
+3.4Brightspace13
+3.5Absence Regulation13
+3.6Self and Project Peer Evaluations14
+3.7Project Evaluation14
+3.8Grading14
+3.9Symposium Day Jury16
+4.Project Management / Systems Engineering18
+5.Getting Organized20
+5.1The first step: organize yourself as a team20
+5.2The second step: organize your project20
+6.Document List21
+7.Abbreviations24
+
+
+Appendix A: Planning & Formats of Deliverable Item Descriptions (DIDs)
+Appendix B: Contents of DIDs
+Appendix C: Glossary of DSE terms
+Appendix D: Format of Reference List
+
+
+
+
+
+The Design Synthesis Excercise
+The scope and objectives
+The Design Synthesis Exercise (AE3-200) is scheduled in the 2nd part of the 2nd semester of the academic year (with a “resit” in the 2nd part of the first semester) and constitutes the concluding part of the Bachelor’s study program (BSc). The objectives of the Design Synthesis Exercise are for the students to enhance their skills in:
+Designing
+Applying knowledge
+Communicating (discussion, presentation, report)
+Working as a team
+Sustainable development
+
+Because this design exercise is part of the undergraduate program it is not the aim to attain a flawless final result, able to compete with contemporary standards in industrial practice. Although the student, together with the tutors, will have the natural drive to create "the best design", it is expected that design choices will be made which will not lead to the optimal result. These choices can only be partially iterated within the limited timeframe of the exercise. Such an iterative process is an invaluable element in obtaining design experience.
+
+The technical result will therefore be just one of the aspects that will be considered in the grading. Performing the design process as a team is an essential part of the exercise, because it reflects most industrial design approaches. It puts the students in the position that enables them to fully devote their personal skill as part of a greater organisation. 
+
+For the grading the way in which the design process is developed and executed is therefore as important as the technical result itself:
+is the project executed as an integrated project rather than a set of independent activities?
+does the group work as a team rather than a number of individuals?
+
+During the exercise the students will come across fields of knowledge and supervisors from various chairs within the faculty. The exercise offers students the opportunity to orient themselves on the different main subjects and gain insight into his or her specific capabilities and fields of interest. Thus the exercise provides additional support to choosing the M.Sc program.
+
+
+
+DISCLAIMER
+
+Any outcome of the DSE can only be used in another form than the deliverables required for the DSE, by explicit, prior and written permission of the tutor of the project.
+
+The Assignment
+Context
+High-altitude balloons are widely used for meteorology, environmental sensing, and commercial experiments. Occasionally, such balloons drift into restricted or populated airspace (e.g. near airports), creating a need for safe, controlled recovery without damage to people, infrastructure, operations, or the environment.
+
+The goal is to develop a drone-based solution that can detect, track, and interact with an uncooperative balloon in a controlled and non-destructive manner. The emphasis is on gentle intervention techniques—such as guided descent or gradual deflation—rather than forceful or hazardous approaches. Safety, reliability, and sustainability are central design drivers throughout the project.
+
+
+
+
+
+Project Objective and Top-Level Requirements
+OBJECTIVE:
+Design and prototype a small unmanned aerial system (UAS) capable of locating, intercepting, and safely disabling or recovering a free-floating balloon in a controlled manner.
+
+
+REQUIREMENTS:
+Performance
+The balloon is uncooperative (no onboard control, unknown drift)
+The system shall be capable of detecting and tracking a free-floating balloon with a diameter of 2–6 m at altitudes up to 300 m AGL.
+The UAS shall be able to intercept the balloon within 10 minutes of visual or sensor acquisition under nominal wind conditions (≤ 8 m/s).
+Safety and reliability
+Assume operation in civilian airspace with strict safety requirements.
+All interaction mechanisms shall be non-explosive, non-pyrotechnic, non-destructive and pose no cutting hazard to people on the ground. The solution must avoid falling debris larger than 50g or uncontrolled descent.
+The system shall include redundant positioning and attitude estimation (e.g., GNSS + visual or inertial backup).
+The system shall tolerate single-point failures in sensors or actuators without catastrophic outcomes.
+Pre-flight risk assessment and checklists are mandatory.
+Sustainability
+The system shall be designed to minimise material waste, favouring reusable or recyclable components.
+Energy storage shall be electric only (no combustion engines).
+The balloon recovery method shall aim to prevent dispersion of debris or cargo and allow retrieval and proper disposal where feasible.
+Noise levels during operation should be kept below 65 dB at 50 m.
+Life-cycle considerations (manufacturing, operation, disposal) must be discussed in the final report.
+Cost
+The total cost of the unmanned aerial system, including airframe, propulsion, onboard computer, sensors, communication hardware, and interaction mechanisms, shall not exceed €5,000. This cost represents a one-time acquisition cost and excludes ground control equipment.
+Design choices should favour modularity and reusability to minimize replacement costs following routine operation or minor failures.
+The estimated cost per deployment shall not exceed €500. Per-deployment cost may include energy consumption (battery charging or replacement), consumable components (e.g., tethers, puncture elements, recovery bags), routine wear and maintenance attributable to a single mission.
+Designs that rely on single-use or disposable components must explicitly justify their necessity and cost impact.
+Validation Requirements
+At least two failure scenarios must be demonstrated or analysed (e.g. lost target, partial mechanism failure).
+
+
+Main Topics
+The study shall cover as a minimum the following aspects. The relative importance in the table is only indicative.
+
+Nr
+Discipline
+Relative importance %
+1
+  Aerospace materials
+10
+2
+  Manufacturing
+10
+3
+  Structures
+10
+4
+  Aerodynamics
+10
+5
+  Stability and Control
+10
+6
+  Design integration and system Engineering
+10
+7
+  Performance
+10
+8
+  Propulsion
+10
+9
+  Operations
+10
+10
+  Wind energy
+0
+11
+  Astrodynamics
+0
+12
+  Remote sensing and Planetary Science
+5
+13
+  Sustainable engineering
+5
+14
+  Other
+0
+
+Project outline
+The first action to be taken by the students is that the group should organise itself. Responsibilities should become clear within the group and the required disciplines in the project should be assessed and a project plan should be written.
+
+Next, the team should start with short literature surveys to get acquainted with the most important elements of the project. These include aircraft design, aerodynamic control, propeller propulsion, composite materials, and structures, and rotor acoustics as well as recent news on similar incidents. In addition, the team should investigate current similar solutions if they find any and to identify the full characteristics of such balloons (total weight, payload, size, speed, gas etc). The findings and conclusions of this phase are reported in the baseline review.
+
+The team will be required to take a series of interdependent system-level design decisions. First, the choice of aerial platform and propulsion concept (e.g. multirotor, hybrid VTOL, fixed wing with recovery mechanism) will significantly influence performance, endurance, controllability near the target, and operational cost. Second, the team must define the sensing and tracking approach (e.g. vision-based, GNSS-assisted, radar-assisted), which directly affects robustness, autonomy level, and system complexity. Third, a decision must be made regarding the interaction strategy with the balloon, such as tethered recovery, controlled deflation, or guided descent, each with distinct implications for safety, reliability, per-deployment cost, and environmental impact.
+
+These choices are strongly coupled and involve trade-offs across multiple engineering domains. The team is expected to develop and evaluate several alternative system concepts (approximately four) that reflect different combinations of these design decisions. Each concept should be analysed in sufficient technical detail to enable a fair comparison in terms of feasibility, safety, cost (both UAS acquisition and per-deployment), and compliance with the project requirements.
+
+In the last phase of the project, the selected concept will be designed in full detail. All subsystem risks will be investigated, contingencies considered, and a final report will contain the details of the design according to the delivery table above. The team will present the final design during the final review.
+
+The Deliverable Items
+The project shall realise the following deliverable items:
+
+Project Plan which shall include items like an Organisational Breakdown Structure (organogram), a Work Breakdown Structure (WBS), a schedule for the OS design project with project phasing and the planning for the delivery of the items presented in a bar chart, a project logic diagram (activity flow), and an approach with respect to sustainable development.
+
+Baseline Report, which shall include a requirements specification, with items like a requirements discovery tree, functional flow diagrams and a functional breakdown of the system. 
+
+Mid-Term Technical Design Report has to include design concepts, candidate techniques, critical aspects (design options tree), the trade method, rationale and organisation, including criteria and weight factors, the design justifications, a resource allocation (budget and performance predictions), a conceptual configuration definition and a technical risk assessment/ risk map.
+
+Final Technical Design Report has to include all topics mentioned for the Final Technical Design, a summary of most important findings of the Mid-Term Report, and an Executive Summary in English.
+
+Poster
+Project Summary
+Logbook+Personal Appendices
+
+Presentations 
+Baseline Review
+Mid-Term Review
+Final Review
+OS Symposium
+
+
+
+The table below lists the products to be contained in the Project Plan and the three Reports. Appendix B specifies detailed document requirements [DID-XX] for each, as well as an overview of the enforced deadlines (Appendix A).
+
+The definitions of the deliverables as listed in the table below are explained in detail in Appendix C.
+
+
+No
+Product
+Project Plan
+Baseline Report
+Mid-term Report
+Final Report
+1
+DSE work-flow diagrams
+●
+
+●
+
+2
+DSE work break-down structure
+●
+
+●
+
+3
+DSE Gantt chart
+●
+
+●
+
+4
+DSE team organization/organogram & HR allocation
+●
+
+●
+
+5
+Functional flow diagram(s)
+
+●
+
+●
+6
+Functional breakdown
+
+●
+
+●
+7
+Requirements discovery tree
+
+●
+
+
+8
+Resource allocation/ Budget breakdown
+
+●
+
+●
+9
+Technical risk assessment/risk map
+
+●
+●
+●
+10
+Design option structuring (tree)
+
+●
+●
+
+11
+Contingency Management
+
+●
+
+
+12
+Market analysis
+
+●
+
+●
+13
+Interface definition/N2 charts
+
+
+●
+
+14
+Trade method, rationale and organization
+
+
+●
+
+15
+Trade criteria
+
+
+●
+
+16
+Criteria weight factors
+
+
+●
+
+17
+Trade summary table
+
+
+●
+
+18
+Operations and logistic concept description
+
+
+●
+●
+19
+Project design & development logic
+
+
+
+●
+20
+Project Gantt chart
+
+
+
+●
+21
+Cost break-down structure
+
+
+
+●
+22
+H/W, S/W block diagrams (interactions, flows)
+
+
+
+●
+23
+Electrical block diagram
+
+
+
+●
+24
+Data handling block diagram
+
+
+
+●
+25
+Sustainable development strategy
+
+●
+●
+●
+26
+Compliance Matrix (table with tick marks for all requirements that are met)
+
+
+
+●
+27
+Sensitivity Analysis
+
+
+●
+●
+28
+Verification and Validation procedures
+
+
+●
+●
+29
+Communication flow diagram
+
+
+
+●
+
+30
+Manufacturing, Assembly, Integration plan (production plan)
+
+
+
+●
+31
+Return on investment, operational profit
+
+●
+●
+●
+32
+Reliability, Availability, Maintainability, and Safety (RAMS) characteristics
+
+
+●
+●
+33
+Performance analysis (e.g. flight profile diagrams, payload-range diagrams, climb performance, noise characteristics, emissions, etc.)
+
+
+●
+●
+34
+Configuration / layout (internal /external)
+
+
+●
+●
+35
+Spacecraft system characteristics (e.g. communications link budget, memory size, etc.)
+
+
+
+
+36
+Aircraft system characteristics (e.g. fuel and hydraulic system lay-out, auxiliary power estimate, environmental control, etc.)
+
+
+●
+●
+37
+Aerodynamic characteristics estimate (e.g. lift, drag, aerodynamic moments, drag polar, etc.)
+
+
+●
+●
+38
+Structural characteristics (e.g. loading diagrams, stresses, bending, flutter, etc.)
+
+
+●
+●
+39
+Stability and control characteristics (e.g. control forces, c.g. limits, etc.)
+
+
+●
+●
+40
+Material characteristics (e.g. yield, ultimate, fatigue, etc.)
+
+
+●
+●
+41
+Astrodynamic characteristics (e.g. orbit, trajectory, decay rate, ΔV-budget)
+
+
+
+
+References in deliverable reports
+Used references during the DSE and in the deliverable reports should have a sufficient level and quality. The use of Wikipedia should be limited, and if information is used from internet it would be wise to verify this information (if possible, of course). A list of references is an essential part of each (technical) report, and the rules in Appendix D have to be followed. Pay special attention to the inclusion of websites. Typical examples are product and/or project specifications, or general Wikipedia references (to be avoided!). Include these as footnote in the text (not in the reference list), e.g., URL http://www.nasa.gov/centers/ames/research/msl_heatshield.html [cited 13 April 1998].
+
+In general: no URLs should be included in the reference list; websites in footnotes, and date of last access should be mentioned.
+Meetings and Reviews
+Status Meetings
+At least once a week the team has to convene a status meeting with their principal tutor and project coaches. These meetings should have minutes and actions should be tracked.
+Milestone Reviews
+Three formal reviews and a final presentation are scheduled on a fixed date. In the DSE schedule the actual dates can be found. These reviews have to be considered as milestones for the design and development process of the project.
+
+
+Baseline Review (BR), in week 3Typically 2-3 students present the work
+
+Mid-Term Review (MTR), in week 6ALL students present a relevant part of the project
+
+Final Review (FR), in the last week (often week 10)ALL students present a relevant part of the project
+
+Use the official TU-Delft template for all presentations. No presentation tools like Prezzi are allowed, and the presentation should not be a multi-media spectacle.
+
+Every team member will have to present a formal briefing some time during the project. Recommendations and requirements for Formal Briefing Materials are available on Brightspace.
+
+OS Symposium Day
+The OS Symposium Day will conclude the Design Synthesis Exercise, where the team will give a final presentation. The presentations shall match the level of fellow students.
+The Symposium Day will be held in the last week, most often on Thursday, incidentally on the Friday, showing the design process and the results. A rehearsal is possible earlier that week. In the DSE schedule the actual dates can be found.
+Organisation
+Global planning
+The up-to-date schedule of the Design Synthesis Exercise is available on the Brightspace site.
+
+Coaching and assistance
+The OSCC (DSE Organising Committee) is responsible for the DSE in its entirety. They are supported by Teaching Assistants who will be present in the Fellowship during working hours, who can answer any questions about the organisational aspects of the DSE.
+
+A certain amount of supervision, guidance and assistance is offered during the exercise, though the group has to to operate independently as much as possible, thereby introducing their own ideas and program. The assistance is thus limited to:
+polishing up the team's ideas and project plan in concert with the project team
+giving (motivating and activating) feedback at project meetings, reviews, reports on progress, content, procedure/approach, organisation, communication, and cooperation
+
+
+Name
+e-mail
+Expertise
+Function
+Theo Michelis
+t.michelis@tudelft.nl
+Aerodynamics
+Tutor
+Lourenco Tercio Lima Pereira
+L.T.LimaPereira@tudelft.nl
+Aeroacoustics
+Tutor
+João Pechirra de Carvalho Borrego
+J.H.Borrego@tudelft.nl
+
+Coach
+Jaap Jorritsma
+J.Jorritsma@tudelft.nl
+
+Coach
+
+(Optional) Experts which might be consulted but have neither been allocated to our project nor have they been checked about availability/willingness:
+
+Name
+expertise
+(Internal/External)
+Kunal Masania
+Aerospace Materials
+Internal
+Tomas Sinnige
+Propeller propulsion
+Internal
+Constantinos Goulas
+Materials, metallurgy, manufacturing
+External
+
+Project Facilities
+The project location is a TBD project table in the education building The Fellowship, for the complete duration of the exercise. Strict rules apply to the housekeeping and will be enforced. The project tables have only few PCs, connected to the Local Area Network (LAN), so the students are advised to bring their own laptops. Each floor has a LAN printer available for printing documents. The team receives a printing budget of € 62.50. The Teaching Assistants will provide the printing account in the first week of the DSE. Any additional cost has to be paid by the students themselves. 
+
+The OSCC will arrange room and beamer for the Midterm and Final Review, but the students will have to arrange a laptop by themselves.
+
+On the OS Symposium day the presentation are organised with the use of a beamer.
+
+Meeting room 2 in the Fellowship is reserved by DSE and can be booked through the Teaching Assistants. Other meeting rooms can be booked through the service desk of the Fellowship and Faculty. 
+
+The teaching assistants will provide the office consumables, tools and small materials.
+
+Brightspace
+“Brightspace” will be used for the distribution of all announcements, schedule updates, agreements, documentation and information about the projects, the reviews and the short courses. 
+Brightspace is available via https://brightspace.tudelft.nl, courseAE3200 Design Synthesis (2025-2026 Q4). Note that the link will only bring you to the right page once you are logged on to Brightspace with your NetID.
+
+Absence Regulation
+The following rules regarding absence hold:
+
+The group works for 8 hours a day, excluding breaks. In consultation with the Teaching Assistants, the group can agree on working hours and breaks. It is not allowed to start later than 9:00 or to end the day earlier than 17:30. 
+Students are allowed to miss a maximum of 2 days for the entirety of the exercise. This is for unforeseen as well as foreseen circumstances.
+Any missing time (either by being late or leaving at any time, irrespective its duration) during DSE will result in being registered as a missed day. Absence, late arrival and/or early departure are recorded. 
+Absence during obligatory key events of the DSE (e.g. Baseline, Mid-term and Final Review, DSE symposium, grading, etc.) is not allowed under any condition. 
+
+As soon as a student has been absent on more than two dates, no matter its cause or duration, he or she will be expelled from the exercise for the running period. Experience has shown that students spend all their time towards the design project and have insufficient time left to make a serious preparation for an exam. Still, if a student wants to take an exam, the following conditions apply:
+
+The DSE project planning does not accommodate exams.
+The DSE absence regulations and project demands prevail: absence to prepare or take an exam has to be compliant with these regulations.
+
+Every absence has to be reported to the principal tutor and the Teaching Assistants. Every foreseen leave of absence has to be discussed with the principal tutor during the first week of the exercise. If for health reasons unexpected absence occurs, please consult with Joris Melkert. 
+
+Only after successful completion a total of 15 credits will be awarded.
+
+Self and Project Peer Evaluations
+During the project, two self-evaluations and two peer reviews have to be held, i.e. they are compulsory. The teaching assistants will draw your attention to these evaluations, and provide the students with the log-on keys to a protected area on the faculty’s website. For the tutors and the team the results of a peer review are important input for getting a good understanding of the attitude, performance and functioning of the individual members. The students themselves get insight in the rankings they got from fellow team members and can compare this ranking with the self-evaluation.
+Project Evaluation
+The OSCC is responsible for the evaluation of the design projects. Our project will be evaluated by means of a survey that will be enabled on Brightspace for the students by the end of the project. 
+Grading
+Grading a project group is a difficult matter but should be practical at the same time. Recognition must be given for both the achievement of the group as a whole as well as the individual contribution to the group result. The faculty’s Board of Examination requires grading each student individually. The grade should be a good reflection of how the student evolved during the design project. Hence the input to grading has to be collected at several moments. Suitable grading moments include amongst others the reviews and after reading the final report. The final grade for a student will be determined in a meeting between the principal tutor and the project coaches after reading the final report. An OSCC member facilitates this meeting to ensure uniform application of standards across all groups.
+
+The principal tutor will set a date for a group/student meeting, to communicate the achievement in individual feedback sessions to the students (together with the project coaches), and transmit the grades to the OSCC.
+
+The System Engineering aspects of the DSE are checked by external experts. To assist in this, each group has to co-evaluate the deliverables on PM/SE aspects of two other groups. The feedback provided by the groups will also be taken into account in the overall grading. The results are communicated with the group, tutor and coaches.
+
+There are two official grading moments, i.e., one shortly after the midterm review and one shortly after the final review. For each of these gradings both a group grade and an individual grade will be established. The final individual grade is a weighted average of those four grades, as indicated in the figure below.
+
+
+
+The following aspects are part of the grading:
+
+Design (mid-term grade)
+Originality of the solution
+Trade-off & Motivation including sensitivity analysis
+All other work done until mid-term
+Design (final grade)
+The quality of each sub design
+Interface management
+Sensitivity Analysis
+Cost Analysis
+Design (mid-term + final grade)
+Sustainability
+Risk
+Budget management
+Verification & Validation
+Use of resources
+Integrated use of systems engineering
+Communication (mid-term + final grade)
+ Professional attitude during reviews
+ Contents, structure and coherence of the presentations
+ Weekly meetings
+ Dealing with feedback from meetings, reviews and reports
+ Terminology (including acronyms) and symbols
+ Summary, conclusions & recommendations in reports
+
+Individual (mid term + final grade)
+Content & scientific + engineering approach
+Theoretical knowledge
+Understanding of the subject matter
+Interpretation of the results + critical attitude
+Report
+Reporting technique
+References and reproducibility
+Presentation & defense
+Presentation
+Ability to answer staff questions
+Initiative & Attitude
+Attitude
+Initiative
+Management of resources 
+Integrated use of systems engineering
+Project management
+
+Both group and individual component have to be 6.0 or higher in order to get a sufficient grade, if not => FAIL. Mark for the DSE will be rounded to nearest 0.5 points.
+
+Note that the peer and self evaluation will be done as well and will be used for giving you feedback. However, this is not used as part of the grading.
+Symposium Day Jury
+To conclude the Design Synthesis Exercise, the OSCC organises the OS Symposium Day where a final presentation will be given by each team. The OSCC has the overall responsibility of the organisation of this symposium. An independent external professional jury will evaluate the presentations for the OS Jury Award with respect to:
+Presentation(20 %)
+Design content(35 %)
+Technical content (35 %)
+Sustainability(10%)
+The presentations shall match the level of fellow students.
+
+Use the official TU-Delft template for the presentation. No tools like Prezzi are allowed, and the presentation should not be a multi-media spectacle.
+Project Management / Systems Engineering
+To guarantee success and efficiency in a complex aerospace design project, project management and system engineering is essential. The DSE is the only project where you can apply theory, as you have been taught in AE3211-I - Systems Engineering & Aerospace Design, and develop the relevant skills in a practical environment. When applied properly, PM/SE will save you quite some time in design work and it will avoid pitfalls that will degrade your design. To support the DSE the OSCC organises three lectures. This is followed by walk-in sessions, where you can ask questions when you are stuck, or where the OSCC member or TA’s can ask you questions to see whether you are heading in the right direction. The TA’s are also always present during working hours in the Fellowship for questions about PM/SE aspects.
+
+You are kindly requested to keep track of the online schedule to see where and when the (mandatory) PM/SE lectures will be given. The walk-in sessions are typically in the Project Rooms (Spring DSE), or in a dedicated lecture room (Fall DSE).
+
+Some questions or misconceptions have come up regularly in the past. These will be addressed below.
+
+"System Engineering is the task of the System Engineer, and Project Management is the responsibility of the Project Manager."Design is a team effort, and System Engineering will help you do that in the proper way. So, all team members need to "know" System Engineering, apply the tools and techniques, and are also responsible for the outcome! And, if you don't organise your work properly, you will be less efficient and will likely run out of time. Project Management techniques will help you.
+"Can we just send the System Engineer to the lectures? He/she will tell us what we need to know."Unfortunately it does not work that way. Since PM/SE is important for the design process and outcome, each team member needs to be aware of all these aspects, not only to apply it but also to support your fellow team members. Designing is all about teamwork!
+"Why should we spent so much time on PM/SE? We lose all this time and have nothing left for the actual design!"Realise that PM/SE is designing; the quality of and perhaps even the feasibility of your design depends on it. 
+"Deadline approaching! Quickly, who can work on those PM/SE deliverables?"This the wrong approach. These " PM/SE deliverables" are not only deliverables, but they are design tools, which should be used/integrated throughout your design. Therefore, the staff will check whether you actually applied these tools in your design and/or the design process.
+"The DSE is far too small to use PM/SE. You can only use it in projects like developing the Ariane 6 launcher."This is a misconception. PM/SE can (and in principle should) be applied to any project. The DSE mimics project design in the aerospace industry, is (very) multi-disciplinary, and represents 10 students * 10 weeks * 40 hrs = 4000 hrs, which, in terms of the BSc program, is a huge project. As the DSE is the last opportunity where you can actually learn how to do PM/SE, it is an essential skill set to take with you when you graduate.
+Getting Organized
+The first step: organize yourself as a team
+In the following a number of hints are provided about the management approach. 
+Inventory of team tasks and functions (without looking to project content)
+Chairman, secretary, quality assurance, controlling, SE, management, archiving/documentation, …
+Organizational Breakdown Structure (OBS)
+Management structure, lines of communication, major responsibilities (all persons shall be present in OBS)
+Assignment of the tasks to team members
+Every team member shall have a clearly identifiable technical contribution to the project
+Major contribution to project for each student shall be technical
+Possibly switchable in the course of the project
+Team arrangements and agreements 
+Communication: e.g. make agreement on daily meetings to harmonize, focus on the right work of the day and identify problems in an early stage
+Logbook function and responsibility
+Traceability of actions, agreements, decisions over time
+The second step: organize your project
+Breakdown the work content 
+Identify all tasks 
+Work Breakdown Structure (WBS) with key persons
+Work Package Descriptions (WPD) per key person
+Phasing of project
+Hard deadlines: the planning milestones
+Planning of activities: rolling wave principle = detail for the coming weeks, global planning for the weeks after
+Planning of the project
+Make use of experiences from the past (see Brightspace). Indicative values: 
+40 % design and analysis activities
+15 % planning and phasing of work, meetings
+20 % reporting and reviews
+25 % courses
+Presentation and reporting are time consuming!
+Planning for deliverable items
+Meetings
+Recommendation: every meeting to be minuted at the meeting 
+Daily meetings (recommended)
+Meetings with the principal tutor and project coaches
+Status meeting: once a week
+Project Plan: 
+First deliverable item (see Brightspace for DID)
+Plan-do-check-act
+Document List
+The following documents and websites contain (references to) information, which may be of interest for the project.
+
+The references are examples of being considered as “qualified” and suitable for use. The accuracy, completeness, and timeliness of all other information is not guaranteed. Any listed websites, sources of information, books, companies, designs, and components are neither endorsed nor recommended.
+
+The Teaching Assistants have a library with hundreds of books and readers that might be useful. A list of the available literature is on BrightSpace. 
+
+Aircraft related:
+
+Synthesis of Subsonic Aircraft Design, E. Torenbeek
+Airplane design, Roskam 
+Aircraft Design, A conceptual Approach, D.P. Raymer
+JAR-21, subpart JA, JB and appropriate appendices
+ISO-9000-1 and 2
+Guide to Microsoft Projects
+Product Design: Fundamentals and Methods, N.F.M. Roozenboom, J. Eekels
+Jane’s All the Worlds Aircraft
+World Aircraft & System’s directory – Flight International
+Airframe Structural Design, M.C.Y. Niu
+Airframe Stress Analysis And Sizing, M.C.Y. Niu
+Analysis and Design of Flight Vehicles Structures, Bruhn
+Aircraft Landing Gear Design: Principles and Practices, Currey, N.S.
+Aircraft Performance and Design, J.D. Anderson
+Fluid-dynamic drag, S.F. Hoerner
+Fluid-dynamic lift, S.F. Hoerner and H.V. Borst
+Personal aircraft drag reduction, B. Carmichael
+Theory of wing sections, Abbott and von Doenhoff
+Stuttgarter Profilkatalog, D. Althaus and F. Wortmann
+Niedrig-geschwindigkeits-profile, D. Althaus
+Elements of airplane performance, G. Ruijgrok
+JAR-25
+Aerodynamics, Aeronautics and Flight mechanics, B.W. McCormick
+Aircraft Structures for Engineering Students, Megson
+Aircraft Design, A.K. Kundu, ISBN 978-0-521-88156-4, Cambridge Aerospace Series
+
+Spacecraft related:
+
+Larson, W.J. and Wertz, J.R., Space Mission Analysis and Design, Microcosm, 1999, 3rd edition, ISBN 0-7923-5901-1.
+Fortescue, P. and Stark, J., Spacecraft Systems Engineering, Wiley, 1995, 3rd edition, ISBN 0-471-95220-6
+Regan, F. J. and Anandakrishnan, S. M. (1993). Dynamics of Atmospheric Re-Entry. AIAA Education Series. AIAA.
+Tewari, A. (2007). Atmospheric and Space Flight Dynamics. Modelling and Simulation in Science, Engineering and Technology. Birkhauser.
+Press, W. H., Teukolsky, S. A., Vetterling, W. T., and Flannery, B. P. (1994). Numerical Recipes in C. The Art of Scientific Computing. Cambridge University Press, second edition.
+Montenbruck, O. and Gill, E. (2005). Satellite Orbits Models Methods Applications. Springer.
+AIAA Design Engineering Technical Committee, Aiaa Aerospace Design Engineers Guide, Fifth Edition.
+Wijker, J.J., Spacecraft Structures, 2008.
+Patel, M.R., Spacecraft Power Systems, CRC Press, 2005.
+Hyder, A.K. et al., Spacecraft Power Technologies, Imperial College Press, 2003.
+Turner, M.J.L., Rocket and Spacecraft Propulsion, 3rd edition, Springer Verlag, 2009.
+Abid, M.M., Spacecraft Sensors, John Wiley & Sons Ltd, 2005.
+Anderson, J.D., Hypersonic and High Temperature Gas Dynamics, AIAA, 2006.
+Cornelisse, J. W., Schöyer, H. F. R., and Wakker, K. F., Rocket propulsion and spaceflight dynamics, Pitman, 1979.
+
+Abbreviations
+AS
+LR Chair of Astrodynamics and Satellite Systems
+DID
+Deliverable Item Description
+ESA
+European Space Agency
+ESTEC
+European Space TEchnology Center
+MTR
+Mid-Term Review
+OBS
+Organisational Breakdown Structure
+OSCC
+OntwerpSyntheseCoordinatieCommissie (DSE Organising Committee)
+OSSA
+OntwerpSynthese-oefening Student Assistant (DSE Teaching Assistant
+
+ =  OS Teaching Assistant)
+RD
+Reference Document
+OS
+OntwerpSynthese-oefening (Design Synthesis Exercise)
+SE
+Systems Engineering
+SIS
+LR Chair System Integration/Design & Analysis of Space Systems
+TBC
+To Be Confirmed
+TBD
+To Be Defined
+WPD
+Work Package Description
+WBS
+Work Breakdown Structure
+
+
+
+
+
+Appendix A: Planning & Formats of Deliverable Item Descriptions (DIDs) 
+This Appendix contains the planning and format requirements for the various DSE Deliverable Items. The list below gives an overview of the DIDs, and some top-level information where relevant.
+
+DID 1: Project Plan
+Deadline "full draft":Friday, week 1, 18.00 o'clock. This concerns the "holy draft" of your report, and has to be complete to the best of your knowledge. No missing elements. Basis for PM/SE feedback.
+Draft version needs to be uploaded to your folder on the network share before the draft deadline.
+Deadline final version: TBD by the tutor; she/he will give you the allowable time to spend on processing all feedback. An update is mandatory!
+Final version needs to be uploaded to your folder on the network share before the final-version deadline set by the tutor.
+Report requirements:
+max 25 pages all-in
+Minimum margins: 2cm (top-bottom-left-right)
+Font size: 11pt New Times Roman or an equivalent font size 
+Line spacing: 1 or 1.1
+NOTE: "All in" means the page count of the generated pdf (so including, for instance, table of contents and appendices)
+
+DID 2: Status Meeting
+
+DID 3: Project Logbook
+
+DID 4: Personal Appendix
+
+DID 5: Baseline Report, including Requirements Specification
+Deadline "full draft": Thursday week 2, 18.00 o'clock; the tutor may require more time in advance. This concerns the "holy draft" of your report, and has to be complete to the best of your knowledge. No missing elements. Basis for PM/SE feedback.
+Draft version needs to be uploaded to your folder on the network share before the draft deadline
+Deadline final version: TBD by the tutor; she/he will give you the allowable time to spend on processing all feedback. An update is mandatory!
+Final version needs to be uploaded to your folder on the network share before the final-version deadline set by the tutor
+See checklist for Technical Reports (on Brightspace (Course Documents/DID)
+Report requirements:
+max 50 pages all-in
+Minimum margins: 2cm (top-bottom-left-right)
+Font size: 11pt New Times Roman or an equivalent font size 
+Line spacing: 1 or 1.1
+NOTE: "All in" means the page count of the generated pdf (so including, for instance, table of contents and appendices)
+
+DID 6: Baseline (Requirements) Review
+
+DID 7: Midterm report
+Deadline "full draft":Wednesday week 5, 18.00 o'clock; the tutor may require more time in advance. This concerns the "holy draft" of your report, and has to be complete to the best of your knowledge. No missing elements. Basis for PM/SE feedback.
+Draft version needs to be uploaded to your folder on the network share before the draft deadline
+Deadline final version: TBD by the tutor; she/he will give you the allowable time to spend on processing all feedback. An update is mandatory!
+Final version needs to be uploaded to your folder on the network share before the final-version deadline set by the tutor
+Report requirements:
+max 75 pages all-in
+Minimum margins: 2cm (top-bottom-left-right)
+Font size: 11pt New Times Roman or an equivalent font size
+Line spacing: 1 or 1.1
+NOTE: "All in" means the page count of the generated pdf (so including, for instance, table of contents and appendices)
+
+DID 8: Mid Term Review (MTR)
+
+DID 9: Final Report
+Deadline "full draft": Monday penultimate week, 18.00 o'clock; the tutor may require more time in advance. This concerns the "holy draft" of your report, and has to be complete to the best of your knowledge. No missing elements. Basis for PM/SE feedback.
+Draft version needs to be uploaded to your folder on the network share before the draft deadline
+Deadline final version: The final version of your report should be uploaded to your network folder before Tuesday in the last week, 18.00 o'clock. An update is mandatory!
+Report requirements:
+Page range: no less than 125 and no more than 150 pages all-in 
+Minimum margins: 2cm (top-bottom-left-right)
+Font size: 11pt New Times Roman or an equivalent font size
+Line spacing: 1 or 1.1
+NOTE: "All in" means the page count of the generated pdf (so including, for instance, table of contents and appendices)
+
+DID10: Final Review (FR)
+
+DID11: Poster
+Deadline: Monday last week, 18:00 o'clock, unless communicated differently by the OSCC or DSE teaching assistants (TA’s) over the course of the DSE.
+
+DID 12: Jury Summary
+Deadline: Monday penultimate week, 18:00 o'clock, unless communicated differently by the OSCC or DSE teaching assistants (TA’s) over the course of the DSE.
+
+DID 13 Final presentation during the symposium
+
+DID 14 Project Summary for the "Red Booklet"
+Deadline:Day before symposium, 18:00 o’clock, unless communicated differently by the OSCC or DSE teaching assistants (TA’s) over the course of the DSE.
+Appendix B: Contents of Deliverable Item Descriptions
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+The Project Plan
+
+
+2.  IDENTIFICATION
+DID-1
+3.  DESCRIPTION
+The purpose of the Project Plan is to define the group's overall approach to the technical and management aspects of the design project.  The document provides a complete roadmap of how the group plans to accomplish all the necessary tasks to prepare the design. It represents a commitment by the group for work to be accomplished on the Project. The customer does not want a detailed discussion of a particular design approach, but the approach that shows how the design will be developed through studies, trade-offs, reviews and analysis.
+
+The maximum number of pages is 25 everything included, and is specified by the OSCC.
+
+For large logical diagrams, you are allowed to include A3 pages in you report: 
+- 1 for the Work-Flow Diagram
+- 2 for the Gantt Chart
+These count as 1 page to the page limit. These are specifically to be used for their deliverables, and can not be “traded” to be used elsewhere.
+
+
+4.  LAST UPDATE
+April 7, 2020
+5.  CONFIGURATION CONTROL
+OSCC (J. Sinke)
+6.  APPLICATION/INTERRELATIONSHIP
+Submittal of this document shall be in the form of a concise written explanation of exactly what you are committing to deliver and how you intend to fulfil that commitment.
+
+7.  PREPARATION INSTRUCTIONS
+The Project Plan must show that the group understands the requirements. It has to present a flow of activities that eventually will result in a product that meets these requirements. The plan must explicitly state what services are to be performed at what moments in time and what will be delivered (i.e., briefings, reports, etc.). 
+
+The plan will be evaluated on quality, not quantity. All written pages must be typewritten.  The plan format is as follows:
+
+Title Page
+Table of Contents
+General Summary
+User Requirements
+Description of the entire system (the Global Picture)
+Technical Design DevelopmentOrganisational Breakdown Structure (organogram with the responsibilities of the various group members); clear distinction between organisational and technical roles (each project member should have at least one of each category)
+Project logic diagrams (activity flow, phases, milestones, schedule) including explanations in text
+Work Flow Diagram (WFD)
+Work Breakdown Structure (WBS)
+Schedule (Gantt chart) of the OS design project, indicating the project phasing and the planning for the delivery of the items; it should be detailed up to the Midterm Review, and defined in global terms after that
+Project rules (internal/external meetings, day-to-day organisation, etc.)
+Organisational risk assessment
+Project Approach with respect to sustainable development (not technical!)
+References
+Appendices 
+
+Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+Format: [Group#]_[Group_name]_ProjectPlan_draft/final.pdf, 
+Layout: adhere to TUDelft 'huisstijl' - www.huisstijl.tudelft.nl
+
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Status Meeting
+
+
+2.  IDENTIFICATION
+DID-2
+3.  DESCRIPTION
+The purpose of a Status Meeting (also called Status Review) is to provide the Principal Tutors and project coaches with your progress to date.  Your tutor will request informal status meetings periodically throughout the project, at least once a week.
+
+4.  APPROVAL DATE
+April 7, 2020
+5.  CONFIUGRATION CONTROL
+OSCC (J. Sinke)
+6.  APPLICATION/INTERRELATIONSHIP
+The weekly status meetings will be held according to a predetermined schedule
+Additional Status Meetings will be held within 24 hours after a request by the tutor.
+Each status meeting has an agenda and minutes will be made (including action items)
+All agendas and minutes are archived
+
+7.  PREPARATION INSTRUCTIONS
+The Status Reviews will be informal briefings. As a minimum, they should include:
+
+Review of the minutes of the previous meeting
+Management Control System Status
+Status of Technical Tasks
+Problem areas, critical areas
+Action Item Status
+
+The status reviews shall have minutes, made by a project team member and distributed to the coaches and team, at the latest one day after the status meeting
+An agenda will be send one day prior to the meeting to all intended attendees.
+Organisation is in the hands of the project group.
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Project Logbook
+
+
+2.  IDENTIFICATION
+DID-3
+3.  DESCRIPTION
+The Project Logbook is an expanding document that records the group's project history. The purpose of the book is to provide a record of all relevant project information.  
+
+4.  APPROVAL DATE
+April 7, 2020
+5.  CONFIUGRATION CONTROL
+OSCC (J. Sinke)
+6.  APPLICATION/INTERRELATIONSHIP
+A copy of all relevant information should be available to anyone of the project (team member, tutor, coaches) and OSCC.
+
+7.  PREPARATION INSTRUCTIONS
+You have to designate a team member to be in charge of posting current information in it as the project progresses, so it will serve as a source of information for all group members, your tutors and coaches, and the OSCC.
+
+How to deliver the logbook is to be agreed upon with the tutor. The Project Logbook should at least contain:
+
+Title Page
+Table of Contents
+Schedule
+Review Slides
+Minutes of Status Meetings
+Action Items
+Decisions and justifications
+Minutes of Key internal meetings
+Etc
+
+Dividers should separate major sections and the book has to be maintained (i.e. have the most current information) for the whole project. 
+
+To reduce unnecessary copying and to aid in the communication between the team members, it is also possible to keep your logbook electronically on a shared directory. An index file (named INDEX) should be maintained to list all files in the directory with a short description of what the file includes.
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Personal Appendix
+
+2.  IDENTIFICATION
+DID-4
+3.  DESCRIPTION
+The purpose of the Personal Appendices is to provide the tutor and coaches with feedback about the design and the team process to enable them a comparison with their observations, but also to identify deficiencies in the organisation or the project coaching or definition.
+
+4.  APPROVAL DATE
+April 7, 2020
+5.  CONFIGURATION CONTROL
+OSCC (J. Sinke)
+6.  APPLICATION/INTERRELATIONSHIP
+A copy shall be made available to the principal tutor, the coaches and the OSCC at the moment of handing in the Draft Mid Term report and the Draft Final Report.
+
+7.  PREPARATION INSTRUCTIONS
+Each person briefly explains on 1-2 page(s) A4 his/her activities and gives a personal impression about his/her expectations of the DSE, his/her functioning, the project, the team, the cooperation, the organisation, the staff, etc.
+
+Write down your expectations and learning objectives in week 1 of the DSE, and review this at midterm and final. Any discrepancy should be briefly discussed and (at midterm) new goals/objectives be set.
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Baseline Review
+
+
+2.  IDENTIFICATION
+DID-5
+3.  DESCRIPTION
+The purpose of the Baseline Requirements Review is to provide the principal tutor, coaches, and any other invited guests with a formal briefing on the planning phase and the technical requirements for your project. 
+
+The briefing should include the Project Plan, the requirements analysis, the Design Options tree(s), and selected concepts entering the trade-off (to be done in the Midterm Phase).
+
+4.  APPROVAL DATE
+April 12, 2018
+5.  CONFIGURATION CONTROL
+OSCC (E. Mooij/W. Verhagen)
+6.  APPLICATION/INTERRELATIONSHIP
+The Baseline Requirements Review will be presented in a one-hour session. It should contain information on the project planning phase and the technical requirements analysis.
+
+7.  PREPARATION INSTRUCTIONS
+You should plan to brief for no more than one hour and leave half an hour for questions and discussion. You should assume that your audience is familiar with the details of the project.
+
+You should submit an agenda for this review 1 week beforehand, and invite (external/internal) guests when appropriate.
+
+Not all project members have to present; it is advised to give students the opportunity to present when they are not comfortable to do so, but do want to learn and gain experience.
+
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Baseline Report
+
+
+2.  IDENTIFICATION
+DID-6
+3.  DESCRIPTION
+The Baseline Report includes the Requirements Analysis to review and analyse the top-level (user) requirements in combination with a flowdown in mission and system requirements. The document should give a clear picture about all applicable requirements and identify the driving and any killer requirements.
+
+The Baseline Report is a Technical Design Report.
+
+Your group may define the format of the report, fitting in the template ("huisstijl") of TU Delft.
+The maximum number of pages is 50 everything included, and is specified by the OSCC.
+
+For large logical diagrams, you are allowed to include A3 pages in you report: 
+- 2 for the Functional Flow Diagram
+- 1 for the Functional Breakdown Structure
+- 2 for the Design Option Tree(s)
+These count as 1 page to the page limit. These are specifically to be used for their deliverables, and can not be “traded” to be used elsewhere.
+
+
+The report is a stand-alone document.
+
+4.  APPROVAL DATE
+April 12, 2018
+5.  CONFIGURATION CONTROL
+OSCC (E.Mooij/W. Verhagen)
+6.  APPLICATION/INTERRELATIONSHIP
+The Technical Design Report is a “living” document that reflects the current state of the project design. 
+
+
+7.  PREPARATION INSTRUCTIONS
+The engineering information to be included in this document is in part given by the deliverable items in the table in Section 2.5. In addition, the report should include:
+
+Executive Overview (3 pages min, 10 pages, max)
+Project Objectives
+Requirements and Constraints;
+The Requirements Specification must clearly demonstrate that the group understands the user requirements, and identify which requirements will drive the actual design of the product to be developed
+From the User Requirements the System and Mission Requirements should be derived, and potential sub-system requirements that have an effect on the design options at system level
+Given the User Requirements, a (set of) Design Option Tree(s) with all potential solutions should be provided; from this the design options for the Midterm Phase are selected.
+Level of detail of concepts discussion should be sufficient to understand the choices made
+
+
+Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+Format: [Group#]_[Group_name]_BaselineReport_draft/final.pdf
+Layout: adhere to TUDelft 'huisstijl' - www.huisstijl.tudelft.nl
+
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Mid-Term Review
+
+
+2.  IDENTIFICATION
+DID-7
+3.  DESCRIPTION
+The purpose of the Mid Term Review is to provide the principal tutor, coaches, members of the faculty, and other invited guests with a formal briefing on the progress of your project. 
+
+The briefing should include your Project Plan, the key requirements, the design options tree, the ranking of the options with trade-off background, thereby showing that a system-engineering approach has been followed
+
+4.  APPROVAL DATE
+April 12, 2018
+5.  CONFIGURATION CONTROL
+OSCC (E.Mooij/W. Verhagen)
+6.  APPLICATION/INTERRELATIONSHIP
+The Mid Term Review will be presented during a two-hour session (= 1.5 hour + 15 min break). It should contain information on the progress that has been achieved to date.
+
+7.  PREPARATION INSTRUCTIONS
+You should plan to brief for no more than one hour and leave half an hour for questions and discussion. You should assume that your audience is unfamiliar with the details of the Project and your progress to date (assume your audience is not familiar with the Design Exercise).
+
+You should submit an agenda for this review 1 week beforehand, and invite (external/internal) guests when appropriate.
+
+Each of the students shall present a more or less equal part of the work.
+
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Midterm Report
+
+
+2.  IDENTIFICATION
+DID-8
+3.  DESCRIPTION
+The Midterm Report describes the results of the analysis and design activities that the group performed that leads to the selected concept entering the detailed design phase. It is motivated that the selected concept will work and meets requirements. It should contain all necessary technical details associated with the Design Exercise. 
+
+Your group may define the format of the report, fitting in the template ("huisstijl") of TU Delft.
+The maximum number of pages is 75 everything included, and specified by the OSCC.You are allowed to use a similar amount of A3 pages for specific deliverables as for the previous reports.
+
+The report is a stand-alone document.
+
+
+4.  APPROVAL DATE
+April 7, 2020
+5.  CONFIGURATION CONTROL
+OSCC (J. Sinke)
+6.  APPLICATION/INTERRELATIONSHIP
+The Technical Design Report is a “living” document that reflects the current state of the project design. 
+
+7.  PREPARATION INSTRUCTIONS
+The engineering information to be included in this document are in part given by the deliverable items in the table in Section 2.5. In addition, the report should include:
+
+Executive Overview (3 pages min, 10 pages, max)
+Project Objectives
+All concepts considered for the trade off, with a balanced analysis for a fair trade off
+Engineering Design and Analysis of the Aerospace vehicle (or component thereof) and its major components or subsystems, to a sufficient level of detail, to be agreed upon by the Principal Tutor and in light of the design phase. 
+
+Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+Format: [Group#]_[Group_name]_MidtermReport_draft/final.pdf
+Layout: adhere to TUDelft 'huisstijl' - www.huisstijl.tudelft.nl
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Final Review
+
+
+2.  IDENTIFICATION
+DID-9
+3.  DESCRIPTION
+The purpose of the Final Review is to provide the principal tutor, coaches, members of the faculty, and other invited guests with a complete and formal briefing on your project
+
+The briefing should include a wrap-up of the development process and results up till the Mid-Term Review, followed by the details and the design justifications of the finally selected concept, and a statement of compliance with the requirements.
+
+4.  APPROVAL DATE
+April 12, 2018
+5.  CONFIGURATION CONTROL
+OSCC (E. Mooij/W. Verhagen)
+6.  APPLICATION/INTERRELATIONSHIP
+The Final Review will be presented and discussed during a two-hour session (= 1.5 hr + 15 min break).
+
+7.  PREPARATION INSTRUCTIONS
+This Final Review is equivalent to a final exam for this Design Exercise. You should strive to make it perfect! 
+You should plan to brief for approximately one hour and leave half an hour for questions and discussion. You should assume that your audience is unfamiliar with the details of the project (assume your audience is not familiar with the Design Exercise).
+
+You should submit an agenda for this review 1 week beforehand, and invite (external/internal) guests when appropriate.
+
+Each of the students should present a more or less equal part of the work.
+
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Final Report
+
+
+2.  IDENTIFICATION
+DID-10
+3.  DESCRIPTION
+The last part of the Design Synthesis Exercise requires the construction of a Final Report. For uniformity and consistency, some strict rules apply to channel the flow.
+
+4.  APPROVAL DATE
+April 12, 2018
+5.  CONFIGURATION CONTROL
+OSCC (E. Mooij/W. Verhagen)
+6.  APPLICATION/INTERRELATIONSHIP
+
+The final report is a standalone report and must besides covering the detailed design phase give a proper introduction to the project, as well as a brief summary of the phases leading to the detailed design. It is advised to have the same layout/description per sub-system chapter
+7.  PREPARATION INSTRUCTIONS
+
+The engineering information to be included in this document is in part given by the deliverable items in the table in Section 2.5. In addition, the report should include:
+
+
+Executive Overview (3 pages min, 10 pages max)
+Project Objectives
+At least the User Requirements and Constraints;
+Sub-System requirements to which you are designing
+Summary of trade-off and detailed design of final concept
+Engineering Design and Analysis of the Aerospace vehicle (or component thereof) and its major components or subsystems, to a sufficient level of detail, to be agreed upon by the Principal Tutor and in light of the design phase
+
+The requirements for the report formatting are simple:
+150 pages in total - front-page and appendices included (specified by OSCC). You are allowed to use a similar amount of A3 pages for specific deliverables as for the previous reports.
+Upload in deliverables folder (network share) with front page in full color
+Include a white page after front page
+The report is delivered in pdf; full color is allowed
+No alterations allowed after the deadline
+Deadline of handing in the report is mentioned earlier in this project guide, and will be announced via the OSSAs, as posted on Brightspace
+
+The reports will no longer be printed. If you want a hardcopy, you should personally take care of this 
+
+Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+Format: [Group#]_[Group_name]_FinalReport_draft/final.pdf
+Layout: adhere to TUDelft 'huisstijl' - www.huisstijl.tudelft.nl
+
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Jury Summary
+
+
+2.  IDENTIFICATION
+DID-11
+3.  DESCRIPTION
+The purpose of the jury summary is to inform the members of the jury up front about the topics of the presentation
+
+4.  APPROVAL DATE
+22-June-2012
+5.  CONFIGURATION CONTROL
+OSCC (J.A. Melkert)
+6.  APPLICATION/INTERRELATIONSHIP
+
+The OSSA will inform the students on the deadline during the exercise. It must be ready three to two weeks before the symposium. The deadline will be confirmed on Brightspace.
+
+7.  PREPARATION INSTRUCTIONS
+Write a summary about your project
+The title must contain your group number and title of your project
+The summary may have a maximum size of 1 page A4 (including picture), font Times New Roman, font size 12 pt
+The summary should describe the mission of your design project and the outcome
+It must show the work performed at the moment of the writing of the summary as well as an outlook into what will be achieved during the last couple of weeks of the exercise
+The summary may contain 1 picture
+The summary must be put in the deliverables folder on the network-drive before the deadline
+
+
+Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+Format: [Group#]_[Group_name]_JurySummary.pdf
+
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Poster
+
+
+2.  IDENTIFICATION
+DID-12
+3.  DESCRIPTION
+The purpose of the poster is to give an impression of the project during the symposium.
+
+4.  APPROVAL DATE
+April 7 , 2020
+5.  CONFIGURATION CONTROL
+OSCC (J. Sinke)
+6.  APPLICATION/INTERRELATIONSHIP
+
+The OSSA will inform the students on the deadline during the exercise. It must be ready roughly one week before the end of the exercise since it will be presented at the symposium day.
+
+7.  PREPARATION INSTRUCTIONS
+First take a look at the examples (digital on Brightspace or at the various floors, e.g. 6-9)
+The format to be used is pdf
+The size is A1 (59.4 x 84.1 cm)
+Both portrait and landscape orientation are allowed
+The poster will be printed in full color (CMYK)
+All text should be English (GB or US)
+Use at least ten lines of text to explain your design (no all-picture posters!)
+If you add the group member names, use the same format for all names
+Do not use a font for group members larger than 0.8 cm (28 pt)
+Do not include student registration numbers
+For the title use a font of about 4 cm (160 pt)
+Do not include a group number or room number
+Use of the university house style is mandatory.
+Include: "Design Synthesis Exercise 20xx" using Arial Black, 28 pt, black or white
+Position this line at the bottom left corner (use similar margins as with the university logo, e.g. 3 cm from sides)
+Do not include a date or time
+Use your own pictures, or at least no pictures with copyrights on them
+The poster must be approved by your Principal Tutor before it is passed on to the OSSAs for printing
+
+Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+Format: [Group#]_[Group_name]_Poster.pdf
+Layout: adhere to TUDelft 'huisstijl' - seehttps://www.tudelft.nl/en/tu-delft-corporate-design/downloads/ > Grid > Colour bands. See examples and additional input on Brightspace.
+
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Final Presentation Symposium
+
+
+2.  IDENTIFICATION
+DID-13
+3.  DESCRIPTION
+The purpose of the Final Presentation on the Symposium Day is to provide any students, faculty staff members and other invited guests with a complete (but short) presentation about your project.
+
+4.  APPROVAL DATE
+April 10, 2017
+5.  CONFIGURATION CONTROL
+OSCC (J.A. Melkert)
+6.  APPLICATION/INTERRELATIONSHIP
+Your Final Presentation will be on the DSE Symposium Day.
+
+
+7.  PREPARATION INSTRUCTIONS
+You should plan to brief for no more than 25 minutes and leave 10 minutes for questions and discussion. With the presentation you should aim for a level suitable for your fellow 3rd year students. 
+
+No audio effects are allowed during the presentation. 
+The TU Delft home-style PowerPoint templates must be used.
+No dynamic presentation tools such as Prezzi are allowed
+The desktop computers in the lecture rooms must be used.
+
+An international jury of experts will judge your presentation on the following aspects:
+1. technical content (35%)
+2. design content (35%)
+3. presentation (20%)
+4. sustainability approach (10%)
+
+A further instruction will be given shortly before the symposium.
+
+
+
+
+
+
+
+
+
+
+Deliverable Item Description
+
+1.  TITLE
+
+Project Summary for the "Red Booklet"
+
+
+2.  IDENTIFICATION
+DID-14
+3.  DESCRIPTION
+The purpose of the Project Summary is to inform the faculty staff, fellow students, faculty board, and interested (aerospace) companies about the global content of your design project. It should contain the most important technical details considering the design project. This summary is included in the "Red Booklet".
+
+4.  APPROVAL DATE
+April 10, 2017
+5.  CONFIGURATION CONTROL
+OSCC (J.A. Melkert)
+6.  APPLICATION/INTERRELATIONSHIP
+The Project Summary is an informative summary of the Technical Design Report. Note that it is a separate deliverable from the Technical Design Report, and thus does not add to or replace any summary contained within the various deliverables associated with the Technical Design Report (i.e., the baseline, midterm and final reports). It will be submitted no later than the last day before the grading and the final presentation, i.e. halfway the last project week.
+
+
+7.  PREPARATION INSTRUCTIONS
+
+The Project Summary shall be limited to 8 pages, all-inclusive. All pages must be typewritten.  
+
+The plan format is as follows:
+Mission Statement, Objectives, and Design Requirements and Constraints;
+Concepts studied and related trade-offs;
+Details of selected concept including a 3-view drawing and a listing of the most important design parameters;
+Conclusions and recommendations.
+
+The Project Summary shall be written in Word. 
+
+Instructions for the Executive Summary 
+
+• Start your executive summary with a list of participants and coaches, use full initials, no first names and no study numbers. Put the initials in front of the surnames. For the coaches indicate their title(s), for examples see previous issues of the book
+Write your text in past tense
+• Do not apply any form of lay-out other than separation of sections and chapters by empty lines 
+• Use Times New Roman 12 pt as the font for your text 
+• Do not indent anywhere in the text 
+• Separate sections (Dutch: alinea’s) by one blank line 
+• Do not place pictures side by side 
+• Do not place pictures in boxes 
+• Pictures will be printed black and white, therefore no colour pictures are allowed in the executive summary. 
+• Suggestions for full colour pictures for the front cover are welcome. Add them separately and indicate them clearly with this purpose. Make sure these pictures have a high resolution 
+• Switch off the option “float over text” for all pictures 
+• Put all pictures in the right location in the text. Add all pictures separately as JPG or TIF files with meaningful names, the resolution of these pictures must be 150 dpi or more
+• Do not put a border around the pictures 
+• Do not lay out the text around pictures 
+• Number pictures and tables: The numbering system is such that it starts with the chapter number. For your chapter number see below. For group one of the fall semester - DSE the chapter number is 2 so the numbering should be as follows: Figure 2.1, 2.2, Table 2.1, 2.2 etc. Use the same numbering for the sections you want to distinguish. 
+When you refer to a figure of a table in the text, do not use capitals: e.g. In figure 12.2 you can see and not: In Figure 12.2 you can see 
+The following division will be made for the chapters in the book: 
+Fall semester DSE
+group chapter 
+  1       2
+  2       3
+  3       4
+   Etc….
+Spring semester DSE
+Group chapter
+     next available chapter number (ask OSSAs)
+     Et cetera
+• Put the description of pictures and tables below the picture/table. Do not use caption or any other options of Word for doing so, just write the plain text. Do the same in the body text when you refer to a picture or table. Do not use the automatic referencing function! Please type the figure numbers by hand. Do not end the description with a full stop.
+• For tables use the table option in Word, do not make tables otherwise. Do not import tables as bitmaps or likewise. 
+One level of section numbering is allowed. Use the same system as for the pictures/tables. E.g. group 1 makes chapter 2 of the book and numbers the sections as 2.1, 2.2 etc. Section numbering like 2.1.3.4.1 is not allowed! 
+Maximum number of page is 8 using A4 size paper and Times New Roman font with 12 pt font size and single line spacing. 
+Give a name and e-mail address of a contact person of the group to the student-assistants (OSSA) for further reference when necessary 
+The executive summary will have to be checked by the Principal Tutor and thereafter submitted in electronic format to the OSSAs. 
+All pages must be typewritten using Word. Do not copy text, table or figures from other software like Latex. 
+When giving the combination of a numerical value and its unit separate them by a space: e.g. write: 24 mm and not 24mm. Do not put the units in between brackets: e.g. 24 mm and not 24 [mm]
+Do not use foot notes
+Do not use automated links to figure numbers
+
+
+
+Delivered to: 'Deliverables'-folder of your group (within AE3001-network folder)
+Format: [Group#]_[Group_name]_ExecSum.doc(x)
+Over the years, many printed examples became available. If you want to have a look at these - go to the DSE - library and there you can find the typical red books (A5 size) in the bookshelves.
+
+
+Appendix C: Glossary of DSE terms
+
+In this Appendix definitions are given of all DSE deliverables and the scope of each deliverable for each phase of the project.
+
+DSE work-flow diagrams
+The DSE Work Flow Diagram (DSE WFD) shows the logical order of activities to be executed by the project team during the DSE. It contains a number of blocks connected by arrows. The blocks contain a description of activities, hence contain a verb. Activities may be performed in parallel. In exceptional cases also products may be included into the DSE WFD, e.g. reports, reviews, models. Activities specified must be as much as possible specific for the project, i.e. reflect the technical characteristics of the project.
+The first version of the DSE WFD covers the period from the Project Plan until the Mid-Term review in detail and the later phase of the DSE in more general terms. The update of the DSE WFD to be presented in the Mid-Term Report must detail this last phase. The pre-MTR WFD can be omitted, unless fundamental changes have occurred in the actual activities executed, of which the knowledge is necessary for a proper understanding of the updated version of the WFD.
+
+DSE work break-down structure
+The DSE Work Break-down Structure (DSE WBS) offers another view on the work to be performed and contains the activities as identified in the DSE Work Flow Diagram, ordered in a hierarchical tree (AND tree). The content of each of the block in the DSE WBS is called a Work Package. The WBS may detail the WFD activities to a lower level (e.g. specify that certain activities have a mechanical and an aerodynamic component). It may also contain an indication of the size of the work, the through-put time and the person(s) performing the work.
+It follows the same phasing in the reports as the DSE WFD.
+
+DSE Gantt chart
+The DSE Gantt Chart (DSE Gantt) presents the Work Packages in the Gantt chart format, i.e. it adds a start and end date to each line item and places them in a time order. It serves initially to find a realistic schedule for the DSE activities and later on to monitor actual progress against the anticipated one. It helps then to define corrective actions, such that the original planned completion dates for products are met. The DSE Gantt should contain milestones and deliverables in addition to activities.
+It follows the WFD and WBS cycle, but remains alive for monitoring purposes during the full DSE.
+
+DSE team organization/organogram & HR allocation
+The DSE organogram defines the functions of the DSE team members per phase (pre-MTR and MTR till FR) of the DSE. Its companion text defines also the responsibilities of the team members and the decision mechanisms within the DSE team. It is essential that the so-called managerial functions (such as Project Manager, System Engineer, Quality Assurance etc.) are separated from the technical functions (engineering functions in the areas of, for instance, aerodynamics, flight mechanics, stability and control).
+WFD, WBS, Gantt chart and organogram together form the elements of the DSE Project Plan. An update of the Project Plan for the final phase of the DSE is to be included in the Mid-Term Report.
+
+Functional flow diagram(s)
+The Functional Flow (Block) Diagram (FFBD) shows the logical order of functions the system (product) must perform. It contains a number of blocks describing these functions connected by arrows. Functions are active, hence the description contains a verb. Functions may be performed in parallel (AND junction) or optional functional paths may exist (OR junction). The FFD may also picture the function of the product in its (higher level) environment, specifying, for example its interaction with that environment or detail a (important) part of the product. FFBD’s may be arranged hierarchical, i.e. system functions may be detailed in (lower level) subsystem functions. FFBD’s are presented on a high level and for essential functions in the Baseline Report (BR), are detailed further in the later phases of the project and are included in the Final Report.
+
+Functional breakdown
+The Functional Breakdown represents hierarchically the functions that the product or system must perform in the form of a AND tree. Generally it is limited to the system itself and its constituent parts. It presents a different view on the system, and offers for example the opportunity to identify functions that support the other functions identified in the FFBD, e.g. electrical power provision and data handling (typically functions that cannot be placed in “flow form”, so time independent). The Functional Breakdown is presented on a high level and for essential functions in the BR, is detailed further in the later phases of the project and is included in the Final Report. Note that if subsystem functions are essential, they should be included in the breakdown.
+
+Requirements discovery tree
+The Requirements Discovery Tree (RDT) is a tool to identify and organize requirements applicable for the product or system to be designed. It is an AND tree hierarchically presenting and detailing the requirements from an operator or user point of view, and is often concentrated on the particular aspects of the system, addressing the “normal” requirements in a summary fashion. The list with user requirements as specified by the customer is not necessarily a complete list, and more user requirements may be added by the students. The user requirements need to be translated into system and mission requirements. If one can foresee that certain sub-system requirements will have an impact on the trade off, these sub-system requirements need to be detailed as much as possible.
+
+The requirements discovery tree is generated early in the project and included in the Baseline Report.
+
+Resource allocation/ Budget breakdown
+Technical resources, such as mass, electrical power and computing resources, generally drive the cost of a product and have the tendency to grow during the development. For this reason a maximum value is established at the beginning, including a reserve or contingency, which is carefully managed during the execution of the project. The overall resources are attributed to the components in the system. A first version of these budgets is presented in the Baseline Report, and an update is included in the Final Report, showing sufficient margin for the remaining development after the DSE.
+If a technical resource can be identified, which is typical for the product to be designed, e.g. propellant budget for a satellite mission, endurance or range for an aircraft, such a budget shall also be included.
+
+Technical risk assessment/risk map
+Technical risk assessment is the activity of identifying and ranking technical risks that may occur in the development of the system or product, with the consequence that technical performance, schedule or cost requirements are not met. To this purpose elements, characteristics, technologies or conditions are identified that may form a risk, the probability that they occur is estimated and the consequence for the success of the mission of the system, if the risk occurs, is assessed. The risks are plotted in a Risk Map, which shows on one axis the probability of occurrence and on the other the consequence. For the highest-ranking risks (high probability and consequence combination) measures in terms of alternative design or additional development activities are identified to decrease the risk (risk mitigation). The effect of risk mitigation should be visualized in a “post-mitigation” Risk Map.
+As “old” risks change and disappear and “new” risks appear in the course of the project, the risk assessment is performed in each phase of the project, and a risk map is presented in each report from the Baseline Report onwards.
+
+Design option structuring (tree)
+The set of requirements applicable to the system or product to be designed (or to elements of that system) may be met by several conceptual designs. In fact, the process of design is the process of selecting the design option that meets these requirements best. In order to make a reliable choice it is essential to identify all possible solutions and rationally select the best one from the candidates.
+The Design Option Tree (DOT) is a tool to support the generation and selection of design options. Each individual subsystem or technical aspect of your system has multiple design options that could lead to a successful system and therefore each should have its own DOT. Contrary to the trees mentioned before, it is an OR tree; each block in the tree is equal to the block above it, and nothing more.
+A DOT can be created by a brainstorm with your group, thinking of all possible design options that can be applied to your system. This is the time to be creative, don’t write off options which seem unconventional or undoable immediately, the DOT should be complete. 
+The DOT is generated for the Baseline Report. After the requirements are formulated, design options can be assessed using the requirements. Options that turn out to be unfeasible can be eliminated in the Baseline Report already. 
+In the Midterm report the remaining options in the DOT will be presented and will be subject to a trade-off. The selection of the best option for each choice will be made.
+
+Contingency Management
+Contingency management is the process of establishing and managing the technical resource budgets established for the product or system to be designed. For many of the “traditional” technical resource budgets values have been established with margins that are a function of the phase of the project, the maturity of technology and design, and the particular characteristics of the hardware or software.
+The Baseline Report must identify the way the contingencies will be handled in the remaining phases of the project.
+
+Market analysis
+The objective of the Market Analysis is to establish the competitive cost and volume of the market for the product or for services the product can provide. This is derived from the current market for comparable products or services and an assessment of the added value of new technology or solutions that could be implemented. Aspects that should be included are the prediction of future markets, the establishing of new markets, and the share you foresee to obtain in these markets. Proper market segmentation may help to address these aspects. In addition, a SWOT analysis (Strengths, Weaknesses, Opportunities, Threats) should be included in the market analysis as well.
+
+A first version of the Market Analysis is produced for the Baseline Report. Its major purpose is to establish a target cost for the system or service, and to generate desired functions and requirements based on the cost and other demands from the market to be competitive. For the Final Report the Market Analysis is updated for the actual characteristics and estimated cost of the product or service.
+
+Interface definition/N2 charts
+The design methodology used in the design process is characterized by breaking the system down in more or less functional units or subsystems, which then can be developed in parallel. However, this requires a proper identification and definition of the interfaces (interactions) between the system components and functions. The N2 Chart is a tool, which supports this part of the process. It is a square matrix, where the functions or system components are placed on the diagonal and the interaction between them in the other cells, where outputs are horizontal and inputs vertical. Functions, components and interactions are indicated by a number of words in the cells.
+Initially the N2 Chart is used to identify interfaces, to be included in the Mid Term Report. The N2 Chart may also be used to illustrate and document interfaces in the Final Report.
+Trade method, rationale and organization
+The choice between options for the implementation of a design for the system or for subsystems meeting the requirements is called a trade-off or trade. The method used initially must include all possible solutions in order not to overlook potentially useful and innovative options. Tools used in this phase of the process are brainstorm techniques and the Design Option Tree. This last tool is also used to start narrowing down the set of options to those that are really feasible within the time and resources available.
+Once this set of feasible options has been established they need to be objectively compared with each other against a well defined set of criteria. Several methods exist to perform this task: the traditional method of scoring each of the options against (weighted) criteria, the AHP (Analytical Hierarchy Process) method of pair-wise comparison and a graphical comparison method.
+It is essential that criteria, weight factors and scoring norms are established and agreed (in the team and with the customer) before the actual trade is executed.
+Trades are essentially performed and reported in the Mid Term Report, but may also be needed later on in the design process for more detailed choices.
+
+Trade criteria
+Trade Criteria are the criteria against which the different design options are scored or compared. They include generally the (scarce) technical resources available, main performance parameters and more abstract things, as are complexity and safety. It is not useful to include criteria in the trade for which all options score about equal, as such a criterion does not allow for a choice. It is extremely useful to include in the trade the criteria against which one (or more) options score very bad, as they make the difference.
+It is also useful to establish before hand for each of the criteria a score below which the option becomes unacceptable (no-go value). Criteria should by preference be quantifiable. If that is not possible, a sharp definition of the qualitative scores (excellent, good, fair, correctable deficiencies, poor, unacceptable) must be provided.
+
+Criteria weight factors
+For each of the criteria weight factors must be established and the rationale for the determination of their values must be documented. A reliable method to establish weight factors is by means of the AHP method. Another possibility is to make use of expert opinions to establish their value. The sensitivity of the trade-off to chosen weight criteria should be addressed.
+
+Trade summary table
+The result of each trade must be reported in a trade summary table, which documents the options compared, trade criteria, criteria weight factors, the score of each of the options against the criteria and the rationale for the score and the final result.
+A convenient format is a table, where the each option is listed as a row, where each column represents a criterion and where the width of the column represents the weight of the criterion. Each box of the table contains a short description of the rationale for the score of the related option for the criterion. The colour of the box represents the score, e.g. red = unacceptable, yellow = correctable deficiencies, green = meets requirement, blue = exceeds requirement. Trade summary tables are part of the Mid Term Report. It may be useful to include the most important trade summary tables also in the Final Report, as they form the rationale behind the final design.
+
+Operations and logistic concept description
+The operations and logistic concept description may be given in the form of operational or logistic flow (block) diagrams, illustrating the use or support (e.g. maintenance, ground support) of the system. A first version is produced for the Mid Term report, as the may determine system characteristics that must be part of the design; they may even be part of the concept trade-offs. The operations and logistic concept description is refined and completed for the Final Report.
+
+Project design & development logic
+The Project Design & Development (PD&D) logic shows the logical order of activities to be executed in the post-DSE phases of the project. It contains a number of blocks connected by arrows. The blocks contain a description of activities, hence contain a verb. Activities may be performed in parallel. In exceptional cases also products may be included into the D&D logic, e.g. breadboard for critical technologies, tooling, prototypes. Activities specified must be as much as possible specific for the project, i.e. reflect the technical characteristics of the project.
+The PD&D logic is included in the Final Report.
+
+Project Gantt chart
+The Project Gantt Chart presents the post-DSE activities in the Gantt chart format, i.e. it adds a start and end date to each line item and places them in a time order. It serves as an initial estimate for the schedule for the post-DSE activities.
+It is included in the Final Report.
+
+Cost breakdown structure
+The Cost Break-down Structure (CBS) contains the cost elements of the post-DSE project activities. It has the shape of an AND tree and serves to identify all elements that contribute to the overall development and production cost of the product or system, for which a preliminary design has been produced during the DSE. It reflects the cost related to the activities defined in the PD&D logic. It is the basis of the cost estimate for the product of system. Typical examples of “standard” CBS’s may be found in literature. The CBS is included in the Final Report.
+
+H/W, S/W block diagrams (interactions, flows)
+Hardware and software block diagrams (HWBD and SWBD) serve to illustrate the components of the product or system and their mutual relations and interactions. They may replace large quantities of text, while improving the understanding of the system. They contain blocks connected by lines or arrows; the blocks contain the name of the system component, the lines or arrows may contain a description of the interaction or physical resource flowing though it. HWBDs and SWBDs may be structured hierarchically.
+HWBDs and SWBDs may be produced at any moment during the DSE, but shall as a minimum be part of the Final Report.
+
+Electrical block diagram
+The Electrical Block Diagram shows the electrical equipment of the product or system and its mutual relations and interactions (power provision, switching lines, power conversions, transmitters, receivers, batteries, generators, etc.).
+It is included in the Final Report.
+
+Data handling block diagram
+The Data Handling Block Diagram shows the components of the data handling system of the product or system (processors, memories, safeguard or watchdog units). It shows data flows though the system and may specify the contents of the information flowing over the arrows connecting the blocks. It contains data busses, but also discrete command and data lines. In the blocks it specifies characteristics of the hardware represented (e.g. memory size, computing power, data rates).
+It is included in the Final Report.
+
+Sustainable development strategy
+A sustainable development strategy is presented in the Baseline Report, the Mid Term Report and the Final Report. It addresses both the way sustainability is taken into account in the design and the way the product or system contributes to sustainability.
+
+Requirements Compliance Matrix & Feasibility Analysis
+The Requirements Compliance Matrix is a table containing all user requirements and indicates with a tick mark, when a requirement is met. It may specify the actual value that the design meets, but must specify the actual value the design meets, if the design does not meet the requirement. The rationale why the design does not meet the requirement, or which modifications would be required in order to meet the requirement is explained in the accompanying text (Feasibility Analysis). The Requirements Compliance Matrix & Feasibility Analysis are presented in the Final Report.
+
+Sensitivity Analysis
+A sensitivity analysis investigates the sensitivity of a design (solution) for a change in major system parameters. The sensitivity analysis can be an effective tool to identify the critical parameters that the design is sensitive to, and to make a convincing case why the design is a robust solution for your mission.
+
+In the Mid Term Report, a sensitivity analysis is used to test the robustness of a trade-off. If design parameters, trade criteria or criteria weights change, it is useful to know what the impact will be on the outcome of the trade-off.
+In the Final Report, a sensitivity analysis is used to establish the degree of feasibility of the final design: how does the design react to a change in parameters, and will it still meet the requirements.
+
+Communication flow diagram
+The communication flow diagram illustrates the flow of data through the system and to and from its environment. In case the product or system is not controlled by a human operator in direct, physical contact with the product (e.g. a satellite or an UAV), it is mandatory to present such a flow diagram, as it an essential part of the design and often a major cost factor. It may play a role in the design option selection, but certainly forms part of the final design. In the former case it is part of de design option selection presented in the Mid Term Report, in the latter it is part of the Final Report.
+The Communication Flow (Block) Diagram contains all elements that are part of the communication chain in blocks and represents data and command flows as arrows, where the content of the flow is annotated as text with those arrows. It may also include notes indication the data volume and data rate of elements and flows.
+
+Validation & Verification Procedures
+The Validation & Verification Procedures enter the project in two ways. In the first place all used numerical and/or computer models need to be verified (according to the definitions and procedures covered in the course AE3205 – Simulation, Verification and Validation) before these models can actually be used during both the conceptual and detailed design. The verification procedures and results need to be included in both the Midterm and the Final report.
+
+In the second place, the Validation & Verification Procedures describe how the proof will be obtained that the product or system meets the requirements imposed on it. It distinguishes between test, analysis, simulation, review of design (documentation) and similarity (i.e. a comparable design has been developed and operated successfully) as methods to obtain that proof..
+
+Manufacturing, Assembly, Integration plan (production plan)
+The Manufacturing, Assembly & Integration Plan (MAI Plan) gives a time ordered outline of the activities required to construct the product from its constituent parts. It may include parallel activities. The core of the MAI Plan is a flow diagram illustrating this outline. Short texts may elaborate on it. A first version of the Plan is presented in the Mid-Term Report; a more elaborated final version in the Final Report.
+The MAI Plan is mandatory in case series production of the product is part of the assignment.
+
+Return on investment
+In order to establish the Return of Investment (RoI) the following data related to the product shall be known or established:
+Market price of the product (class),
+Market volume for the product (class),
+Achievable market share for the product,
+Development cost of the product,
+Production cost of the product.
+Direct operational cost
+A positive balance between number of products sold and the total cost divided by the total cost is the RoI. The RoI is established at the end of the project after the cost estimate, and is presented in the Final Report.
+
+Reliability, Availability, Maintainability, and Safety (RAMS) characteristics
+A first version of the RAMS characteristics of the product or system is established in the Mid-Term Report. This first version is generally based on similarity with existing products. For the Final Report the RAMS characteristics are refined, reflecting the actual design. They shall at least address a list of safety critical functions, the redundancy philosophy applied, the expected reliability and availability, and, for maintainable systems, an outline of scheduled and non-scheduled maintenance activities.
+
+Performance analysis
+Performance analysis addresses the quantified performance of the primary functions of the design, and is a major means to show compliance of the design with the requirements imposed on it. Typical analyses are flight profile diagrams, payload-range diagrams, climb performance, noise characteristics, emissions, pointing accuracy, coverage, visiting frequency, mission duration, mass and power need, etc. Standard, discipline specific analysis techniques are used. A first estimate is produced as part of the concept selection process and presented in the Mid Term Report; the final and complete version is included in the Final Report.
+
+Configuration / layout (internal /external)
+The configuration / layout shows the physical appearance of the product or system. It is mainly a set of sketches and drawings illustrating the internal and external layout with a short textual explanation. The layout contains also a block diagram identifying the electronic units carried on-board.
+A first version is presented in the Mid Term Report, generally for all design options involved in the concept selection, concentrating on those aspects that are essential to provide the trade-off. The final, more detailed, version of the final design is included in the Final Report.
+
+Spacecraft system characteristics
+Spacecraft system characteristics include as a minimum the mass, power and propellant budget, command and telemetry data rates, communications link budget, memory size, pointing accuracy, thrust, coverage, visiting frequency, mission duration and profile, ground station selection, launcher selection, decommissioning and de-orbiting, plus the astrodynamic characteristics described below.
+A first, limited version of design driving characteristics is included in the Mid-Term Report, a final, extended version including all relevant characteristics is given in the Final Report.
+
+Aircraft system characteristics
+Aircraft system characteristics include e.g. fuel and hydraulic system layout, auxiliary power estimate, environmental control, etc.
+A first, limited version of design driving characteristics is included in the Mid-Term Report, a final, extended version including all relevant characteristics is given in the Final Report.
+
+Aerodynamic characteristics estimate
+Aerodynamic characteristics include e.g. lift, drag, aerodynamic moments, drag polar, etc., as well as the selected wing profile (the airfoil), if applicable. A first estimate of design driving characteristics is included in the Mid-Term Report, a final, extended version including all relevant characteristics is given in the Final Report.
+
+Structural characteristics
+Structural characteristics include e.g. loading diagrams, stresses, bending, flutter, lowest natural frequencies, design loads, etc.
+A first version of design driving characteristics is included in the Mid-Term Report, a final, extended version including all relevant characteristics is given in the Final Report.
+
+Stability and control characteristics
+Stability and control characteristics include e.g. control forces, CoM limits, attitude control torques, momentum storage and unload capacity, disturbance torques, control frequency, etc.
+A first version of design driving characteristics is included in the Mid-Term Report, a final, extended version including all relevant characteristics is given in the Final Report.
+
+Material characteristics
+The material characteristics include e.g. yield, ultimate, fatigue, etc., and should be specified for all applicable materials. In addition, the location of the applicable materials for system/sub-systems should be specified. A first version of design driving characteristics is included in the Mid-Term Report, a final, extended version including all relevant characteristics is given in the Final Report.
+
+Astrodynamic characteristics
+Astrodynamic characteristics include the orbit, trajectory, decay rate, ∆V-budget, coverage and visibility, mission duration, etc. Generally they play a large role in the establishment of the requirements, the design option selection and the final mission design.
+A first version, as far as needed for the sizing of the system, is presented in the Baseline Report. The Mid-Term Report presents for all options and the selected design the characteristic properties, while the Final Report contains the final, detailed description of the astrodynamic characteristics.
+
+Appendix D: Format of Reference List
+Periodicals
+[1]Vatistas, G. H., Lin, S., and Kwok, C. K., “Reverse Flow Radius in Vortex Chambers,” AIAA Journal, Vol. 24, No. 11, 1986, pp. 1872, 1873.
+[2]Dornheim, M. A., “Planetary Flight Surge Faces Budget Realities,” Aviation Week and Space Technology, Vol. 145, No. 24, 9 Dec. 1996, pp. 44–46.
+[3]Terster, W., “NASA Considers Switch to Delta 2,” Space News, Vol. 8, No. 2, 13–19 Jan. 1997, pp. 1, 18.
+All of the preceding information is required. The journal issue number (“No. 11” in Ref. 1) is preferred, but the month (Nov.) can be substituted if the issue number is not available. Use the complete date for daily and weekly publications. Transactions follow the same style as other journals.
+Books
+[4]Peyret, R., and Taylor, T. D., Computational Methods in Fluid Flow, 2nd ed., Springer-Verlag, New York, 1983, Chaps. 7, 14.
+[5]Oates, G. C. (ed.), Aerothermodynamics of Gas Turbine and Rocket Propulsion, AIAA Education Series, AIAA, New York, 1984, pp. 19, 136.
+[6]Volpe, R., “Techniques for Collision Prevention, Impact Stability, and Force Control by Space Manipulators,” Teleoperation and Robotics in Space, edited by S. B. Skaar and C. F. Ruoff, Progress in Astronautics and Aeronautics, AIAA, Washington, DC, 1994, pp. 175–212.
+Publisher, place, and date of publication are required for all books. No state or country is required for major cities: New York, London, Moscow, etc. A differentiation must always be made between Cambridge, MA, and Cambridge, England, UK. Note that series titles are in Roman type.
+Proceedings
+[7]Thompson, C. M., “Spacecraft Thermal Control, Design, and Operation,” AIAA Guidance, Navigation, and Control Conference, CP849, Vol. 1, AIAA, Washington, DC, 1989, pp. 103–115
+[8]Chi, Y. (ed.), Fluid Mechanics Proceedings, NASA SP-255, 1993.
+[9]Morris, J. D., “Convective Heat Transfer in Radially Rotating Ducts,” Proceedings of the Annual Heat Transfer Conference, edited by B. Corbell, Vol. 1, Inst. of Mechanical Engineering, New York, 1992, pp. 227–234.
+Reports, Theses, and Individual Papers
+[10] Chapman, G. T., and Tobak, M., “Nonlinear Problems in Flight Dynamics,” NASA TM-85940, 1984.
+[11] Steger, J. L., Jr., Nietubicz, C. J., and Heavey, J. E., “A General Curvilinear Grid Generation Program for Projectile Configurations,” U.S. Army Ballistic Research Lab., Rept. ARBRL-MR03142, Aberdeen Proving Ground, MD, Oct. 1981.
+[12] Tseng, K., “Nonlinear Green’s Function Method for Transonic Potential Flow,” Ph.D. Dissertation, Aeronautics and Astronautics Dept., Boston Univ., Cambridge, MA, 1983.
+Government agency reports do not require locations. For reports such as NASA TM-85940, neither insert nor delete dashes; leave them as provided. Place of publication should be given, although it is not mandatory, for military and company reports. Always include a city and state for universities. Papers need only the name of the sponsor; neither the sponsor’s location nor the conference name and location is required. Do not confuse proceedings references with conference papers.
+Websites
+Typical examples are product and/or project specifications, or general Wikipedia references (to be avoided!). Include as footnote in the text, e.g., 
+URL http://www.nasa.gov/centers/ames/research/msl_heatshield.html [cited 13 April 1998].
+Electronic Publications
+CD-ROM publications and regularly issued, dated electronic journals are permitted as references. Archived data sets also may be referenced as long as the material is openly accessible and the repository is committed to archiving the data indefinitely. References to electronic data available only from personal Web sites or commercial, academic, or government ones where there is no commitment to archiving the data are not permitted in the reference list.
+[13] Richard, J. C., and Fralick, G. C., “Use of Drag Probe in Supersonic Flow,” AIAA Meeting Papers on Disc [CD-ROM], Vol. 1, No. 2, AIAA, Reston, VA, 1996.
+[14] Atkins, C. P., and Scantelbury, J. D., “The Activity Coefficient of Sodium Chloride in a Simulated Pore Solution Environment,” Journal of Corrosion Science and Engineering [online journal], Vol. 1, No. 1, Paper 2, URL: http://www.cp/umist.ac.uk/JCSE/vol1/vol1.html [cited 13 April 1998].
+[15] Vickers, A., “10-110 mm/hr Hypodermic Gravity Design A,” Rainfall Simulation Database [online database], URL: http://www.geog.le.ac.uk/bgrg/lab.htm [cited 15 March 1998].
+Always include the citation date for online references. Break Web site addresses after punctuation, and do not hyphenate at line breaks.
+Computer Software
+[16] TAPP, Thermochemical and Physical Properties, Software Package, Ver. 1.0, E. S. Microware, Hamilton, OH, 1992.
+Include a version number and the company name and location of software packages.
+Patents
+Patents appear infrequently. Be sure to include the patent number and date.
+[17] Scherrer, R., Overholster, D., and Watson, K., Lockheed Corp., Burbank, CA, U.S. Patent Application for a “Vehicle,” Docket No. P-01-1532, filed 11 Feb. 1979.
+Private Communications and Web Sites
+References to private communications and personal Web site addresses are not permitted. They may, however, be incorporated into the main text of a manuscript or may appear in footnotes.
+Unpublished Papers and Books
+Unpublished works can be used as references as long as they are being considered for publication or can be located by the reader (such as papers that are part of an archival collection). If a journal paper or a book is being considered for publication, choose the format that reflects the status of the work (depending upon whether it has been accepted for publication):
+[18] Doe, J., “Title of Paper,” Name of Journal (to be published).
+[19] Doe, J., “Title of Chapter,” Name of Book, edited by…, Publisher’s name and location (to be published).
+[20] Doe, J., “Title of Work,” Name of Archive, Univ. (or organization), City, State, Year (unpublished).
+Unpublished works in an archive must include the name of the archive and the name and location of the university or other organization where the archive is held. Also include any cataloguing information that may be provided.

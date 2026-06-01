@@ -1,0 +1,432 @@
+\chapter{Requirements and Constraints}
+\label{ch:requirements}
+
+% From Guide:
+%  a. The Requirements Specification must clearly demonstrate that the group understands the user requirements, and identify which requirements will drive the actual design of the product to be developed b. From the User Requirements the System and Mission Requirements should be derived, and potential subsystem requirements that have an effect on the design options at system level 
+
+% Include:
+% - Req. Discovery Tree
+% maybe merge functional diagrams at the end of this?
+ 
+This chapter identifies the relevant balloon characteristics through a thorough literature study, defines the stakeholder and mission requirements, and then translates these into the system requirements. 
+\vspace{-10pt}
+\section{Requirements Literature Study}
+\label{sec:balloon_targets}
+ 
+This section establishes the physical and operational envelope of balloon targets relevant to the intercept mission. Two overlapping populations are considered: (i)meteorological and scientific balloons that may be uncoordinated, and (ii)security relevant balloons used for smuggling or hybrid operations. Both produce similar physical signatures in the \SIrange{2}{6}{\metre} diameter regime.
+ 
+\vspace{-10pt}
+\subsection{Meteorological Balloon Characteristics}
+\label{subsec:met_balloons}
+ 
+Standard National Weather Service radiosondes use a 600\,g natural-latex envelope inflated to approximately \SI{1.5}{\metre} diameter at launch. As the balloon ascends, decreasing ambient pressure causes it to expand continuously until burst. Table \ref{tab:radiosonde_expansion} summarises the diameter-altitude relationship derived from standard performance data.
+ 
+\begin{table}[h]
+\centering
+\caption{Approximate diameter of a standard 600\,g NWS radiosonde balloon vs.\ altitude on ascent. The \SIrange{2}{6}{\metre} intercept window therefore corresponds to roughly \SIrange{1}{15}{\kilo\metre} for an ascending sonde \cite{WorldMeteorologicalOrganization2018GuideGuide}.}
+\label{tab:radiosonde_expansion}
+\begin{tabular}{@{}ccc@{}}
+\toprule
+\textbf{Altitude (km)} & \textbf{Diameter (m)} & \textbf{Notes} \\
+\midrule
+0 (launch)   & $\approx 1.5$ & Below intercept window \\
+1-2         & $\approx 2.0$ & Lower bound of window \\
+5-6         & $\approx 3.0$ & Mid-window \\
+15     & $\approx 6.0$ & Upper bound of window \\
+30     & 6-8 (burst)  & Above window; burst imminent \\
+\bottomrule
+\end{tabular}
+\end{table}
+ 
+A tethered or prematurely released balloon drifting at near-constant
+inflation can present a diameter within the \SIrange{2}{6}{\metre} window at any altitude from ground level upward, depending on how much gas was loaded at release \cite{Yajima2009ScientificApplications}.
+
+The envelope material is linear low-density polyethylene (LLDPE) film, typically \SIrange{20}{25}{\micro\metre} thick, with near-zero gauge pressure (a few tens of Pa above ambient) at boundary-layer
+altitudes \cite{SuneelKumar2008MechanicalBalloons}. Internal pressure of this magnitude means that small punctures do not deflate the balloon: an opening of at least \SIrange{0.05}{0.1}{\metre\squared} is required for meaningful controlled deflation \cite{Yajima2009ScientificApplications}. Net lift ranges from approximately \SI{5}{\newton} for a \SI{2}{\metre} balloon to approximately \SI{138}kg gross buoyancy for a \SI{6}{\metre} balloon, setting the sustained downward force the UAS must exert post-capture.
+ 
+\vspace{-10pt}
+
+\subsection{Security-Relevant Balloons (Hybrid/Smuggling Platforms)}
+\label{subsec:security_balloons}
+ 
+Since 2023, and at an escalating rate through 2025-2026, latex meteorological balloons repurposed for contraband delivery and hybrid-warfare operations have been launched into restricted airspace. Authorities have characterised these incursions as
+a coordinated hybrid attack \cite{CNN2025BalloonSays, AlJazeera2025LithuaniaBelarus, RFE/RLBelarusService2025UpBoth}. Over 315 unauthorised balloons entered Lithuania alone between June and December 2025, with a further 59 entering Polish airspace on Christmas Eve \cite{EuromaidanPress2025PolandEve, RFE/RLBelarusService2025UpBoth}.
+\vspace{-10pt}
+
+\paragraph{Envelope and appearance:}
+Intercepted units are large, teardrop-shaped balloons of thin latex-like material semi-transparent or white visually indistinguishable from standard meteorological sounding balloons of equivalent inflation \cite{WTAQ2025Factbox:Lithuania}.
+\vspace{-10pt}
+
+\paragraph{Altitude and diameter:}
+Table \ref{tab:security_balloon_altitudes} summarises reported operating altitudes. Because the same latex expansion physics apply, these altitudes map directly onto the diameter-altitude relationship in Table \ref{tab:radiosonde_expansion}: the operational band of \SIrange{3}{13}{\kilo\metre}, reported in \autoref{tab:security_balloon_altitudes}, corresponds to envelope diameters of approximately \SIrange{2.5}{5.5}{\metre}, placing the security-relevant population firmly within the \SIrange{2}{6}{\metre} intercept window \cite{WorldMeteorologicalOrganization2018GuideGuide}.
+ 
+\begin{table}[H]
+\centering
+\caption{Reported operating altitudes of hybrid balloons and
+  their implied diameters (mapped via Table \ref{tab:radiosonde_expansion}).}
+\label{tab:security_balloon_altitudes}
+\begin{tabular}{@{}llcc@{}}
+\toprule
+\textbf{Source} & \textbf{Context} & \textbf{Altitude (km)} & \textbf{Implied $\varnothing$ (m)} \\
+\midrule
+Euronews \cite{Euronews2025LithuaniaBalloons}   & Latvia radar data        & $\approx 5$  & $\approx 3.0$ \\
+WTAQ \cite{WTAQ2025Factbox:Lithuania} & Standard border crossing & 3-4         & 2.5-2.8 \\
+RFE/RL \cite{RFE/RLBelarusService2025UpBoth} & Higher-altitude smuggling runs & $\approx 11$ & $\approx 5.0$ \\
+RFE/RL \cite{RFE/RLBelarusService2025UpBoth} & Peak October 2025 incursions  & $\approx 13$ & $\approx 5.5$ \\
+EuromaidanPress \cite{EuromaidanPress2025PolandEve} & Poland Christmas Eve swarm & up to 9 & $\approx 4.0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+\vspace{-10pt}
+
+\paragraph{Payload mass:}
+A balloon sized to carry \SIrange{40}{50}{\kilo\gram} of contraband costs approximately 500 euro and carries 500-1500 packs of
+cigarettes \cite{RFE/RLBelarusService2025UpBoth, WTAQ2025Factbox:Lithuania}. This payload mass is one to two orders of magnitude greater than a standard radiosonde (\textasciitilde\SI{200}{\gram}) and must be treated as the governing load case for any gripper or tether structural sizing.
+\vspace{-10pt}
+
+\paragraph{Avionics:}
+Every recovered balloon carries a GPS tracker and, in many cases, a cellular SIM card used to relay position to waiting ground teams \cite{LRTInvestigationsTeam2025LithuanianBelarus}. This active RF emission may assist detection, although it does not uniquely distinguish the security-relevant population from meteorological balloons, since recovered units have also included meteorological probes, making the danger even harder to identify \cite{EuromaidanPress2025PolandEve}.
+\vspace{-10pt}
+
+\paragraph{Swarm behaviour:}
+Operations have involved simultaneous launches of up to 25 balloons in a single night, intentionally targeting airport approach paths and probing air-defence radar response times \cite{RFE/RLBelarusService2025UpBoth, TheIndependent2026BalloonsNight, OperationalCommandofthePolishArmedForces2026StatementBelarus}. The intercept system can therefore be designed for repeated sequential engagements rather than isolated single encounters.
+\vspace{-10pt}
+
+\subsection{Payload Mass and Form Factor}
+\label{subsec:payload_form}
+ \vspace{-10pt}
+\begin{table}[H]
+\centering
+\caption{Payload and flight-train characteristics of the two target populations within the 2-6 m intercept window. Payload mass is the dominant design driver for the interaction system structural sizing; balloon tether length governs the minimum safe stand-off during approach.}
+\label{tab:payload_form}
+\small
+\begin{tabular}{@{}p{2.4cm}p{5.2cm}p{5.2cm}p{1.6cm}@{}}
+\toprule
+\textbf{Parameter} &
+  \textbf{Meteorological sonde} &
+  \textbf{Hybrid / smuggling balloon} &
+  \textbf{Source} \\
+\midrule
+Instrument/cargo mass & 60-200 g (sonde + battery); up to \SI{900}{\gram} for ozone variant & 20-50 kg contraband crate + GPS/SIM electronics & \cite{NOAANationalWeatherService2024RadiosondeSheet, AMOF/NCASVaisalaHandbook} \\[4pt]
+ 
+Tether length & 25-35 m nylon cord (sonde suspended below balloon to minimise thermal contamination) & 2-10 m cord to rigid cargo crate; shorter than meteorological sondes & \cite{CounciloftheEuropeanUnion2025Belarus:States, NOAANationalWeatherService2024RadiosondeSheet, WTAQ2025Factbox:Lithuania} \\[4pt]
+ 
+Payload geometry & Small foam box, $\sim$15$\times$8$\times$5 cm; irregular; parachute above & Rectangular plywood or cardboard crate, $\sim$50$\times$40$\times$30 cm; GPS antenna on top & \cite{NOAANationalWeatherService2024RadiosondeSheet, WTAQ2025Factbox:Lithuania} \\[4pt]
+ 
+Net buoyancy force\newline post-capture & \SI{5}{\newton} ($\varnothing$ 2 m) to $\sim$\SI{138}kg gross ($\varnothing$ 6 m); reduced by payload weight & Same envelope buoyancy; partially cancelled by 20-50 kg payload, net upward force lower while payload attached, very high on payload release\\[4pt]
+ 
+Radar / optical\newline secondary return & Minimal; corner reflector sometimes fitted for ATC tracking & Cargo crate acts as broadside flat-plate reflector; GPS antenna adds RF emission detectable by SDR & \cite{WTAQ2025Factbox:Lithuania, EuromaidanPress2025PolandEve} \\
+\bottomrule
+\end{tabular}
+\end{table}
+\vspace{-10pt}
+Two intercept-design consequences follow directly from
+Table \ref{tab:payload_form}. First, the meteorological-sonde tether of 25-35 m means the UAS theoretically has to approach the envelope from above or from the side at a stand-off greater than this length to avoid entanglement; the hybrid balloon's shorter tether relaxes this constraint but its rigid cargo crate introduces a collision hazard during the capture. Second, the order-of-magnitude difference in payload mass (0.1 kg vs. up to 50 kg) means the interaction system structural brief must be sized to the hybrid case if the system is to be universal, even though nearly all meteorological intercepts will see only gram-level suspended loads.
+
+\vspace{-10pt}
+\subsection{Consolidated Intercept Window}
+\label{subsec:intercept_window}
+Table \ref{tab:intercept_summary} consolidates the two populations. Both fall within the same diameter and altitude band, confirming that a single set of size and altitude requirements covers both uncoordinated meteorological sondes and security-relevant hybrid platforms. The primary differentiators are payload mass and the presence of active RF avionics, neither of which materially changes the envelope geometry or buoyancy budget.
+\begin{table}[H]
+\centering
+\caption{Summary of target populations and their position within the design intercept window.}
+\label{tab:intercept_summary}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Target type} & \textbf{Diameter (m)} & \textbf{Altitude (km)} & \textbf{Payload (kg)} & \textbf{Material} \\
+\midrule
+NWS radiosonde (600g)       & 2-6  & 1-15 & 0.06-0.08 & LLDPE/latex \\
+Foil promotional      & 2-4  & 0-5  & <1         & BoPET (Mylar) \\
+Hybrid/smuggling & 2-6  & 3-13 & 20-50     & Latex \\
+\midrule
+\textbf{Design window}      & \textbf{2-6} & \textbf{1-15} & \textbf{up to 50} & \textbf{Latex/LLDPE} \\
+\bottomrule
+\end{tabular}
+\end{table}
+Payload mass spans nearly three orders of magnitude across the two populations, yet this spread does not alter the intercept envelope. NWS radiosondes are small expendable instrument packages weighing 60 to 80 grams, suspended below a balloon that begins at roughly 1.5 m in diameter and expands to 6-8 m before burst. The instrumented package, comprising pressure, temperature, relative humidity sensors, a GPS receiver, and a battery-powered 300 mW transmitter, therefore contributes negligibly to the overall buoyancy budget; the governing mass term is the balloon shell and inflation gas, not the payload. At the opposite extreme, hybrid balloons carry payloads of up to 50 kg, operate at altitudes of 8-15 km, and can achieve speeds of 100-200 km/h, posing documented risks to civil aviation. A balloon rated for a 40-50 kg cargo costs approximately \euro{500}, with a single load typically comprising around 1{,}500 packets of cigarettes. Even though smuggling balloons carry 600 times more weight than weather sensors, both use 2–6m shells to fly at similar altitudes. This allows one design to target both types of balloons\cite{CounciloftheEuropeanUnion2025Belarus:States, RFE/RLBelarusService2025UpBoth, NOAANationalWeatherService2024RadiosondeSheet}.
+Large scientific zero-pressure balloons ($\varnothing$\SI{>20}{\metre}) and high-altitude state surveillance platforms operating above \SI{18}{\kilo\metre} \cite{CNA2023HowWartime, NBCNews2023DownedSays} remain outside this window and require fundamentally different intercept architectures.
+
+
+ 
+\vspace{-10pt}
+\subsection{Lifting Gas Composition}
+\label{subsec:lifting_gas}
+ 
+\begin{table}[h!]
+\centering
+\caption{Physical properties of candidate lifting gases at sea level,
+  \SI{15}{\degreeCelsius}.
+  Net specific lift = $\rho_\text{air} - \rho_\text{gas}$ per unit volume.}
+\label{tab:gas_props}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Gas} &
+  \textbf{Density} (\si{\kilo\gram\per\metre\cubed}) &
+  \textbf{Net specific lift} (\si{\kilo\gram\per\metre\cubed}) &
+  \textbf{Flammable} &
+  \textbf{Notes} \\
+\midrule
+Air (reference) & 1.22  & -   & No  & \\
+Helium (He)     & 0.179 & 1.041 & No  & Preferred in Western practice \\
+Hydrogen (H\textsubscript{2}) & 0.090 & 1.130 & Yes & 8\% more lift; explosive 4-75\% in air \\
+\bottomrule
+\end{tabular}
+\end{table}
+ \vspace{-15pt}
+
+\paragraph{Meteorological balloons:}
+Both helium and hydrogen are used operationally. Many meteorological organisations, particularly in Asia use hydrogen because it can be manufactured on-site and costs significantly less than helium~\cite{NOAANationalWeatherService2024RadiosondeSheet, OfficeoftheFederalCoordinatorforMeteorology1997FederalObservations, WorldMeteorologicalOrganization2018GuideGuide, HighAltitudeScienceIntroBalloons}. The United States National Weather Service and most Western
+agencies use helium for safety reasons despite its higher
+cost \cite{Krauchi2016ReturnMeasurements}. Hydrogen provides approximately 8\% more net lift per unit volume than helium, but for balloon sizes in the 2-6 m window this difference adds up to only 3-10 N and is not operationally significant for
+intercept planning \cite{NOAANationalWeatherService2024RadiosondeSheet, WorldMeteorologicalOrganization2018GuideGuide}.
+ \vspace{-10pt}
+
+\paragraph{Hybrid and smuggling balloons:}
+Recovered and reported units are identified as repurposed meteorological sounding balloons \cite{WTAQ2025Factbox:Lithuania}. The filling gas is therefore either helium or hydrogen depending on the operator's supply chain; both have been noted in open-source reporting. Hydrogen is particularly more probable given its low cost and ease of local production, consistent with the low unit cost (\texteuro{}$\sim$500 per balloon) reported
+for the campaign \cite{RFE/RLBelarusService2025UpBoth}. This has a direct consequence for the intercept design: a capture or puncture mechanism that generates a spark or thermal event must be excluded if hydrogen cannot be ignored. This is because hydrogen ignites at concentrations above 4\% in air and an accidental envelope perforation near rotors would create a dangerous buildup \cite{NOAANationalWeatherService2024RadiosondeSheet, WorldMeteorologicalOrganization2018GuideGuide}.
+\vspace{-10pt}
+
+\paragraph{Practical intercept implications:}
+Table \ref{tab:gas_intercept} summarises the gas related design constraints. The key conclusion is that the interception system must be designed as if the target contains hydrogen regardless of which gas is actually present, since the two populations are visually and geometrically indistinguishable in flight and gas composition cannot be determined remotely.
+ 
+\begin{table}[H]
+\centering
+\caption{Lifting gas properties relevant to intercept mechanism design.}
+\label{tab:gas_intercept}
+\small
+\begin{tabular}{@{}p{3.5cm}p{5.5cm}p{5.9cm}@{}}
+\toprule
+\textbf{Property} & \textbf{Significance for intercept} & \textbf{Design constraint} \\
+\midrule
+Gauge pressure ($\varnothing$ 2-6 m latex) & Near-zero (tens of Pa above ambient) \cite{Yajima2009ScientificApplications} & No explosive decompression on puncture; gas exits slowly through small holes \\[4pt]
+ 
+Flammability (if H\textsubscript{2}) & Explosive 4-75\% vol in air; invisible flame; detonation possible in confined geometry \cite{NOAANationalWeatherService2024RadiosondeSheet, WorldMeteorologicalOrganization2018GuideGuide} & All capture and deflation mechanisms should be spark-free and non-pyrotechnic \\[4pt]
+ 
+Buoyancy loss on full deflation & Immediate loss of all lift; uncontrolled descent of envelope as single debris piece & Controlled deflation (large aperture) preferred over burst;debris must stay within 50~g limit \\[4pt]
+ 
+Diffusion through latex & H\textsubscript{2} and He both diffuse through latex; H\textsubscript{2} faster due to smaller kinetic diameter \cite{NOAANationalWeatherService2024RadiosondeSheet, WorldMeteorologicalOrganization2018GuideGuide} & Slow passive deflation possible post-capture without mechanical action; connection duration constrained \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{-20pt}
+\subsection{Regulatory Classification and UAS Categorization}
+\label{subsec:regulatory}
+
+The precise classification of the UAS is critical, as it defines the mandatory technical standards and operational constraints for intercepting uncooperative targets at high altitudes. Under Regulation (EU) 2019/947 \cite{EuropeanCommission2019CommissionAircraft}, the mission follows this hierarchical structure:
+\vspace{-10pt}
+
+\begin{itemize}
+    \item \textbf{Category: Specific} \\ 
+    Classification within the "Specific" category is mandatory because the mission altitude exceeds the 120 m "Open" category limit.
+    
+    \item \textbf{Authorization Path: SORA (Specific Operations Risk Assessment)} \\ 
+    The altitude profile and proximity to civilian airports require a custom SORA to transform mission-specific hazards into legally enforced technical requirements.
+    
+    \item \textbf{Risk Level: SAIL IV} \\ 
+    The altitudes in \autoref{subsec:intercept_window} place the UAS in high-risk shared airspace. Given the MTOM used for drones employed in similar missions \cite{EuropeanCommission2019CommissionSystems}, a SAIL IV classification is required to ensure "High" integrity and assurance for safety-critical systems.
+    
+    \item \textbf{Technical Standard: SC-Light-UAS \cite{EuropeanUnionAviationSafetyAgency2020SpecialSystems}} \\ 
+    The system must comply with SC-Light-UAS to ensure airworthiness in extreme environments, specifically targeting low temperatures and low-pressure conditions documented in high-altitude research \cite{Clark2019AnPayloadsb}.
+\end{itemize}
+
+Because the mission shall be conducted within the constraints of the EASA Specific category (SAIL IV), all subsystems, including the airframe, balloon interaction mechanism, and navigation suite, will be designed accordingly in the following steps of the design process to ensure full compliance with the mandatory Operational Safety Objectives (OSOs).
+\vspace{-10pt}
+
+\section{Stakeholder Requirements}
+
+The process of defining the requirements for the design of BELLONA begins with the determination of stakeholder requirements, translating the needs of the stakeholders, for example the user, into a set of requirements that can flow down into the mission and system requirements in the following sections. The stakeholder requirements are summarized in \autoref{tab:stakeholder-requirements}. 
+
+
+\begin{xltabular}{\textwidth}{X p{0.3\textwidth} X X p{0.2\textwidth}}
+% --- This section appears only on the first page ---
+\caption{BELLONA Stakeholder Requirements} \label{tab:stakeholder-requirements}\\
+\hline
+\textbf{ID} & \textbf{Requirement} & \textbf{Stakeholder} & \textbf{Classification} & \textbf{Justification} \\ \hline
+\endfirsthead
+
+% --- This section appears on all subsequent pages ---
+\hline
+\textbf{ID} & \textbf{Requirement} & \textbf{Stakeholder} & \textbf{Classification} & \textbf{Justification} \\ \hline
+\endhead
+
+% --- Footer ---
+\hline
+\endfoot
+%
+REQ-STK-01  & The system shall remove offending balloons from its covered airspace.                            & Customer             & Key                     & Core need to fulfill mission statement                 \\
+REQ-STK-02  & The system shall detect and track a balloon (2–6 m diameter) up to TBD m AGL.                    & Customer             & Key                     & Core need to identify targets                          \\
+REQ-STK-03  & The system shall intercept the uncooperative balloon within 10 minutes of acquisition.           & Customer             & Key                     & Time-based response to minimize disruption to airspace \\
+REQ-STK-04  & The system shall use non-explosive, non-pyrotechnic, and non-destructive interaction methods.    & Regulator            & Driving                 & Need to keep mission execution safe                    \\
+REQ-STK-05  & The system shall enable the recovery and proper disposal of the balloon and its cargo.           & Customer             & Driving                 & Minimize secondary hazards and preserve payload        \\
+REQ-STK-06  & The system shall prevent the release of debris \textgreater 50g and ensure a controlled descent. & Community            & Driving                 & Minimize hazards to unrelated persons                  \\
+REQ-STK-07  & The system shall be capable of fulfilling the mission in all non-severe weather.                 & Customer             & Driving                 & Need to secure airspace at all times                   \\
+REQ-STK-08  & The system shall be capable of fulfilling the mission at all times of day.                       & Customer             & Driving                 & Need to secure airspace at all times                   \\
+REQ-STK-09  & The system shall use electric-only energy storage.                                               & Sustainability       & Driving                 & Sustainability and reusability requirement             \\
+REQ-STK-10  & The total system acquisition cost shall be less than EUR 5000 inflation adjusted for 01.01.2026.  & Market               & Key                     & Budgetary limit for hardware and sensors                \\
+REQ-STK-11  & The operational cost per mission shall be less than EUR 500 inflation adjusted for 01.01.2026.   & Market               & Key                     & Operational affordability for routine missions         \\
+REQ-STK-12  & The system shall operate safely within civilian airspace.                                        & Regulator            & Driving             & Compliance with aviation safety standards              \\
+REQ-STK-13  & The system shall be resilient to single-point sensor or actuator failures.                       & Regulator            & Driving                 & Prevent catastrophic loss of the system or mission     \\
+REQ-STK-14  & The system shall require pre-flight risk assessments and checklists.                             & Regulator            & Non-driving             & Procedural safety and operational readiness            \\
+REQ-STK-15  & Noise emissions shall be kept below 65 dB at a distance of 50 m.                                 & Community            & Non-driving             & Minimize disturbance in residential/civil areas        \\
+REQ-STK-16  & The system shall favor reusable or recyclable components to minimize waste.                      & Sustainability       & Driving                 & Environmental sustainability and waste reduction       \\
+REQ-STK-17  & The design shall utilize modularity to minimize repair and replacement costs.                    & Customer             & Driving                 & Ease of maintenance and lifecycle cost control          \\
+REQ-STK-18  & The system shall not pose a cutting hazard to persons on the ground.                             & Community            & Non-driving             & Public safety and injury prevention                    \\
+REQ-STK-19  & The system shall be transportable in a fullsize pickup truck.                                    & Customer             & Non-driving             & Transportability and operational ease                  \\ \hline
+\end{xltabular}
+\vspace{-25pt}
+
+\section{Mission Requirements}
+After the stakeholder requirements for BELLONA have been set out, they have to be translated into mission requirements. These define what is needed to happen in order to fulfill the mission. The full set of mission requirements can be found in \autoref{tab:missionreq}, including their rationale. The \textbf{ID} contains the related stakeholder requirement ID.\\
+The requirements containing TBD values are intentionally kept open at this level because their final values depend on a more detailed literature study and feasibility assessment, and thus cannot reliably be determined at this stage.
+
+\begin{xltabular}{\textwidth}{p{0.12\textwidth} X X}
+\caption{BELLONA Mission Requirements}
+\label{tab:missionreq} \\
+
+\hline
+\textbf{ID}       & \textbf{Requirement}                                                                                             & \textbf{Justification}                                                      \\ \hline
+\endhead
+\hline
+\endfoot
+%
+REQ-STK-01-MSN-01 & The mission shall aim to remove a balloon from its covered airspace.                                             & Guiding principle for all mission requirements.                             \\
+REQ-STK-02-MSN-02 & The mission shall involve the capability to detect targets within the airspace.                                  & Operationalizes the detection need.                                         \\
+REQ-STK-02-MSN-03 & The system shall maintain a continuous tracking lock on identified balloons until interception.                  & Necessary for terminal guidance.                                            \\
+REQ-STK-03-MSN-04 & The system shall perform an interception maneuver of the uncooperative balloon within 10 minutes of acquisition. & Defines time-based success window.                                          \\
+REQ-STK-04-MSN-05 & The mission shall attain control of the balloon using non-explosive, non-pyrotechnic methods.                    & Ensures safe interception.                                                  \\
+REQ-STK-05-MSN-06 & The mission shall include a post-interception recovery for material retrieval.                                   & Ensures safe payload and material retrieval.                                \\
+REQ-STK-05-MSN-07 & The mission shall aim to preserve the structural integrity of the target's onboard payload.                      & Ensures safe payload retrieval.                                             \\
+REQ-STK-06-MSN-08 & The mission shall aim to prevent the release of mission debris.                                                  & Minimizes secondary hazards.                                                \\
+REQ-STK-07-MSN-09 & The mission shall be executable in all non-severe weather.                                                       & Establishes operational weather envelope.                                   \\
+REQ-STK-08-MSN-10 & The mission shall be executable at all times of the day.                                                         & Establishes operational time-of-day envelope.                               \\
+REQ-STK-09-MSN-11 & The mission shall rely exclusively on electric energy sources.                                                   & Ensures sustainability and reusability of system.                           \\
+REQ-STK-10-MSN-12 & The mission architecture shall be optimized for low-cost, easy deployment.                                       & Defines need for minimal initial cost.                                      \\
+REQ-STK-11-MSN-13 & The operational profile shall be designed to minimize costs per sortie.                                          & Defines need for minimal recurring cost.                                    \\
+REQ-STK-12-MSN-14 & The mission shall have a manual override capability                                                                       & Ensures safety in case of failure of autonomous system.                     \\
+REQ-STK-12-MSN-15 & The mission shall be conducted within the constraints of EASA "TBD" category.                                    & Ensures legal operation.                                                    \\
+REQ-STK-13-MSN-16 & The mission shall ensure resilience to single-point failures in sensors or actuators.                            & Reduces probability of catastrophic failure.                                \\
+REQ-STK-13-MSN-17 & The mission shall utilize a safe mode upon critical error.                                                       & Reduces impact of potential failure.                                        \\
+REQ-STK-14-MSN-18 & The mission shall include a go/no-go checklist phase and risk assessment prior to sortie.                        & Ensures risks are minimized and documented.                                 \\
+REQ-STK-15-MSN-19 & The mission shall be performed without exceeding local community noise thresholds.                               & Reduces impact to third parties.                                            \\
+REQ-STK-16-MSN-20 & The mission shall be executed using hardware that allows for component-level recycling.                          & Minimizes post-lifecycle impact to the environment.                         \\
+REQ-STK-16-MSN-21 & The mission shall be designed to minimize direct and indirect environmental harm.                                & Minimizes operational impact to the environment.                            \\
+REQ-STK-17-MSN-22 & The mission hardware shall use modular elements to minimize repair and replacement costs.                        & Minimizes cost of repairs and maintenance.                                  \\
+REQ-STK-18-MSN-23 & The flight path shall be managed to ensure no dangerous components pass over bystanders.                         & Operational safety mission to prevent ground injury. \\
+REQ-STK-19-MSN-24 & The mission shall allow for mobile deployment from a fullsize pickup truck.                                      & Ensures easy and fast deployment.                                           \\ \hline
+\end{xltabular}
+\vspace{-20pt}
+\section{System Requirements}
+System Requirements define the necessary properties, functions, and performance criteria a system must meet to satisfy stakeholder needs and the mission itself. They are identified through a requirement discovery tree, checked for completeness by linking them to the stakeholder and mission requirements, and then finally validated. 
+
+%  - some text
+%  - tree
+%  - table of final system requirements
+
+% Going from stakeholder requirements into mission into system.
+% Stakeholder: What user wants (and other)
+% Mission: What is needed to happen
+% System: What a system needs to make the mission happen
+
+% This section will detail how we got from one to the other.
+\vspace{-10pt}
+\subsection{Requirement Discovery Tree}\label{ReqTree}
+The requirements discovery tree is used to organise and trace the transition from stakeholder needs to mission and system requirements. It can be found in \autoref{sec:requirements-discovery-tree}.
+The user requirements have been set out during the project planning, and now need to be converted into valid system requirements. The requirements required to successfully fulfill the mission requirements have been split up into two categories: functional and non-functional.
+Functional requirements are the ones specifying what the system needs to be able to do. This encompasses operational requirements, identification, interception, and then the recovery of the balloon. 
+Non-functional define the quality attributes of the system. These are split up into safety, sustainability, and market requirements.
+\vspace{-10pt}
+\subsection{Finalization of Requirements}
+After creating the requirement tree, an identifier was added to each requirements and then they were compiled in \autoref{tab:system-requirements}.
+Validation of the requirements is carried out to ensure that the requirements meet the VALID criteria:
+\begin{itemize}
+    \item \textbf{V}erifiable (i.e. objective, preferably quantitative)
+    \item \textbf{A}chievable (i.e. sufficient resources available)
+    \item \textbf{L}ogical (i.e. traceability, flow-down)
+    \item \textbf{I}ntegral (i.e. complete, all-encompassing)
+    \item \textbf{D}efinitive (i.e. unambiguous)
+\end{itemize}
+
+Additional checks are carried out to compare the requirements to the results of the literature study and the user requirements, ensuring that all of the requirements purposefully constrain the design space to match the needs of the user as closely as possible. 
+
+This validation process leads to the final requirements, summarized in \autoref{tab:system-requirements}.
+\vspace{-10pt}
+\bgroup
+\renewcommand{\arraystretch}{1.1}
+
+\begin{xltabular}{\textwidth}{p{0.16\textwidth} p{0.5\textwidth} X p{0.1\textwidth}}
+% --- Header for the FIRST page (contains caption) ---
+\caption{BELLONA System Requirements} \label{tab:system-requirements}\\
+\hline
+\textbf{ID} & \textbf{Requirement} & \textbf{Classification} & \textbf{Source} \\ \hline
+\endfirsthead
+
+% --- Header for ALL SUBSEQUENT pages (no caption) ---
+\hline
+\textbf{ID} & \textbf{Requirement} & \textbf{Classification} & \textbf{Source} \\ \hline
+\endhead
+
+% --- Footer for all pages ---
+\hline
+\endfoot
+%
+REQ-STK-01-MSN-01-SYS-01 & The system shall take less than TBD time from the balloon entering the covered airspace to the balloon being removed from the endangered airspace. & Key &  \ref{subsec:demand}\\ 
+REQ-STK-02-MSN-02-SYS-02 & The system shall be capable of detecting a balloon within TBD meter range. & Non-driving &  \ref{subsec:intercept_window}\\ 
+REQ-STK-02-MSN-02-SYS-03 & The system shall estimate the range, heading and altitude of the detected balloon at least once a second within 2\% accuracy. & Non-driving &  Technical\\ 
+REQ-STK-02-MSN-03-SYS-04 & The system shall estimate the path of the detected balloon for at least 10 mins into the future at least once every 10 seconds. & Non-driving &  Tech.\\ 
+REQ-STK-03-MSN-04-SYS-05 & The system shall assume the detected balloon has no onboard control. & Driving &  \ref{subsec:intercept_window}\\ 
+REQ-STK-03-MSN-04-SYS-06 & The system shall intercept the detected balloon within 10 minutes of it entering the covered airspace. & Key &  \ref{subsec:demand}\\ 
+REQ-STK-03-MSN-04-SYS-07 & The system shall be capable of autonomously intercepting the detected balloon. & Key &  Customer\\ 
+REQ-STK-03-MSN-04-SYS-08 & The system shall be capable of intercepting the detected balloon at an altitude of TBD meters. & Key &  \ref{subsec:intercept_window}\\ 
+REQ-STK-04-MSN-05-SYS-09 & The system shall attain control of the balloon using non-explosive, non-pyrotechnic methods. & Driving &  \ref{subsec:regulatory}\\ 
+REQ-STK-05-MSN-06-SYS-10 & The system shall support the definition of a desired balloon landing zone. & Non-driving &  Customer\\ 
+REQ-STK-05-MSN-06-SYS-11 & The system shall be capable of controlling an intercepted balloon with a payload mass up to 50 kilograms. & Key &  \ref{subsec:intercept_window}\\ 
+REQ-STK-05-MSN-06-SYS-12 & The system shall be capable of estimating whether the system is capable of delivering intercepted payload to the landing zone. & Non-driving &  Tech.\\ 
+REQ-STK-05-MSN-06-SYS-13 & The system shall be capable of autonomously delivering payload to the defined landing zone within 10 meters. & Key &  Tech.\\ 
+REQ-STK-05-MSN-06-SYS-14 & The system shall maintain electrical energy availability for all mission-critical functions throughout the complete mission profile. & Driving &  Tech.\\ 
+REQ-STK-05-MSN-06-SYS-15 & The system shall maintain electrical power availability for all mission-critical functions throughout the complete mission profile. & Driving &  Tech.\\ 
+REQ-STK-05-MSN-07-SYS-16 & The system shall not intentionally harm the balloon payload integrity. & Driving &  Customer\\ 
+REQ-STK-06-MSN-08-SYS-17 & The system shall not release uncontrolled debris more massive than 50g during operation. & Driving &  \ref{subsec:regulatory}\\ 
+REQ-STK-06-MSN-08-SYS-18 & The system shall enable post-operation recovery of all material released during operation. & Driving &  Customer\\ 
+REQ-STK-07-MSN-09-SYS-19 & The system shall be capable of operating during all non-severe (below KNMI Yellow) weather. & Driving &  Customer\\ 
+REQ-STK-08-MSN-10-SYS-20 & The system shall be capable of operating at all ambient light levels. & Driving &  Customer\\ 
+REQ-STK-09-MSN-11-SYS-21 & The system shall be powered by electric energy storage that allows removal, replacement, charging, and end-of-life disposal. & Non-driving &  Customer\\ 
+REQ-STK-10-MSN-12-SYS-22 & The system shall cost less than EUR 5000 (adjusted to 01/01/2026) for all flying components. & Key &  \ref{chap:Market_analysis}\\ 
+REQ-STK-11-MSN-13-SYS-23 & The system shall cost less than EUR 500 (adjusted to 01/01/2026) per use. & Key &  \ref{chap:Market_analysis}\\ 
+REQ-STK-11-MSN-13-SYS-24 & The system shall require documented justification for each one-time use component. & Driving & \ref{sec:sus-integration-into-concept-selection} \\ 
+REQ-STK-11-MSN-13-SYS-25 & The system shall be capable of executing the mission at least 100 times without major repair of non-consumables. & Driving &  \ref{subsec:solutions}\\ 
+REQ-STK-12-MSN-14-SYS-26 & The system shall allow manual override at all times during operation. & Non-driving &  \ref{subsec:regulatory}\\ 
+REQ-STK-12-MSN-15-SYS-27 & The system shall operate in compliance with all applicable aviation regulations in operating airspace. & Key & \ref{subsec:regulatory} \\ 
+REQ-STK-13-MSN-16-SYS-28 & The system shall have redundant positioning capability. & Non-driving &  \ref{sec:risk-methodology-and-overview}\\ 
+REQ-STK-13-MSN-16-SYS-29 & The system shall have redundant attitude estimation capability. & Non-driving &  \ref{sec:risk-methodology-and-overview}\\ 
+REQ-STK-13-MSN-16-SYS-30 & The system shall be able to tolerate single point failure identified in the safety analysis without catastrophic outcome. & Driving &  \ref{subsec:regulatory}\\ 
+REQ-STK-13-MSN-17-SYS-31 & The system shall be capable of detecting critical external and internal disturbances. & Driving &  \ref{sec:risk-methodology-and-overview}\\ 
+REQ-STK-13-MSN-17-SYS-32 & The system shall be capable of autonomously engaging a safe mode. & Driving &  \ref{sec:risk-methodology-and-overview}\\ 
+REQ-STK-13-MSN-17-SYS-33 & The system shall provide an abort capability at any point before interception. & Non-driving &  \ref{sec:risk-methodology-and-overview}\\ 
+REQ-STK-14-MSN-18-SYS-34 & The system shall require a pre-mission risk assessment and documented checklist completion. & Non-driving & \ref{sec:risk-methodology-and-overview} \\ 
+REQ-STK-15-MSN-19-SYS-35 & The system shall create no more than 65dB of noise at 50m distance during operation. & Non-driving & Community \\ 
+REQ-STK-16-MSN-20-SYS-36 & The system shall require documented justification for all non-recyclable components. & Non-driving & \ref{sec:sus-integration-into-concept-selection} \\ 
+REQ-STK-16-MSN-21-SYS-37 & The system shall not emit harmful gases included in the ECHA Hazard Class Table. & Non-driving & \ref{sec:sus-integration-into-concept-selection} \\ 
+REQ-STK-17-MSN-22-SYS-38 & The system shall use at least one replaceable modular hardware element. & Driving & \ref{subsec:demand} \\ 
+REQ-STK-18-MSN-23-SYS-39 & The system shall not have any exposed blades below 100m AGL. & Non-driving &  \ref{sec:risk-methodology-and-overview}\\ 
+REQ-STK-19-MSN-24-SYS-40 & The system shall be transportable within dimensions of TBD meters. & Driving & Customer \\ 
+REQ-STK-19-MSN-24-SYS-41 & The system shall have a total mass less than TBD kg. & Driving & Customer \\ 
+
+REQ-STK-19-MSN-24-SYS-42 & The UAS operator shall provide a statement confirming the operation complies with all applicable Union and national rules regarding privacy, data protection, liability, and insurance as per Article 12(2)(c) of Regulation (EU) 2019/947. & Driving & Regulatory \\ 
+
+REQ-STK-19-MSN-24-SYS-43 & The system shall be maintained by a competent entity in accordance with maintenance instructions that cover the UAS designer’s requirements as defined in AMC1 to Article 11 (OSO #03).& Driving & Regulatory \\ 
+
+
+
+
+
+
+
+\hline
+\end{xltabular}
+\egroup
+
+
+
+%Several system requirements are directly derived from the sustainability strategy. These include the electric-only energy storage, prevention of debris release above 50 g, controlled recovery of the balloon and payload, low-noise operation, modularity, reusability and minimisation of disposable mission hardware. These requirements are treated as design driving because they constrain the platform, interaction mechanism, mission profile and post-mission recovery process.

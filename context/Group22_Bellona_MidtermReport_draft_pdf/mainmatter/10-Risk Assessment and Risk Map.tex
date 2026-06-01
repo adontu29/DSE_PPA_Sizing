@@ -1,0 +1,304 @@
+\chapter{Risk Assessment \& Risk Map}
+As the project progresses towards the preliminary design stage, the risks associated with the selected design become clearer and more concrete. The risk assessment therefore follows the same methodology as the Baseline Report \cite{bellona2026baseline}. The risk register has been updated for Concept A by removing risks linked to discarded concepts and adding risks that arise from the selected tail-sitter, net-capture, and tethered-descent architecture. This keeps the updated register traceable to the previous risk assessment while focusing on the risks that now drive the preliminary design. Each risk is assessed before and after mitigation to show how design and operational measures reduce the expected mission risk.
+\section{Updated Concept-Specific Risk Register}
+\autoref{tab:conceptA_added_risks} presents the new risks found for Concept A. The risks are organised by subsystem or mission phase, with the initial probability and impact scores shown alongside the planned prevention measures, contingency actions, and residual risk levels after mitigation. The previous risks can be found in the Baseline Report \cite{bellona2026baseline}.
+
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\renewcommand{\arraystretch}{1}
+\setlength{\tabcolsep}{1.5pt}
+
+\begin{center}
+\small
+\begin{xltabular}{\textwidth}{|>{\raggedright\arraybackslash}p{0.055\textwidth}|
+                  >{\raggedright\arraybackslash}X|
+                  >{\centering\arraybackslash}p{0.015\textwidth}|
+                  >{\centering\arraybackslash}p{0.015\textwidth}|
+                  >{\raggedright\arraybackslash}X|
+                  >{\raggedright\arraybackslash}X|
+                  >{\centering\arraybackslash}p{0.02\textwidth}|
+                  >{\centering\arraybackslash}p{0.02\textwidth}|
+                  >{\raggedright\arraybackslash}p{0.055\textwidth}|}
+
+\caption{Additional and modified Concept A technical risks with prevention measures, contingency actions, residual risk ratings and responsible owner.}
+\label{tab:conceptA_added_risks} \\
+\hline
+\textbf{ID} & \textbf{Description} & \textbf{P} & \textbf{I} & \textbf{Prevention} & \textbf{Contingency} & \textbf{P$_r$} & \textbf{I$_r$} & \textbf{Resp.} \\ \hline
+\endfirsthead
+
+\hline
+\textbf{ID} & \textbf{Description} & \textbf{P} & \textbf{I} & \textbf{Prevention} & \textbf{Contingency} & \textbf{P$_r$} & \textbf{I$_r$} & \textbf{Resp.} \\ \hline
+\endhead
+
+\hline
+\endfoot
+
+RSK-BID-04 & Net launch or deployment fails during upward firing from below the payload. & 3 & 4 & Define allowable launch distance, hover stability, and relative-speed limits before firing; ground-test launcher packing, trigger timing, and net opening repeatability. & Abort the capture attempt, recover or clear the net if possible, and reattempt only if energy and tracking margins remain sufficient. & 2 & 2 & DB \\ \hline
+
+RSK-BID-05 & Net closure or clearance fails after deployment, causing partial capture or contact between the net, tether, corner weights, and UAV. & 3 & 5 & Use cinch/tension confirmation, propeller clearance zones, tether routing constraints, and ground tests with representative payload shapes and net deployment geometries. & Release or loosen the net if safe; otherwise enter controlled descent or trigger the emergency separation sequence if aircraft safety is threatened. & 2 & 4 & DB \\ \hline
+
+RSK-SMS-06 & Tether, net rim, cinch line, or attachment point fails under gust, payload swing, or towing loads. & 3 & 5 & Size soft-goods and attachment points for combined payload, drag, gust, and dynamic swing loads with appropriate safety factors. & Release the tether or captured bundle only if the backup descent state is controlled; otherwise reduce speed and descend with limited manoeuvring. & 2 & 4 & JW \\ \hline
+
+RSK-SMS-07 & Tether reel jams or fails to regulate tension during transition or descent. & 2 & 4 & Use a torque limiter, controlled payout mode, reel position sensing, and dynamic load testing before flight. & Reduce manoeuvre aggressiveness, or release the tether if tension threatens aircraft control. & 1 & 3 & AM \\ \hline
+
+RSK-SCE-06 & Tether tension, reel position, or capture-confirmation sensing gives incorrect feedback. & 3 & 4 & Use sensor calibration, plausibility checks between reel state and load measurements, and conservative confirmation thresholds before towing. & Treat the capture state as uncertain, reduce towing speed, hold position if possible, or release/abort if the measured loads become unsafe. & 1 & 3 & AT \\ \hline
+
+RSK-OGS-04 & Recovery zone becomes unsuitable during  towing descent. & 3 & 4 & Continuously update the predicted recovery zone using wind, descent rate, tether angle, and remaining energy before and after capture. & Redirect to an alternate recovery zone, reduce descent aggressiveness, or abort/release only if the backup descent state remains safe. & 1 & 3 & PB \\ \hline
+
+RSK-PPA-04 & Payload pendulum motion grows during towing descent and destabilizes the UAV. & 4 & 4 & Include suspended-load dynamics in the control model and limit descent acceleration, turn rate, and tether speed. & Reduce speed, increase damping through reel control, widen the recovery path, or release the tether if aircraft stability is threatened. & 2 & 3 & AP \\ \hline
+
+RSK-PPA-05 & Balloon drag or residual lift exceeds available towing or descent authority. & 3 & 5 & Check towing force against worst-case balloon diameter, gust load, tether angle, payload mass, and energy margin before interaction. & Abort before capture if the authority margin is insufficient, or release/disengage if safe recovery cannot be maintained after contact. & 2 & 4 & AD \\ \hline
+
+\end{xltabular}
+\end{center}
+\section{Risk Maps}
+
+
+
+
+
+The risk maps in \autoref{fig:tech_risk_maps} visualise the initial and residual probability-impact ratings of the updated Concept A risk register. The interpretation of the map regions follows the methodology defined in the Baseline Report \cite{bellona2026baseline}, where higher probability and impact correspond to higher priority for mitigation and monitoring.
+
+The comparison between the initial and residual maps shows the expected effect of the prevention and contingency measures listed in \autoref{tab:conceptA_added_risks}. Most risks move toward lower-severity regions after mitigation. The remaining key residual risks for Concept A are related to net launch and closure, tether and reel loads, payload pendulum motion, towing authority in wind, and subsystem budget or interface growth. These risks will therefore remain the main monitoring points during the next design phase.
+\definecolor{riskgreenstrong}{RGB}{95,205,120}
+\definecolor{riskgreen}{RGB}{145,220,155}
+\definecolor{riskyellow}{RGB}{235,225,160}
+\definecolor{riskorange}{RGB}{235,190,135}
+\definecolor{riskred}{RGB}{230,155,155}
+\definecolor{riskredstrong}{RGB}{220,105,105}
+\definecolor{riskreddark}{RGB}{215,70,70}
+% ---------- 5x5 risk map background ----------
+% ---------- 5x5 risk map background ----------
+\newcommand{\RiskMapFive}[1]{%
+    % Background colours
+    % I = 1
+      \fill[riskgreenstrong] (0,0) rectangle (1,1);
+    \fill[riskgreen]       (1,0) rectangle (2,1);
+    \fill[riskgreen]       (2,0) rectangle (3,1);
+    \fill[riskyellow]      (3,0) rectangle (4,1);
+    \fill[riskorange]      (4,0) rectangle (5,1);
+
+    % I = 2
+    \fill[riskgreen]       (0,1) rectangle (1,2);
+    \fill[riskgreen]       (1,1) rectangle (2,2);
+    \fill[riskyellow]      (2,1) rectangle (3,2);
+    \fill[riskorange]      (3,1) rectangle (4,2);
+    \fill[riskorange]      (4,1) rectangle (5,2);
+
+    % I = 3
+    \fill[riskgreen]       (0,2) rectangle (1,3);
+    \fill[riskyellow]      (1,2) rectangle (2,3);
+    \fill[riskorange]      (2,2) rectangle (3,3);
+    \fill[riskorange]      (3,2) rectangle (4,3);
+    \fill[riskred]         (4,2) rectangle (5,3);
+
+    % I = 4
+    \fill[riskyellow]      (0,3) rectangle (1,4);
+    \fill[riskorange]      (1,3) rectangle (2,4);
+    \fill[riskorange]      (2,3) rectangle (3,4);
+    \fill[riskred]         (3,3) rectangle (4,4);
+    \fill[riskredstrong]   (4,3) rectangle (5,4);
+
+    % I = 5
+    \fill[riskorange]      (0,4) rectangle (1,5);
+    \fill[riskorange]      (1,4) rectangle (2,5);
+    \fill[riskred]         (2,4) rectangle (3,5);
+    \fill[riskredstrong]   (3,4) rectangle (4,5);
+    \fill[riskreddark]     (4,4) rectangle (5,5);
+
+    % Grid
+    \draw[black, thick] (0,0) rectangle (5,5);
+    \foreach \x in {1,2,3,4} {
+        \draw[black, thin] (\x,0) -- (\x,5);
+    }
+    \foreach \y in {1,2,3,4} {
+        \draw[black, thin] (0,\y) -- (5,\y);
+    }
+
+    % Axes
+    \draw[-{Stealth[length=2.6mm]}, thick] (0,0) -- (5.1,0);
+    \draw[-{Stealth[length=2.6mm]}, thick] (0,0) -- (0,5.1);
+
+    % Tick labels
+    \foreach \x/\lab in {0.5/1,1.5/2,2.5/3,3.5/4,4.5/5} {
+        \node[below=3pt, font=\fontsize{9.0}{10.0}\selectfont] at (\x,0) {\lab};
+    }
+    \foreach \y/\lab in {0.5/1,1.5/2,2.5/3,3.5/4,4.5/5} {
+        \node[left=3pt, font=\fontsize{9.0}{10.0}\selectfont] at (0,\y) {\lab};
+    }
+
+    % Axis labels
+    \node[below=11pt, font=\fontsize{9.0}{10.0}\selectfont] at (2.5,0) {Probability};
+    \node[rotate=90, left=15pt, font=\fontsize{9.0}{10.0}\selectfont] at (0,3.3) {Impact};
+
+    % Title
+    \node[font=\fontsize{10.0}{12.0}\selectfont\bfseries] at (2.5,5.1) {#1};
+}
+\begin{figure}[H]
+\centering
+
+% ---------------- BEFORE ----------------
+\begin{minipage}{0.47\linewidth}
+\centering
+\begin{tikzpicture}[
+    x=1.45cm,
+    y=2cm,
+    risklabel/.style={
+        align=center,
+        font=\fontsize{6.6}{7.6}\selectfont,
+        text width=2.05cm,
+        inner sep=1.5pt
+    },
+    risklabeldense/.style={
+        align=center,
+        font=\fontsize{6.0}{7.0}\selectfont,
+        text width=2.08cm,
+        inner sep=1.5pt
+    }
+]
+\hspace*{-0.45cm}
+
+\RiskMapFive{Before mitigation}
+
+% (P=1, I=2)
+\node[risklabel] at (0.5,1.5)
+{RSK-BID-03};
+
+% (P=2, I=2)
+\node[risklabel] at (1.5,1.5)
+{RSK-SMS-05\\RSK-SCE-05};
+
+% (P=3, I=2)
+\node[risklabel] at (2.5,1.5)
+{RSK-SCE-02};
+
+% (P=4, I=2)
+\node[risklabel] at (3.5,1.5)
+{RSK-SMS-03\\RSK-OGS-03};
+
+% (P=2, I=3)
+\node[risklabeldense] at (1.5,2.5)
+{RSK-SMS-04\\RSK-SCE-03\\RSK-OGS-01\\RSK-OGS-02\\RSK-GEN-01};
+
+% (P=3, I=3)
+\node[risklabel] at (2.5,2.5)
+{RSK-PPA-02};
+
+% (P=4, I=3)
+\node[risklabel] at (3.5,2.5)
+{RSK-SCE-01};
+
+% (P=2, I=4)
+\node[risklabel] at (1.5,3.5)
+{RSK-SMS-01\\RSK-SMS-07};
+
+% (P=3, I=4)
+\node[risklabeldense] at (2.5,3.5)
+{RSK-BID-04\\RSK-SCE-06\\RSK-OGS-04\\RSK-GEN-02\\RSK-GEN-03};
+
+% (P=4, I=4)
+\node[risklabel] at (3.5,3.5)
+{RSK-GEN-04\\RSK-PPA-04};
+
+% (P=5, I=4)
+\node[risklabel] at (4.5,3.5)
+{RSK-SMS-02};
+
+% (P=2, I=5)
+\node[risklabel] at (1.5,4.5)
+{RSK-BID-01\\RSK-PPA-03};
+
+% (P=3, I=5)
+\node[risklabeldense] at (2.5,4.5)
+{RSK-BID-05\\RSK-SMS-06\\RSK-PPA-01\\RSK-PPA-05};
+
+\end{tikzpicture}
+\end{minipage}
+% ---------------- AFTER ----------------
+\begin{minipage}{0.47\linewidth}
+\centering
+\begin{tikzpicture}[
+    x=1.45cm,
+    y=2cm,
+    risklabel/.style={
+        align=center,
+        font=\fontsize{6.6}{7.6}\selectfont,
+        text width=2.05cm,
+        inner sep=1.5pt
+    },
+    risklabeldense/.style={
+        align=center,
+        font=\fontsize{6.0}{7.0}\selectfont,
+        text width=2.08cm,
+        inner sep=1.5pt
+    }
+]
+
+\RiskMapFive{After mitigation}
+
+% (Pr=1, Ir=1)
+\node[risklabel] at (0.5,0.5)
+{RSK-BID-03};
+
+% (Pr=1, Ir=2)
+\node[risklabel] at (0.5,1.5)
+{RSK-SMS-04\\RSK-SMS-05\\RSK-SCE-03\\RSK-SCE-05};
+
+% (Pr=2, Ir=2)
+\node[risklabeldense] at (1.5,1.5)
+{RSK-BID-04\\RSK-SMS-03\\RSK-SCE-01\\RSK-SCE-02\\RSK-OGS-01\\RSK-OGS-02\\RSK-OGS-03\\RSK-GEN-01};
+
+% (Pr=1, Ir=3)
+\node[risklabel] at (0.5,2.5)
+{RSK-SCE-06\\RSK-OGS-04\\RSK-SMS-07};
+
+% (Pr=2, Ir=3)
+\node[risklabeldense] at (1.5,2.5)
+{RSK-SMS-01\\RSK-SMS-02\\RSK-PPA-01\\RSK-PPA-02\\RSK-PPA-03\\RSK-PPA-04\\RSK-GEN-02\\RSK-GEN-03};
+
+% (Pr=3, Ir=3)
+\node[risklabel] at (2.5,2.5)
+{RSK-GEN-04};
+
+% (Pr=1, Ir=4)
+\node[risklabel] at (0.5,3.5)
+{RSK-BID-01};
+
+% (Pr=2, Ir=4)
+\node[risklabeldense] at (1.5,3.5)
+{RSK-BID-05\\RSK-SMS-06\\RSK-PPA-05};
+
+\end{tikzpicture}
+\end{minipage}
+
+\caption{Technical risk maps before and after prevention and contingency measures}
+\label{fig:tech_risk_maps}
+\end{figure}
+
+% \section{Changelog}
+% \label{sec:Risk_Changelog}
+
+% {\large \textbf{Last updated: 18/05/2026}}
+
+% The following changes were made to update the risk register for the selected Concept A architecture:
+% \begin{enumerate}
+%     \item \textbf{Removed risks:} \textbf{RSK-BID-02} was removed because Concept A captures the suspended payload from below, making direct balloon-envelope capture no longer relevant.\\
+%     \textbf{RSK-SCE-04} was removed because the wiring-detail risk was too broad for the concept-specific update and is already covered by electrical integration and interface risks.
+
+%     \item \textbf{Added risks:} RSK-BID-04, RSK-BID-05, RSK-SMS-06, RSK-SMS-07, RSK-SCE-06, RSK-OGS-04, RSK-PPA-04, and RSK-PPA-05 were added to cover Concept A risks related to net deployment, net closure, tether-load management, reel behaviour, capture-state feedback, recovery-zone prediction, payload swing, and towing authority.
+% \end{enumerate}
+
+
+
+
+\section{Changelog}
+\label{sec:Risk_Changelog}
+
+The risk register was updated from the Baseline Report to reflect the selected Concept A architecture.
+
+\begin{enumerate}
+    \item \textbf{Removed risks:} \textbf{RSK-BID-02} was removed because Concept A captures the suspended payload from below and does not rely on direct balloon-envelope capture. \textbf{RSK-SCE-04} was removed because the wiring-detail risk was too broad for this concept-specific update and is already covered by electrical integration and interface risks.
+
+    \item \textbf{Added risks:} \textbf{RSK-BID-04}, \textbf{RSK-BID-05}, \textbf{RSK-SMS-06}, \textbf{RSK-SMS-07}, \textbf{RSK-SCE-06}, \textbf{RSK-OGS-04}, \textbf{RSK-PPA-04}, and \textbf{RSK-PPA-05} were added to cover Concept A risks related to net deployment, net closure, tether-load management, reel behaviour, capture-state feedback, recovery-zone prediction, payload swing, and towing authority.
+
+\end{enumerate}

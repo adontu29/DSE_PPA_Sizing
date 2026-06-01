@@ -1,0 +1,225 @@
+ \documentclass{tudelft-report}
+
+\usepackage[sorting=none, giveninits=true, maxnames=500]{biblatex}
+\DeclareNameAlias{author}{family-given}
+\addbibresource{references/references.bib}
+\addbibresource{references/daris.bib}
+
+
+
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{makecell}
+\usepackage{pdflscape}
+\usepackage{tabularray}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{comment}
+\usepackage{tabularx}
+\usepackage{xltabular}
+\usepackage{wrapfig}
+\usepackage{pdfpages}
+\usepackage{rotating}
+\usepackage[dvipsnames]{xcolor} % To access some named colors used with \highLight
+\usepackage{blindtext}
+\usepackage{listings}
+\usepackage{soul} % For highlighting
+\usepackage{todonotes} % For \todo comments
+
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{siunitx}
+\usepackage{eurosym}
+\usepackage[hidelinks]{hyperref}
+\usepackage{amsmath,amssymb}
+\usepackage{forest}
+\usepackage{tikz}
+\usepackage[utf8]{inputenc}
+\usepackage{array}
+\usepackage{multirow}
+
+
+\geometry{a4paper, margin=1in}
+\usetikzlibrary{arrows.meta}
+
+\definecolor{dotroot}{RGB}{120,170,220}
+\definecolor{dotl1}{RGB}{255,196,130}
+\definecolor{dotl2}{RGB}{255,236,170}
+\definecolor{dotl3}{RGB}{240,240,240}
+\definecolor{dotelim}{RGB}{239,154,154}
+\definecolor{dotsel}{RGB}{174,213,129}
+
+\forestset{
+  dotstyle/.style={
+    for tree={
+      draw,
+      rounded corners,
+      align=center,
+      font=\scriptsize,
+      edge={-Stealth, thick, black!60},
+      l sep=7mm,
+      s sep=3mm,
+      anchor=north,
+      parent anchor=south,
+      child anchor=north,
+      inner sep=2pt,
+    },
+    where level=0{fill=dotroot, font=\scriptsize\bfseries}{},
+    where level=1{fill=dotl1, font=\scriptsize\bfseries}{},
+    where level=2{fill=dotl2}{},
+    where level=3{fill=dotl3}{},
+  },
+  elim/.style={fill=dotelim},
+  sel/.style={fill=dotsel, very thick},
+}
+\setlist{itemsep=-2pt} % Reducing white space in lists slightly
+\renewcommand{\deg}{\si{\degree}\xspace} % Use \deg easily, everywhere
+\setlength{\parindent}{0pt}
+\hbadness=99999
+\hfuzz=9999pt
+\setcounter{tocdepth}{1}
+
+\let\orgautoref\autoref
+\renewcommand{\autoref}[1]{%
+\def\sectionautorefname{Section}%
+\def\chapterautorefname{Chapter}%
+\def\subsectionautorefname{Subsection}%
+\orgautoref{#1}}%
+
+
+
+%% ----------------------------------------------------------------------
+%%    Begin of document + Frontmatter (Roman page numbering)
+%% ----------------------------------------------------------------------
+
+%===================
+\makeatletter
+\patchcmd{\chapter}{\if@openright\cleardoublepage\else\clearpage\fi}{}{}{}
+\makeatother
+%===================
+%start chapters without new page
+
+\begin{document}
+\frontmatter
+
+%% Define the main parameters
+\title{Baseline Report}
+
+\subtitle{BELLONA}
+
+\author{Group 22}
+
+\subject{AE3200 Design Synthesis} % Cover only
+\affiliation{Delft University of Technology} % Cover only
+\coverimage{figures/sunset-balloon-cropped.jpg} % Aspect ratio of 2:3 (portrait) recommended
+\definecolor{title}{HTML}{4884d6} % Color for cover title
+\makecover
+
+\input{frontmatter/title-report}
+% \input{frontmatter/preface}
+\input{frontmatter/summary}
+
+
+\input{mainmatter/01-Executive}
+\tableofcontents
+% \listoffigures
+% \addcontentsline{toc}{chapter}{List of Figures}
+%\listoftables
+% \addcontentsline{toc}{chapter}{List of Tables}
+
+% \input{frontmatter/list-of-symbols}
+
+%% ----------------------------------------------------------------------
+%%    Mainmatter (Arabic page numbering)
+%% ----------------------------------------------------------------------
+
+\mainmatter
+\bgroup
+\renewcommand{\arraystretch}{0.95}
+
+%\input{mainmatter/01-Executive}
+\input{mainmatter/015-Objective}
+\input{mainmatter/07-Economical Analysis}
+
+\input{mainmatter/02-Mission-Market}
+
+%\input{mainmatter/03-Literature-Study}
+\input{mainmatter/04-Functional-Analysis}
+\input{mainmatter/09-Sustainability}
+\input{mainmatter/05-Requirements}
+\input{mainmatter/06-Design-Options}
+\input{mainmatter/08-Contingency}
+\input{mainmatter/10-Risk-Assessment}
+\input{mainmatter/13-ROI and Cost Breakdown}
+\input{mainmatter/11-Conclusions}
+%\input{mainmatter/12-Sustainability}
+\input{mainmatter/09-Resource-Budget}
+
+
+\egroup
+
+% Prevent urls running into margins in bibliography
+\setcounter{biburlnumpenalty}{7000}
+\setcounter{biburllcpenalty}{7000}
+\setcounter{biburlucpenalty}{7000}
+
+%% Spacing Adjustments
+\setlength{\bibitemsep}{-1.3pt}     % Gap between entries (adjust as needed)
+\setlength{\bibparsep}{0pt}      % Gap between paragraphs within an entry
+
+%% Add bibliography
+\printbibliography[heading=bibintoc, title=References]
+%\renewcommand{\bibname}{References}
+%\bibliographystyle{new-aiaa}  % Use the AIAA bibliography style
+%\bibliography{references/maria,references/daris,references/camille}  % Your bibliography file
+%\addcontentsline{toc}{chapter}{References}
+%% ----------------------------------------------------------------------
+%%    Appendix (Letters for chapters)
+%% ----------------------------------------------------------------------
+
+\appendix
+% Appendix chapter title position/style
+\clearpage
+
+% Keep the PDF/page size as it is, but make the usable text area A3-wide
+\setlength{\textwidth}{400mm}
+\setlength{\linewidth}{400mm}
+\setlength{\oddsidemargin}{-15mm}
+
+% Appendix chapter title position/style
+\titleformat{\chapter}[display]
+    {\raggedleft}
+    {\fontsize{30}{38}\selectfont\largetitlestyle ~\thechapter}
+    {0pt}
+    {\Huge\titlestyle}
+
+\titlespacing*{\chapter}
+    {0pt}
+    {-1.5cm}
+    {0.2cm}
+
+% Appendix section title
+\titleformat{\section}
+    {\Large\titlestyle\bfseries\raggedleft}
+    {\thesection.}
+    {5pt}
+    {}
+
+\titlespacing*{\section}
+    {0pt}
+    {0pt}
+    {0.2cm}
+\input{appendix/appendix-a}
+% \input{appendix/appendix-b}
+% \input{appendix/appendix-c}
+
+%\input{appendix/appendix-c} % Create file to add
+
+\end{document}

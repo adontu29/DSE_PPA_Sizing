@@ -1,0 +1,245 @@
+\chapter{Verification \& Validation Plan}
+
+This chapter presents the Verification and Validation (V\&V) plan. It first defines the mission and system V\&V approach, then defines the V\&V plan for the software, models, CAD environment, and other design tools used during the next phase.
+
+\section{V - Model}
+\label{sec:vmodel}
+
+The V-Model structures the verification and validation process as a symmetric progression: the left side descends from high-level stakeholder requirements through system and subsystem design, while the right side ascends through corresponding verification and validation activities. This means stakeholder requirements are ultimately validated through operational trials, while individual subsystem properties are confirmed through analysis, inspection, demonstration, and test at the earliest feasible stage.
+
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    every node/.style = {align=center, font=\small},
+    lbox/.style = {
+        draw, rounded corners=4pt, fill=violet!12, draw=violet!50,
+        text width=3.4cm, minimum height=1.1cm, inner sep=6pt
+    },
+    rbox/.style = {
+        draw, rounded corners=4pt, fill=orange!12, draw=orange!50,
+        text width=3.4cm, minimum height=1.1cm, inner sep=6pt
+    },
+    bbox/.style = {
+        draw, rounded corners=4pt, fill=teal!12, draw=teal!50,
+        text width=4.2cm, minimum height=1.1cm, inner sep=6pt
+    },
+    bridgelabel/.style = {font=\scriptsize\itshape, text=gray,
+                          text width=4.8cm, align=center},
+    arr/.style = {-Stealth, thick, gray!70},
+]
+
+%% ── LEFT ARM ──────────────────────────────────────────────────────────────
+\node[lbox] (stk) at (0, 0)
+    {\textbf{Stakeholder}\\\textbf{requirements}};
+
+\node[lbox] (msn) at (0, -2.8)
+    {\textbf{Mission}\\\textbf{requirements}};
+
+\node[lbox] (sys) at (0, -5.6)
+    {\textbf{System}\\\textbf{requirements}};
+
+%% ── BOTTOM APEX ───────────────────────────────────────────────────────────
+\node[bbox] (des) at (5.0, -8.2)
+    {\textbf{Subsystem design}\\[2pt]
+     \scriptsize Analysis \& detailed models};
+
+%% ── RIGHT ARM ─────────────────────────────────────────────────────────────
+\node[rbox] (vsys) at (10.0, -5.6)
+    {\textbf{System V\&V}\\[2pt]
+     \scriptsize SYS-VCRM (A\,/\,I\,/\,D\,/\,T)};
+
+\node[rbox] (vmsn) at (10.0, -2.8)
+    {\textbf{Mission V\&V}\\[2pt]
+     \scriptsize MSN-VCRM (A\,/\,I\,/\,D\,/\,T)};
+
+\node[rbox] (vstk) at (10.0, 0)
+    {\textbf{Stakeholder validation}\\[2pt]
+     \scriptsize OT\,/\,SR\,/\,SE\,/\,AB};
+
+%% ── LEFT DESCENDING ARROWS ────────────────────────────────────────────────
+\draw[arr] (stk.south) -- (msn.north);
+\draw[arr] (msn.south) -- (sys.north);
+\draw[arr] (sys.south) -- (des.west);
+
+%% ── RIGHT ASCENDING ARROWS ────────────────────────────────────────────────
+\draw[arr] (des.east) -- (vsys.south);
+\draw[arr] (vsys.north) -- (vmsn.south);
+\draw[arr] (vmsn.north) -- (vstk.south);
+
+%% ── HORIZONTAL BRIDGE LINES ───────────────────────────────────────────────
+\draw[dashed, gray!45, thin]
+    (stk.east) --
+    node[bridgelabel, above=3pt]
+        {Scenario eval.\ $\cdot$ stakeholder review $\cdot$ operational trial $\cdot$ analogue comp.}
+    (vstk.west);
+
+\draw[dashed, gray!45, thin]
+    (msn.east) --
+    node[bridgelabel, above=3pt]
+        {Demonstration $\cdot$ test $\cdot$ inspection $\cdot$ analysis}
+    (vmsn.west);
+
+\draw[dashed, gray!45, thin]
+    (sys.east) --
+    node[bridgelabel, above=3pt]
+        {Analysis $\cdot$ inspection $\cdot$ demonstration $\cdot$ test}
+    (vsys.west);
+
+%% ── ARM LABELS ────────────────────────────────────────────────────────────
+\node[rotate=90, font=\scriptsize\itshape, text=gray]
+    at (-2.2, -2.8) {Decomposition \& design};
+
+\node[rotate=-90, font=\scriptsize\itshape, text=gray]
+    at (12.2, -2.8) {Verification \& validation};
+
+\end{tikzpicture}
+\caption{V-Model: left arm shows requirement decomposition into design; The 
+right arm shows the corresponding verification and validation activities at each level.}
+\label{fig:vmodel}
+\end{figure}
+
+
+
+\section{Verification Methods}
+\label{sec:vermet}
+
+Four standard verification methods are used in the V\&V program. Each method is described below and contains an applicability condition and a concrete example chosen from the system. The method selected for each requirement depends on its nature, available resources, and the required confidence level. Requirements are often verified using multiple methods progressively, with analysis providing early confidence and physical testing offering final confirmation.
+
+
+\textbf{Analysis(A): }Verification by analysis uses mathematical models, simulations, or computational tools to demonstrate that a requirement is met without physical testing. The result is a predicted value compared against established thresholds. Analysis is the primary method when physical testing is unfeasible.
+
+\textbf{Inspection(I): }Verification by inspection uses visual examination, dimensional measurement, or direct documentation reviews to confirm compliance. Inspection evaluates physical properties that can be directly observed without activating the system, such as mass, geometry, material choice, presence of sub-components, or compliance with regulatory checklists.
+
+
+\textbf{Demonstration(D): }Verification by demonstration activates the system or a representative subsystem to confirm that a required function is performed without measuring precise quantitative outputs. The pass criterion is binary (pass/fail). Demonstration is used for functional requirements to prove a capability exists rather than how efficiently it performs, meaning it does not produce numerical performance margins.
+
+\textbf{Test (T): }Verification by test measures the quantitative performance of a system or subsystem under controlled conditions and compares results against requirements. A test produces numerical data with associated uncertainty bounds, making it the highest-confidence verification method. Testing is required for all critical requirements, but it is the most resource-intensive approach.
+
+\section{Validation Methods}
+\label{sec:valmet}
+
+While verification confirms the system meets specific requirements, validation ensures those requirements accurately represent true stakeholder needs. This is vital because several requirements are derived under assumptions that must be revisited as the design matures. Four validation approaches are used in the program.
+
+\textbf{Stakeholder Review (SR): }Key requirements and design decisions are reviewed with airport operators, border control authorities, or their proxies to confirm thresholds reflect real deployment conditions. A requirement that is technically verified but operationally irrelevant provides no mission value.
+
+
+\textbf{Scenario-Based Evaluation (SE): }The system is assessed against representative mission scenarios that capture the full range of operational conditions, including edge cases. This includes tracking small or large balloons across varying altitude windows and severe crosswinds. Scenario evaluation checks whether verified requirements produce a balanced system and highlights gaps between individual requirement numbers and real performance.
+
+\textbf{Analogue and Benchmark Comparison (AB): }Where direct stakeholder access or field trials are not feasible, performance is compared against documented analogues. Helicopter-based balloon interception operations and counter-UAS net capture systems provide baselines for mission timelines, costs, and capture reliability. The system must demonstrate a clear advantage over these existing alternatives.
+
+\textbf{Operational Trial (O): }At the end of the final design phase, an end-to-end mission trial under representative field conditions serves as the primary validation activity. Conducted as a realistic mission execution from initial target cuing through intercept, capture, and recovery, it validates whether the complete system fulfills the mission.
+
+\section{Model and Tool V\&V Plan}
+\label{sec:model_tool_vv_plan}
+\label{sec:Missplan}
+
+The first stage of the V\&V process is the verification and validation of requirements. The stakeholder, mission, and system requirements, alongside their corresponding verification or validation method, are presented in \autoref{tab:stakeholder_vrm_consolidated}, \autoref{tab:mission_vcrm_consolidated}, and \autoref{tab:system_vcrm_consolidated}. The detailed requirement-by-requirement V\&V traceability matrix is maintained separately in the requirements compliance matrix. For this report, the V\&V plan is grouped by requirement family to show the required evidence without repeating similar success criteria for every individual requirement.
+
+
+
+
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Stakeholder Requirements Validation Matrix}
+\label{tab:stakeholder_vrm_consolidated}
+\renewcommand{\arraystretch}{1.1}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}l c p{0.2\textwidth} X}
+\toprule
+\textbf{Method} & \textbf{Count} & \textbf{REQ-STK-XX} & \textbf{Criteria Keywords \& Explanations} \\
+\midrule
+\textbf{AB}  & 3 & 07, 11, 15 & 
+All-weather operational limits; Mission operating cost cap ($< 500$ EUR); Acoustic community limits ($< 65$ dB at 50 m). \\
+\midrule
+\textbf{O}  & 3 & 01, 05, 19 & 
+Autonomous balloon clearance; Descent tracking and safe hardware recovery; Pickup truck bed sizing check. \\
+\midrule
+\textbf{SE}  & 5 & 02, 03, 06, 08, 13 & 
+Target size tracking bounds (2 to 6 m); 10-minute interception window; Breakaway debris weight limits ($< 50$ g); Low-light night tracking lock; Redundant systems crash prevention. \\
+\midrule
+\textbf{SR}  & 8 & 04, 09, 10.2, 12, 14, 16, 17, 18 & 
+Mechanical intercept gear authorization; All-electric propulsion; Acquisition budget cap ($< 25000$ EUR); Shared civil airspace compliance; Pre-flight checklist operator clarity; Sustainable material disposal framework; Modular maintenance optimization; Blade protective guard safety. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+
+
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Mission Requirements Verification Matrix}
+\label{tab:mission_vcrm_consolidated}
+\renewcommand{\arraystretch}{1.1}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}l c p{0.2\textwidth} X}
+\toprule
+\textbf{Method} & \textbf{Count} & \textbf{REQ-STK-XX-MSN-YY} & \textbf{Criteria Keywords \& Explanations} \\
+\midrule
+\textbf{A}  & 3 & 11-13, 12-15, 18-23 & 
+Energy-optimized paths; EASA Specific Category compliance; Geofencing/bystander protection. \\
+\midrule
+\textbf{D}  & 8 & 01-01, 02-02, 05-06, 10-12, 12-14, 13-16, 13-17, 17-22 & 
+Balloon removal; Upward target detection; Beacon \& retrieval lines; Rapid transit case setup; Pilot manual override; Backup data bus routing; Link-loss safe mode loiter; Modular field replacement. \\
+\midrule
+\textbf{I} & 7 & 04-05, 05-07, 09-11, 14-18, 16-20, 16-21, 19-24 & 
+BOM audit; Zero internal payload damage; All-electric propulsion; Pre-flight checklist software lock; Structural recycling compliance; Zero hazardous chemicals; Pickup bed sizing check. \\
+\midrule
+\textbf{T} & 6 & 02-03, 03-04, 06-08, 07-09, 08-10, 15-19 & 
+Continuous tracking lock; Under 10-minute intercept time; Breakaway debris weight limits; Crosswind flight stability; Night tracking lock capability; Acoustic community limit compliance. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+
+
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{System Requirements Verification Matrix}
+\label{tab:system_vcrm_consolidated}
+\renewcommand{\arraystretch}{1.1}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}l c p{0.2\textwidth} X}
+\toprule
+\textbf{Method} & \textbf{Count} & \textbf{REQ-STK-XX-MSN-YY-SYS-ZZ} & \textbf{Criteria Keywords \& Explanations} \\
+\midrule
+\textbf{A} & 3 & 02-02-04, 05-06-12, 13-16-30 & 
+Target path prediction; Automated flagging of impossible landing zones; Single-point failure safety modelling. \\
+\midrule
+\textbf{D}  & 10 & 03-04-07, 05-06-10, 06-08-18, 12-14-26, 13-16-28, 13-16-29, 13-17-31, 13-17-32, 13-17-33, 17-22-38 & 
+Autonomous intercept sequence; Custom landing zone input; Real-time tracking/hardware recovery; Pilot override handoff; Backup GPS switchover; Backup IMU routing; Sensor vibration warnings; Low-battery return-to-base loop; Terminal path breakout; Modular field replacement. \\
+\midrule
+\textbf{I}  & 15 & 03-04-05, 04-05-09.2, 05-07-16, 09-11-21, 10-12-22.2, 11-13-23, 11-13-24, 14-18-34, 16-20-36, 16-21-37.2, 18-23-39, 19-24-40, 19-24-41, 19-24-42, 19-24-43 & 
+Unsteered balloon model; BOM audit; Zero casing damage; Quick-release swap; Flying hardware cost ($< 25000$ EUR); Operating cost ($< 500$ EUR/flight); Single-use parts justification; Pre-flight checklist motor lock; Non-recyclable components justification; ECHA hazardous chemical check; Blade shrouds; Pickup bed sizing; System weight target verification; Privacy/liability forms; Article 11 repair schedules. \\
+\midrule
+\textbf{T}  & 15 & 01-01-01, 02-02-02, 02-02-03, 03-04-08, 05-06-11, 05-06-13, 05-06-14, 05-06-15, 06-08-17, 07-09-19, 08-10-20, 11-13-25, 15-19-35, 19-24-41 & 
+25 minute mission; Max range detection; Target telemetry rate/accuracy; Ceiling flight stability; 50 kg ballast handling; 10-meter drop accuracy; Mission power profiles; Maximum thrust voltage drop; Breakaway debris ($< 50$ g); Wind limit safety; Zero-lux night lock; System endurance (100 uses); Acoustic limits ($< 65$ dB at 50 m); Packaged system weight. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+
+
+\section{Mission and System V\&V Plan}
+
+
+
+Apart from planning the verification and validation, it is essential to plan for the V\&V of the specific design tools that will be used during the design process. These tools are divided into five model groups: balloon movement, UAS performance, balloon interaction, descent dynamics, and geometric modelling/CAD.
+
+\textbf{Balloon Movement Model:} Simulates atmospheric wind-drift and balloon paths. For unit verification via Analysis (A), we check its wind drag and buoyancy formulas under standard altitude conditions. The model is validated using Analogue and Benchmark Comparison (AB) by matching its simulated paths with real radar tracking data from historical weather balloon launches.
+
+\textbf{UAS Performance Model:} Calculates wing loading, motor thrust, and battery drain. Unit verification uses Analysis (A) by feeding standard weight, speed, and wing size inputs into the code. The test passes if the calculated lift matches analytical formulas. The tool is validated using Analogue and Benchmark Comparison (AB) by running it with specifications from a real reference UAS and comparing the resulting performance trends.
+
+
+\textbf{Balloon Interaction Mechanism Model:} Models the net gun launch, corner-weight spread dynamics, and tether-tension forces during payload capture. Unit verification uses Analysis (A) to isolate the net closure and tether-tension formulas. System integration uses a functional Demonstration (D) to check the link with the main aircraft sizing script. The model is validated using Analogue and Benchmark Comparison (AB) by mapping our calculated capture and tether loads against known load data from existing counter-UAS net-capture systems.
+
+
+\textbf{Descent Dynamics Model:} Simulates the recovery phase and landing paths for the combined drone-and-balloon mass. Unit verification uses Analysis (A) to test the balloon drag formulas under extreme conditions. System integration uses a software Test (T) to confirm that passing randomized wind drift paths from this module into the ground station map accurately updates the safe landing zones. The physics engine is validated using Analogue and Benchmark Comparison (AB) by comparison with existing wind-tunnel data for balloons.
+
+\textbf{3D CAD Environment:} The CAD environment defines the physical layout of the vehicle and must undergo a structured quality-assurance campaign to eliminate drawing errors before component production. Unit verification uses Inspection (I) to perform structural sketch audits on individual part files, with modelling sketches fully constrained and defined. Validation uses Analysis (A) to verify that the aggregate mass properties derived from the physical CAD material volumes match independent mathematical estimates. 

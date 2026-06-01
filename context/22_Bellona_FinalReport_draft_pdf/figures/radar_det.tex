@@ -1,0 +1,115 @@
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage{tikz-3dplot}
+
+\begin{document}
+
+\tdplotsetmaincoords{70}{60}
+\begin{tikzpicture}[tdplot_main_coords, scale=1, >=stealth]
+
+    % --- 1. CYLINDER BOUNDARY (6km Radius, 6km Height) ---
+    \def\cylR{6}
+    \def\cylH{6}
+    
+    % Draw cylinder base
+    \draw[black!60, dash pattern=on 2pt off 2pt] (0,0,0) circle (\cylR);
+    % Draw cylinder vertical bounds (representative lines)
+    \foreach \ang in {0, 90, 180, 270}
+        \draw[black!60, dashed] ({\cylR*cos(\ang)}, {\cylR*sin(\ang)}, 0) -- ({\cylR*cos(\ang)}, {\cylR*sin(\ang)}, \cylH);
+    % Draw cylinder top
+    \draw[black!60, dash pattern=on 2pt off 2pt] (0,0,\cylH) circle (\cylR);
+
+    % Configuration
+    \def\rMin{3.8} \def\rMax{4.2}
+    \def\thS{30}   \def\thE{60}
+    \def\phS{45}   \def\phE{75}
+
+    % Style Definitions
+    \tikzset{
+        radial/.style={fill=green!20, opacity=0.6, draw=green!50!black},
+        conical/.style={fill=orange!20, opacity=0.6, draw=orange!50!black},
+        shell/.style={fill=blue!30, opacity=0.6, draw=blue!50!black}
+    }
+
+    % 1. RADIAL SIDES (Constant Theta - The vertical "walls")
+    % Side at thetaStart
+    \filldraw[radial] 
+        plot[domain=\phS:\phE] ({\rMin*sin(\x)*cos(\thS)}, {\rMin*sin(\x)*sin(\thS)}, {\rMin*cos(\x)}) --
+        plot[domain=\phE:\phS] ({\rMax*sin(\x)*cos(\thS)}, {\rMax*sin(\x)*sin(\thS)}, {\rMax*cos(\x)}) -- cycle;
+    
+    % Side at thetaEnd (NEW)
+    \filldraw[radial, fill=green!40] 
+        plot[domain=\phS:\phE] ({\rMin*sin(\x)*cos(\thE)}, {\rMin*sin(\x)*sin(\thE)}, {\rMin*cos(\x)}) --
+        plot[domain=\phE:\phS] ({\rMax*sin(\x)*cos(\thE)}, {\rMax*sin(\x)*sin(\thE)}, {\rMax*cos(\x)}) -- cycle;
+
+    % 2. CONICAL SIDES (Constant Phi - The horizontal "floors/ceilings")
+    % Side at phiStart (NEW)
+    \filldraw[conical] 
+        plot[domain=\thS:\thE] ({\rMin*sin(\phS)*cos(\x)}, {\rMin*sin(\phS)*sin(\x)}, {\rMin*cos(\phS)}) --
+        plot[domain=\thE:\thS] ({\rMax*sin(\phS)*cos(\x)}, {\rMax*sin(\phS)*sin(\x)}, {\rMax*cos(\phS)}) -- cycle;
+
+    % Side at phiEnd
+    \filldraw[conical, fill=orange!40] 
+        plot[domain=\thS:\thE] ({\rMin*sin(\phE)*cos(\x)}, {\rMin*sin(\phE)*sin(\x)}, {\rMin*cos(\phE)}) --
+        plot[domain=\thE:\thS] ({\rMax*sin(\phE)*cos(\x)}, {\rMax*sin(\phE)*sin(\x)}, {\rMax*cos(\phE)}) -- cycle;
+
+    % 3. SPHERICAL SHELLS (Constant Radius - The "front/back")
+    % Inner Spherical Face (rMin) (NEW)
+    \filldraw[shell, fill=blue!10] 
+        plot[domain=\thS:\thE] ({\rMin*sin(\phS)*cos(\x)}, {\rMin*sin(\phS)*sin(\x)}, {\rMin*cos(\phS)}) --
+        plot[domain=\phS:\phE] ({\rMin*sin(\x)*cos(\thE)}, {\rMin*sin(\x)*sin(\thE)}, {\rMin*cos(\x)}) --
+        plot[domain=\thE:\thS] ({\rMin*sin(\phE)*cos(\x)}, {\rMin*sin(\phE)*sin(\x)}, {\rMin*cos(\phE)}) --
+        plot[domain=\phE:\phS] ({\rMin*sin(\x)*cos(\thS)}, {\rMin*sin(\x)*sin(\thS)}, {\rMin*cos(\x)}) -- cycle;
+
+    % Outer Spherical Face (rMax)
+    \filldraw[shell, fill=blue!50] 
+        plot[domain=\thS:\thE] ({\rMax*sin(\phS)*cos(\x)}, {\rMax*sin(\phS)*sin(\x)}, {\rMax*cos(\phS)}) --
+        plot[domain=\phS:\phE] ({\rMax*sin(\x)*cos(\thE)}, {\rMax*sin(\x)*sin(\thE)}, {\rMax*cos(\x)}) --
+        plot[domain=\thE:\thS] ({\rMax*sin(\phE)*cos(\x)}, {\rMax*sin(\phE)*sin(\x)}, {\rMax*cos(\phE)}) --
+        plot[domain=\phE:\phS] ({\rMax*sin(\x)*cos(\thS)}, {\rMax*sin(\x)*sin(\thS)}, {\rMax*cos(\x)}) -- cycle;
+
+    % Optional: Axis for context
+    \draw[->] (0,0,0) -- (6,0,0) node[right]{$x$};
+    \draw[->] (0,0,0) -- (0,6,0) node[right]{$y$};
+    \draw[->] (0,0,0) -- (0,0,6) node[above]{$z$};
+
+  % --- 3D PARABOLIC DISH AT ORIGIN ---
+    % Midpoint of the beam is roughly (\thS + \thE)/2 and (\phS + \phE)/2
+    \def\midTh{45} % Mid-azimuth
+    \def\midPh{60} % Mid-inclination
+    
+    \begin{scope}[shift={(0,0,0.2)}, rotate around z=\midTh, rotate around y=\midPh]
+        % Parameters for the dish
+        \def\a{2.5}      % Curvature factor (z = a*r^2)
+        \def\Rmax{0.4}   % Radius of the rim
+        \def\Zmax{0.4}   % Height at the rim (a*Rmax^2)
+
+        % 1. Draw the "bowl" surface
+        % We draw several circles at different heights to give 3D depth
+        \foreach \r in {0.1, 0.2, 0.3} {
+            \draw[gray!60, thin] plot[domain=0:360, samples=30] 
+                ({\r*cos(\x)}, {\r*sin(\x)}, {\a*\r*\r});
+        }
+
+        % 2. Draw radial ribs
+        \foreach \ang in {0, 45, ..., 315} {
+            \draw[gray!60, thin] (0,0,0) plot[domain=0:\Rmax, samples=10] 
+                ({\x*cos(\ang)}, {\x*sin(\ang)}, {\a*\x*\x});
+        }
+
+        % 3. The Rim (Outer Edge)
+        \filldraw[blue!20, opacity=0.4, draw=black, thick] 
+            plot[domain=0:360, samples=60] ({\Rmax*cos(\x)}, {\Rmax*sin(\x)}, \Zmax) -- cycle;
+
+        % 4. The Feed Horn (The antenna assembly)
+        % The focus of a parabola z = ar^2 is at 1/(4a)
+        \draw[thick, black] (0,0,0) -- (0,0,0.6); 
+        \fill[black] (0,0,0.6) circle (0.04);
+        
+        % Support struts for the feed horn
+        \foreach \ang in {45, 135, 225, 315} {
+            \draw[very thin, black] (0,0,0.6) -- ({\Rmax*cos(\ang)}, {\Rmax*sin(\ang)}, \Zmax);
+        }
+    \end{scope}
+    
+\end{tikzpicture}
+\end{document}
