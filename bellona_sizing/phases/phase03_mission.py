@@ -77,12 +77,7 @@ def phase3_mission_optimise(MTOW_N: float, S_guess: float, CD0: float, AR: float
             if V_grid.size == 0:
                 raise ValueError("V_grid has no points above V_min_required.")
 
-    if h_transition_grid is None:
-        h_low = min(50.0, 0.25 * h_target)
-        h_high = min(2000.0, 0.95 * h_target)
-        h_transition_grid = np.linspace(h_low, h_high, 40)
-    else:
-        h_transition_grid = np.asarray(h_transition_grid, dtype=float)
+    h_transition_grid = np.array([50.0])   
 
     P_hover_ground = _power_w(P_hover_fn(0.0))
     P_hover_target = _power_w(P_hover_fn(h_target))
