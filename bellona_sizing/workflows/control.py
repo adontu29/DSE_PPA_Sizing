@@ -18,33 +18,36 @@ from ..phases.phase14_dynamic_stability import phase14_dynamic_stability
 def _phase5_with_transition_energy(result: Dict, phase13: Dict,
                                    assumptions: Assumptions,
                                    mission: Mission) -> Dict:
-    """Recompute Phase 5 using Phase 13 transition energy when available."""
-    if phase13.get("P_transition_average_W") is not None:
-        transition_segment = (
-            phase13["P_transition_average_W"],
-            phase13["t_transition"],
-        )
-        source = "phase13_transition_blending"
-    else:
-        transition_segment = (
-            result["phase3"]["P_transition"],
-            result["phase3"]["t_transition"],
-        )
-        source = "phase3_mission_optimise_fallback"
+    """Recompute Phase 5 from the integrated Phase 3 mission segments.
 
+    Energy sizing uses the energy-critical sweep case; power sizing uses the
+    power-critical sweep case.
+    """
+    cf3 = result["phase3"]["carry_forward"]
+    energy_segs = cf3["energy_sizing_case"]["segment_summaries"]
+    segments = {
+        name: (
+            segment["average_electrical_power_W"],
+            segment["time_s"],
+        )
+        for name, segment in energy_segs.items()
+    }
     phase5 = phase5_energy_battery(
-        {
-            "transition": transition_segment,
-            "fixed_wing_climb": (result["phase3"]["P_fw"], result["phase3"]["t_fw"]),
-            "mission_hover": (result["phase3"]["P_hover_target"], mission.hover_time_s),
-        },
+        segments,
         assumptions.eta_batt,
         assumptions.usable_battery_fraction,
         assumptions.battery_specific_energy_Wh_kg,
     )
-    phase5["transition_energy_source"] = source
+    phase5["transition_energy_source"] = "phase3_altitude_stepped_mission"
     phase5["phase3_transition_energy_Wh"] = result["phase3"]["E_transition_Wh"]
     phase5["phase13_transition_energy_Wh"] = phase13.get("E_transition_estimate_Wh")
+    phase5["integrated_mission_energy_Wh"] = result["phase3"]["E_total_Wh"]
+    # Peak power from the power-critical case (may differ from energy-critical).
+    phase5["P_motor_cont"] = max(
+        phase5["P_motor_cont"],
+        cf3["power_sizing_case"]["peak_electrical_power_W"],
+    )
+    phase5["P_motor_peak"] = phase5["P_motor_cont"]
     return phase5
 
 
@@ -52,12 +55,13 @@ def _run_phase11_with_operational_cg(result: Dict, phase10: Dict,
                                      assumptions: Assumptions) -> Dict:
     """Run Phase 11 with operational CG travel instead of full theoretical range."""
     phase8 = result["phase8"]
+    cf3 = result["phase3"]["carry_forward"]
     return phase11_elevon_FW(
         phase8["S"],
         phase8["b"],
         phase8["c_bar"],
         phase8["CL_a"],
-        result["phase3"]["V_cruise"],
+        cf3["reference_level_flight"]["TAS_m_s"],
         phase8["V_stall"],
         phase10.get("operational_CG_range_m", phase10["CG_range_m"]),
         q_slipstream_ratio=assumptions.elevon_q_slipstream_ratio,
@@ -144,19 +148,26 @@ def _run_phase12_with_mass_inertia(result: Dict, phase11: Dict, phase15: Dict,
 
 def _run_phase13_from_result(result: Dict, assumptions: Assumptions) -> Dict:
     """Run Phase 13 transition blending."""
-    return phase13_transition_blending(
-        result["phase8"]["V_stall"],
+    cf3 = result["phase3"]["carry_forward"]
+    phase13 = phase13_transition_blending(
+        cf3["transition_reference"]["stall_speed_m_s"],
         assumptions.transition_blend_start_frac,
         assumptions.transition_blend_end_frac,
         V_entry=0.0,
         V_exit=None,
         transition_accel_m_s2=assumptions.transition_accel_m_s2,
-        V_cruise=result["phase3"]["V_cruise"],
+        V_cruise=cf3["reference_level_flight"]["TAS_m_s"],
         cruise_speed_margin_frac=assumptions.transition_cruise_margin_frac,
-        P_hover_W=result["phase3"]["P_hover_target"],
-        P_fw_W=result["phase3"]["P_fw"],
         sample_count=assumptions.transition_sample_count,
     )
+    phase13["P_transition_average_W"] = assumptions.preliminary_transition_power_W
+    phase13["E_transition_estimate_Wh"] = (
+        assumptions.preliminary_transition_power_W
+        * phase13["t_transition"]
+        / 3600.0
+    )
+    phase13["transition_power_source"] = "preliminary_transition_power_assumption"
+    return phase13
 
 
 def _run_phase14_with_mass_inertia(result: Dict, phase10: Dict, phase15: Dict,
@@ -174,6 +185,7 @@ def _run_phase14_with_mass_inertia(result: Dict, phase10: Dict, phase15: Dict,
         )
     else:
         Cm_q = assumptions.dynamic_Cm_q
+    cf3 = result["phase3"]["carry_forward"]
     phase14 = phase14_dynamic_stability(
         Cm_alpha,
         Cm_q,
@@ -185,10 +197,10 @@ def _run_phase14_with_mass_inertia(result: Dict, phase10: Dict, phase15: Dict,
         phase8["S"],
         phase8["c_bar"],
         phase8["b"],
-        result["phase3"]["V_cruise"],
+        cf3["reference_level_flight"]["TAS_m_s"],
         rho_cruise,
         CL_trim=phase10["CL_trim"],
-        CD_trim=result["phase3"]["CD_cruise"],
+        CD_trim=cf3["reference_level_flight"]["CD"],
         C_l_beta=assumptions.dynamic_Cl_beta,
         C_l_p=assumptions.dynamic_Cl_p or result["phase11"].get("C_l_p"),
         C_l_r=assumptions.dynamic_Cl_r,

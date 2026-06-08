@@ -8,10 +8,12 @@ import numpy as np
 
 
 def phase6_constraint_diagram(W_S_range: np.ndarray, W_P_range: np.ndarray,
-                              V_cruise, V_stall, ROC, gamma, rho_SL, rho_6km,
-                              CL_max, CD0, AR, e, eta_prop, T_W_floor,
+                              V_cruise, ROC, gamma, rho_6km,
+                              CD0, AR, e, eta_prop, T_W_floor,
+                              selected_W_S=None,
+                              hover_power_loading_W_N=None,
                               plot_path=None) -> Dict:
-    """Plot W/S vs W/P with stall, cruise, climb, hover, transition-floor lines.
+    """Plot W/S vs P/W with cruise, climb, hover, and selected design point.
     Verification step (post Ph3, Ph5, Ph8). Not a sizing driver.
     Ref: Raymer 2018 Ch.5 5.3."""
     W_S = np.asarray(W_S_range, dtype=float)
@@ -21,14 +23,10 @@ def phase6_constraint_diagram(W_S_range: np.ndarray, W_P_range: np.ndarray,
         raise ValueError("W_S_range values must be positive.")
     if V_cruise <= 0.0:
         raise ValueError("V_cruise must be positive.")
-    if V_stall <= 0.0:
-        raise ValueError("V_stall must be positive.")
     if ROC < 0.0:
         raise ValueError("ROC must be non-negative.")
-    if rho_SL <= 0.0 or rho_6km <= 0.0:
-        raise ValueError("Atmospheric densities must be positive.")
-    if CL_max <= 0.0:
-        raise ValueError("CL_max must be positive.")
+    if rho_6km <= 0.0:
+        raise ValueError("Atmospheric density must be positive.")
     if CD0 <= 0.0:
         raise ValueError("CD0 must be positive.")
     if AR <= 0.0 or e <= 0.0:
@@ -37,6 +35,10 @@ def phase6_constraint_diagram(W_S_range: np.ndarray, W_P_range: np.ndarray,
         raise ValueError("eta_prop should be in the range 0 < eta_prop <= 1.")
     if T_W_floor <= 0.0:
         raise ValueError("T_W_floor must be positive.")
+    if selected_W_S is not None and selected_W_S <= 0.0:
+        raise ValueError("selected_W_S must be positive when provided.")
+    if hover_power_loading_W_N is not None and hover_power_loading_W_N <= 0.0:
+        raise ValueError("hover_power_loading_W_N must be positive when provided.")
 
     q = 0.5 * rho_6km * V_cruise**2
     CL = W_S / q
@@ -50,35 +52,57 @@ def phase6_constraint_diagram(W_S_range: np.ndarray, W_P_range: np.ndarray,
         climb_rate_used = climb_rate_from_gamma
     P_W_climb = P_W_cruise + climb_rate_used / eta_prop
 
-    W_S_stall_max = 0.5 * rho_SL * V_stall**2 * CL_max
     P_W_envelope = np.maximum(P_W_cruise, P_W_climb)
+    P_W_hover = None
+    if hover_power_loading_W_N is not None:
+        P_W_hover = np.full_like(W_S, float(hover_power_loading_W_N))
+        P_W_envelope = np.maximum(P_W_envelope, P_W_hover)
 
     with np.errstate(divide="ignore", invalid="ignore"):
         W_P_cruise = 1.0 / P_W_cruise
         W_P_climb = 1.0 / P_W_climb
+        W_P_hover = None if P_W_hover is None else 1.0 / P_W_hover
         W_P_envelope = 1.0 / P_W_envelope
+    selected_P_W = (
+        None
+        if selected_W_S is None
+        else float(np.interp(selected_W_S, W_S, P_W_envelope))
+    )
 
-    warnings = [
-        "Hover power cannot be plotted from this Phase 6 signature alone; pass Phase 2/5 hover power into a later integrated plot if needed.",
-        "T_W_floor is reported as a thrust margin check, not converted to a power-loading line.",
-    ]
+    warnings = []
+    if P_W_hover is None:
+        warnings.append(
+            "No Phase 2 hover power loading was provided, so the hover sizing constraint is absent."
+        )
     if abs(climb_rate_from_gamma - ROC) > max(0.5, 0.1 * max(ROC, 1.0)):
         warnings.append(
             "ROC and V_cruise*sin(gamma) differ noticeably; check Phase 3 consistency."
         )
-    if np.any(W_S > W_S_stall_max):
-        warnings.append(
-            "Part of W_S_range is above the stall wing-loading limit."
-        )
-
     saved_plot = None
     if plot_path:
         fig, ax = plt.subplots(figsize=(8.0, 5.4))
         ax.plot(W_S, P_W_cruise, color="#378ADD", lw=2.0, label="Cruise")
         ax.plot(W_S, P_W_climb, color="#1D9E75", lw=2.0, label=f"Climb ROC={climb_rate_used:.1f} m/s")
-        ax.axvline(W_S_stall_max, color="#888780", lw=1.4, ls="--", label="Stall limit")
-        ax.fill_between(W_S, 0.0, P_W_envelope, where=(W_S <= W_S_stall_max),
-                        color="#1D9E75", alpha=0.08)
+        if P_W_hover is not None:
+            ax.plot(
+                W_S,
+                P_W_hover,
+                color="#D85A30",
+                lw=2.0,
+                label=f"Hover sizing, T/W={T_W_floor:.2f}",
+            )
+        ax.fill_between(
+            W_S, 0.0, P_W_envelope, color="#1D9E75", alpha=0.08
+        )
+        if selected_W_S is not None:
+            ax.scatter(
+                [selected_W_S],
+                [selected_P_W],
+                color="#7F3C8D",
+                s=46,
+                zorder=5,
+                label="Selected design",
+            )
         ax.set_xlabel("Wing loading W/S [N/m^2]")
         ax.set_ylabel("Power-to-weight P/W [W/N]")
         ax.set_title("Phase 6 Constraint Diagram")
@@ -99,18 +123,30 @@ def phase6_constraint_diagram(W_S_range: np.ndarray, W_P_range: np.ndarray,
         "W_S_range": W_S.tolist(),
         "P_W_cruise": P_W_cruise.tolist(),
         "P_W_climb": P_W_climb.tolist(),
+        "P_W_hover": None if P_W_hover is None else P_W_hover.tolist(),
         "P_W_envelope": P_W_envelope.tolist(),
         "W_P_cruise": W_P_cruise.tolist(),
         "W_P_climb": W_P_climb.tolist(),
+        "W_P_hover": None if W_P_hover is None else W_P_hover.tolist(),
         "W_P_envelope": W_P_envelope.tolist(),
-        "W_S_stall_max": float(W_S_stall_max),
+        "selected_W_S": (
+            None if selected_W_S is None else float(selected_W_S)
+        ),
+        "selected_P_W": selected_P_W,
         "climb_rate_used": float(climb_rate_used),
         "climb_rate_from_gamma": float(climb_rate_from_gamma),
         "T_W_floor": float(T_W_floor),
+        "hover_power_loading_W_N": (
+            None
+            if hover_power_loading_W_N is None
+            else float(hover_power_loading_W_N)
+        ),
         "plot_path": saved_plot,
         "notes": [
             "The plotted convention is P/W in W/N, matching the legacy Bellona stage-1 script.",
             "Inverse W/P arrays are returned for users who prefer the classical power-loading axis.",
+            "The hover sizing line uses the Phase 2 total-aircraft electrical power at the installed T/W and hover altitude.",
+            "The selected wing loading is plotted as a design point; no assumed stall-speed constraint is reconstructed.",
             "Phase 6 is verification-only and does not alter the sizing loop.",
         ],
         "warnings": warnings,

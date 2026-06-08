@@ -21,6 +21,7 @@ def _estimate_phase15_from_result(result: Dict, phase5: Dict, phase9: Dict,
         if wing_mac_le_x_m is None
         else float(wing_mac_le_x_m)
     )
+    propeller_mass_total_kg = assumptions.propeller_mass_total_kg
     return phase15_mass(
         result["phase8"]["S"],
         phase9["S_c"],
@@ -30,6 +31,7 @@ def _estimate_phase15_from_result(result: Dict, phase5: Dict, phase9: Dict,
         mission.mission_equipment_mass_kg,
         n_rotors=assumptions.n_rotors,
         prop_diameter_m=result["phase1"]["D_prop"],
+        propeller_mass_total_kg=propeller_mass_total_kg,
         b_w=result["phase8"]["b"],
         c_bar_w=result["phase8"]["c_bar"],
         x_ac_w=result["phase8"]["x_ac_w"],
@@ -148,10 +150,15 @@ def _run_phase10_for_phase9(result: Dict, phase9: Dict, phase15: Dict,
         phase9["CL_a_c"],
         assumptions.canard_eps_alpha_c,
         assumptions.wing_eps_alpha_w,
-        phase9["CL_max_3D_c"],
+        assumptions.canard_CL_limit_fraction * phase9["CL_max_3D_c"],
         result["phase3"]["CL_cruise"],
         assumptions.static_margin_min,
+        Cm_ac=0.0,
+        Cm_ac_source="assumed_zero_tailless_first_cut",
+        x_cg_fixed=phase15["x_CG_over_wing_mac"],
     )
+    phase10["CL_c_raw_max"] = float(phase9["CL_max_3D_c"])
+    phase10["CL_c_limit_fraction"] = float(assumptions.canard_CL_limit_fraction)
     return _attach_operational_cg_to_phase10(
         phase10,
         _operational_cg_envelope(phase15, phase8, assumptions),
@@ -381,6 +388,10 @@ def _canard_cg_grid_search(result: Dict, phase5: Dict, mission: Mission,
         selected = (default_phase9, default_phase15, default_phase10, default_layout)
         warnings.append(
             "No canard-volume candidate fit the operational CG envelope; keeping the current canard and reporting required CG shift."
+        )
+    elif selected[0]["V_bar_c"] > 0.50:
+        warnings.append(
+            "Selected canard volume coefficient is high; verify canard sizing with a full stability and trim analysis."
         )
 
     selected_phase9, selected_phase15, selected_phase10, selected_layout = selected

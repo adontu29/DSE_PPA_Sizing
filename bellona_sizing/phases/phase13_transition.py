@@ -111,14 +111,17 @@ def phase13_transition_blending(V_stall: float,
         energy_speeds = np.linspace(V_entry, V_exit_used, max(80, sample_count * 10))
         alpha_values = np.asarray([_alpha_fw(speed) for speed in energy_speeds])
         powers = (1.0 - alpha_values) * P_hover_W + alpha_values * P_fw_W
-        E_transition_Wh = float(np.trapz(powers, energy_speeds) / transition_accel_m_s2 / 3600.0)
+        E_transition_Wh = float(np.trapezoid(powers, energy_speeds) / transition_accel_m_s2 / 3600.0)
         P_transition_average_W = float(E_transition_Wh * 3600.0 / t_transition)
 
     warnings = [
         "Phase 13 is a simplified speed-based mixer; it does not model tail-sitter attitude dynamics, angle of attack, or propeller-wing interaction during transition.",
         "Transition time assumes constant acceleration in airspeed.",
-        "Transition energy is a first-cut interpolation between hover and fixed-wing power and is not yet fed back into Phase 5.",
     ]
+    if P_hover_W is not None:
+        warnings.append(
+            "Transition energy is a first-cut interpolation between hover and fixed-wing power."
+        )
     if V_cruise is not None and V_cruise < V_blend_end:
         warnings.append(
             "Cruise speed is below the blend-end speed; the nominal mission cruise point remains partly in hover-control blending."

@@ -4,7 +4,10 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Dict, Optional
 
+import numpy as np
+
 from ..models import Assumptions, Mission
+from ..phases.phase06_constraints import phase6_constraint_diagram
 from .control import (
     _hover_control_closure_update,
     _phase5_with_transition_energy,
@@ -16,29 +19,57 @@ from .control import (
 from .layout import _canard_cg_grid_search, _phase15_phase10_with_wing_layout
 from .phase1_to9 import iterate_phases_1_to_9
 from .sanity import _design_sanity_checks
+from .wing_area import optimize_wing_area
+
+
+def _write_selected_constraint_plot(result: Dict, assumptions: Assumptions,
+                                    plot_path) -> Dict:
+    """Regenerate Phase 6 only for the selected wing-area candidate."""
+    cf3 = result["phase3"]["carry_forward"]
+    hover_power_loading = (
+        result["phase2_hover"]["P_elec"]
+        * assumptions.n_rotors
+        / result["MTOW_N"]
+    )
+    return phase6_constraint_diagram(
+        np.asarray(result["phase6"]["W_S_range"], dtype=float),
+        np.array([]),
+        cf3["reference_level_flight"]["TAS_m_s"],
+        cf3["minimum_required_average_ROC_m_s"],
+        cf3["gamma_reference_rad"],
+        cf3["reference_level_flight"]["density_kg_m3"],
+        assumptions.CD0,
+        assumptions.AR,
+        assumptions.oswald_e,
+        result["phase3"]["eta_fw"],
+        assumptions.thrust_to_weight,
+        selected_W_S=result["phase8"]["W_S_design"],
+        hover_power_loading_W_N=hover_power_loading,
+        plot_path=plot_path,
+    )
 
 
 def _run_coupled_fixed_mtow_once(MTOW_kg: float,
                                  mission: Mission,
                                  assumptions: Assumptions,
                                  max_inner_iter: int,
-                                 j_tol: float,
                                  area_tol: float,
                                  re_tol: float,
                                  constraint_plot_path=None,
-                                 airfoil_files: Optional[Dict[str, str]] = None) -> Dict:
+                                 airfoil_files: Optional[Dict[str, str]] = None,
+                                 wing_area_m2: Optional[float] = None) -> Dict:
     """Run one coupled fixed-MTOW pass with mass/CG/control feedback."""
-    # First close the pure propulsion/aerodynamics loop at the fixed MTOW.
+    # First close the preliminary mission/aerodynamics loop at the fixed MTOW.
     result = iterate_phases_1_to_9(
         MTOW_kg=MTOW_kg,
         mission=mission,
         assumptions=assumptions,
         max_inner_iter=max_inner_iter,
-        j_tol=j_tol,
         area_tol=area_tol,
         re_tol=re_tol,
         constraint_plot_path=constraint_plot_path,
         airfoil_files=airfoil_files,
+        wing_area_m2=wing_area_m2,
     )
 
     # Use the preliminary battery mass to place the CG, choose a canard, and
@@ -145,7 +176,6 @@ def iterate_phases_1_to_15(MTOW_kg: float = 50.0,
                            mission: Optional[Mission] = None,
                            assumptions: Optional[Assumptions] = None,
                            max_inner_iter: int = 15,
-                           j_tol: float = 0.01,
                            area_tol: float = 0.01,
                            re_tol: float = 0.02,
                            constraint_plot_path=None,
@@ -164,21 +194,33 @@ def iterate_phases_1_to_15(MTOW_kg: float = 50.0,
     for closure_it in range(assumptions.control_closure_max_iter):
         # The hover closure changes geometry/TW assumptions, then repeats the
         # fixed-MTOW pass until pitch/roll/yaw margins stop asking for changes.
-        result = _run_coupled_fixed_mtow_once(
-            MTOW_kg,
-            mission,
-            effective,
-            max_inner_iter,
-            j_tol,
-            area_tol,
-            re_tol,
-            constraint_plot_path=constraint_plot_path,
-            airfoil_files=airfoil_files,
+        result, wing_area_optimization = optimize_wing_area(
+            lambda area_m2: _run_coupled_fixed_mtow_once(
+                MTOW_kg,
+                mission,
+                effective,
+                max_inner_iter,
+                area_tol,
+                re_tol,
+                constraint_plot_path=None,
+                airfoil_files=airfoil_files,
+                wing_area_m2=area_m2,
+            ),
+            effective.preliminary_wing_area_m2,
+            area_tol=area_tol,
+            fixed_area_m2=effective.wing_area_m2,
+            hover_control_margin_min=effective.hover_control_margin_min,
         )
+        result = dict(result)
+        result["wing_area_optimization"] = wing_area_optimization
         updated, closure_record = _hover_control_closure_update(result, effective)
         closure_record["closure_iteration"] = closure_it + 1
         closure_record["MTOW_kg"] = float(MTOW_kg)
         closure_record["phase15_MTOW_estimate_kg"] = result["phase15"]["MTOW_estimate_kg"]
+        closure_record["selected_wing_area_m2"] = result["phase8"]["S"]
+        closure_record["wing_area_optimization_converged"] = (
+            wing_area_optimization["converged"]
+        )
         control_mass_history.append(closure_record)
         final_result = result
         if not closure_record["updated"]:
@@ -186,11 +228,31 @@ def iterate_phases_1_to_15(MTOW_kg: float = 50.0,
         effective = updated
 
     final_result = dict(final_result)
+    if constraint_plot_path:
+        final_result["phase6"] = _write_selected_constraint_plot(
+            final_result, effective, constraint_plot_path
+        )
     final_result["control_mass_history"] = control_mass_history
     final_result["effective_assumptions"] = asdict(effective)
+    final_result["wing_area_converged"] = bool(
+        final_result.get("wing_area_optimization", {}).get("converged", False)
+    )
+    final_result["converged"] = bool(
+        final_result.get("converged", False)
+        and final_result["wing_area_converged"]
+    )
     final_result["sanity_checks"] = _design_sanity_checks(final_result, mission, effective)
     if not final_result["sanity_checks"]["all_passed"]:
         final_result["warnings"] = list(final_result.get("warnings", [])) + [
             f"sanity: {issue}" for issue in final_result["sanity_checks"]["issues"]
         ]
+    if (
+        final_result.get("wing_area_optimization", {}).get("mode")
+        == "optimized"
+        and not final_result["wing_area_converged"]
+    ):
+        final_result["stopped_reason"] = (
+            "coupled fixed-MTOW pass completed, but wing-area optimization "
+            "did not converge"
+        )
     return final_result

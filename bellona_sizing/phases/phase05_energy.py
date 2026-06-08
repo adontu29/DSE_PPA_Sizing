@@ -8,7 +8,7 @@ import numpy as np
 
 def phase5_energy_battery(segments: Dict[str, Tuple[float, float]],
                           eta_batt: float = 0.95, f_usable: float = 0.85,
-                          e_batt_Wh_kg: float = 200.0) -> Dict:
+                          e_batt_Wh_kg: float = 310.0) -> Dict:
     """Mission energy timeline, battery mass.
     In:  segments={'name': (P[W], dt[s])}  VTOL climb, transition, FW climb,
          hover, tow, return cruise, descent, reserve.  (Ph2, Ph3, Ph13)
@@ -63,7 +63,7 @@ def phase5_energy_battery(segments: Dict[str, Tuple[float, float]],
         warnings.append(
             "No explicit reserve segment was found; only usable-capacity margin is applied."
         )
-    if e_batt_Wh_kg > 265.0:
+    if e_batt_Wh_kg > 350:
         warnings.append(
             "Battery specific energy is optimistic for high-power UAV packs; verify against pack-level datasheets."
         )

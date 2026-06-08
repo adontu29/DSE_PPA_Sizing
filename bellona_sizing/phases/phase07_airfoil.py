@@ -10,6 +10,33 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 
 
+def _bundled_xfoil_assets() -> Tuple[Optional[str], Optional[str]]:
+    """Return the repository-local XFOIL executable and SD7037 coordinates."""
+    project_root = Path(__file__).resolve().parents[2]
+    xfoil_dir = project_root / "xfoil"
+    executable = next(
+        (
+            candidate
+            for candidate in (xfoil_dir / "xfoilp4.exe", xfoil_dir / "xfoil.exe")
+            if candidate.is_file()
+        ),
+        None,
+    )
+    sd7037 = xfoil_dir / "sd7037.dat"
+    return (
+        None if executable is None else str(executable.resolve()),
+        None if not sd7037.is_file() else str(sd7037.resolve()),
+    )
+
+
+def _resolve_xfoil_executable(xfoil_exe: str) -> str:
+    """Resolve a file path while preserving executable names found on PATH."""
+    executable_path = Path(xfoil_exe)
+    if executable_path.is_file():
+        return str(executable_path.resolve())
+    return shutil.which(xfoil_exe) or xfoil_exe
+
+
 def _parse_xfoil_polar(polar_path: Path) -> Dict[str, np.ndarray]:
     """Read the numeric part of an XFOIL polar file."""
     rows = []
@@ -109,6 +136,7 @@ def _run_xfoil_airfoil(xfoil_exe: str,
         raise ValueError("reynolds must be positive.")
 
     try:
+        executable = _resolve_xfoil_executable(xfoil_exe)
         with tempfile.TemporaryDirectory() as tmp_name:
             tmp_dir = Path(tmp_name)
             polar_path = tmp_dir / "polar.txt"
@@ -148,7 +176,7 @@ def _run_xfoil_airfoil(xfoil_exe: str,
             ])
 
             completed = subprocess.run(
-                [xfoil_exe],
+                [executable],
                 input=commands,
                 text=True,
                 capture_output=True,
@@ -240,7 +268,7 @@ def _fallback_airfoil_result(role: str, reynolds: float, x_transition: float) ->
 
 def phase7_airfoil_xfoil(Re_main: float, Re_canard: float,
                          x_transition: float = 0.50,
-                         use_xfoil: bool = False,
+                         use_xfoil: bool = True,
                          xfoil_path: Optional[str] = None,
                          airfoil_files: Optional[Dict[str, str]] = None) -> Dict:
     """XFOIL wrapper: evaluate SD7037 + NACA 0012 + candidates.
@@ -261,8 +289,11 @@ def phase7_airfoil_xfoil(Re_main: float, Re_canard: float,
         str(key): str(value)
         for key, value in (airfoil_files or {}).items()
     }
+    bundled_executable, bundled_sd7037 = _bundled_xfoil_assets()
     warnings = []
     notes = [
+        "The repository-local XFOIL executable is used by default when available.",
+        "SD7037 uses the bundled UIUC coordinate file; NACA 0012 uses XFOIL's built-in NACA generator.",
         "Fallback values are anchored to the project XFOIL comparison table at Re=7.88e5 and x/c=0.5.",
         "The fallback cd0 value is a profile-drag proxy taken from cd at the design lift coefficient.",
         "XFOIL near stall can be convergence-sensitive; measured polars or wind-tunnel data should replace these values when available.",
@@ -270,10 +301,25 @@ def phase7_airfoil_xfoil(Re_main: float, Re_canard: float,
 
     xfoil_exe = None
     if xfoil_path:
-        xfoil_exe = xfoil_path
+        xfoil_exe = _resolve_xfoil_executable(xfoil_path)
         use_xfoil = True
     elif use_xfoil:
-        xfoil_exe = shutil.which("xfoil") or shutil.which("xfoil.exe")
+        xfoil_exe = (
+            bundled_executable
+            or shutil.which("xfoil")
+            or shutil.which("xfoil.exe")
+        )
+
+    main_coordinate_file = (
+        airfoil_files.get("main")
+        or airfoil_files.get("sd7037")
+        or bundled_sd7037
+    )
+    resolved_airfoil_files = dict(airfoil_files)
+    if main_coordinate_file:
+        resolved_airfoil_files.setdefault(
+            "main", str(Path(main_coordinate_file).resolve())
+        )
 
     xfoil_used = False
     main = None
@@ -286,7 +332,7 @@ def phase7_airfoil_xfoil(Re_main: float, Re_canard: float,
             Re_main,
             x_transition,
             0.60,
-            coordinate_file=airfoil_files.get("main") or airfoil_files.get("sd7037"),
+            coordinate_file=main_coordinate_file,
         )
         if warning:
             warnings.append(warning)
@@ -325,7 +371,7 @@ def phase7_airfoil_xfoil(Re_main: float, Re_canard: float,
             "requested": bool(use_xfoil),
             "used": bool(xfoil_used),
             "executable": xfoil_exe,
-            "airfoil_files": dict(airfoil_files),
+            "airfoil_files": resolved_airfoil_files,
         },
         "notes": notes,
         "warnings": warnings,
