@@ -34,3 +34,17 @@ dist/
 
 .DS_Store
 Thumbs.db
+
+# Generated sizing outputs and scratch extraction artifacts.
+results/
+figures/*.png
+figures/*.pdf
+tmp_stone_pages/
+
+# Local external tool drops and propeller-map experiments.
+qprop/
+xfoil/
+xfoil/*.exe
+
+# Generated report/context artifacts from local runs.
+context/**/figures/ppa_mission_profile.png

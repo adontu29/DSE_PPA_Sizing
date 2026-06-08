@@ -10,6 +10,7 @@ def phase15_mass(S_w, S_c, fuselage_length, P_motor_cont_W, m_battery_kg,
                  mission_equipment_mass_kg: float,
                  n_rotors: int = 4,
                  prop_diameter_m: Optional[float] = None,
+                 propeller_mass_total_kg: Optional[float] = None,
                  b_w: Optional[float] = None,
                  c_bar_w: Optional[float] = None,
                  x_ac_w: Optional[float] = None,
@@ -69,6 +70,8 @@ def phase15_mass(S_w, S_c, fuselage_length, P_motor_cont_W, m_battery_kg,
     prop_diameter_used = 0.0 if prop_diameter_m is None else float(prop_diameter_m)
     if prop_diameter_used < 0.0:
         raise ValueError("prop_diameter_m must be non-negative when provided.")
+    if propeller_mass_total_kg is not None and propeller_mass_total_kg < 0.0:
+        raise ValueError("propeller_mass_total_kg must be non-negative when provided.")
 
     b_w_used = np.sqrt(S_w * 7.0) if b_w is None else float(b_w)
     c_bar_used = S_w / b_w_used if c_bar_w is None else float(c_bar_w)
@@ -92,7 +95,11 @@ def phase15_mass(S_w, S_c, fuselage_length, P_motor_cont_W, m_battery_kg,
     m_boom_landing_gear = boom_landing_gear_mass_kg
     m_motor = motor_specific_mass_kg_W * P_motor_cont_W
     m_ESC = esc_specific_mass_kg_W * P_motor_cont_W
-    m_propeller = n_rotors * prop_mass_coeff_kg_m2 * prop_diameter_used**2
+    m_propeller = (
+        n_rotors * prop_mass_coeff_kg_m2 * prop_diameter_used**2
+        if propeller_mass_total_kg is None
+        else float(propeller_mass_total_kg)
+    )
     m_avionics = avionics_mass_kg
     m_mission_equipment = mission_equipment_mass_kg
 
@@ -160,7 +167,7 @@ def phase15_mass(S_w, S_c, fuselage_length, P_motor_cont_W, m_battery_kg,
         "wing_mac_le_x_m shifts the wing MAC leading edge relative to that provisional mass datum; the canard arm remains fixed in this first-cut layout solve.",
         "The contingency mass is included in MTOW but has no independent CAD location yet.",
     ]
-    if prop_diameter_m is None:
+    if prop_diameter_m is None and propeller_mass_total_kg is None:
         warnings.append(
             "No propeller diameter was provided; propeller mass was set to zero."
         )
@@ -216,6 +223,11 @@ def phase15_mass(S_w, S_c, fuselage_length, P_motor_cont_W, m_battery_kg,
             "motor_specific_mass_kg_W": float(motor_specific_mass_kg_W),
             "esc_specific_mass_kg_W": float(esc_specific_mass_kg_W),
             "prop_mass_coeff_kg_m2": float(prop_mass_coeff_kg_m2),
+            "propeller_mass_total_override_kg": (
+                None
+                if propeller_mass_total_kg is None
+                else float(propeller_mass_total_kg)
+            ),
             "wiring_fraction": float(wiring_fraction),
             "mass_contingency_fraction": float(mass_contingency_fraction),
         },
@@ -224,7 +236,7 @@ def phase15_mass(S_w, S_c, fuselage_length, P_motor_cont_W, m_battery_kg,
             "No separate capture mass is included in this model.",
             "m_motor_kg = motor_specific_mass_kg_W * P_motor_cont_W.",
             "m_ESC_kg = esc_specific_mass_kg_W * P_motor_cont_W.",
-            "m_propeller_kg = n_rotors * prop_mass_coeff_kg_m2 * D_prop^2.",
+            "Propeller mass uses the candidate-map mass when provided; otherwise m_propeller_kg = n_rotors * prop_mass_coeff_kg_m2 * D_prop^2.",
             "Phase 15 reports MTOW_estimate_kg; Phase 16 will decide whether to iterate the sizing MTOW.",
         ],
         "warnings": warnings,

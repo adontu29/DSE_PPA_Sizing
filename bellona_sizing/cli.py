@@ -10,6 +10,8 @@ from typing import Dict, Tuple
 import numpy as np
 
 from .models import Assumptions, Mission
+from .mission_profile import plot_mission_result
+from .phases.phase10_scissor import plot_phase10_scissor
 from .workflows.coupled import iterate_phases_1_to_15
 from .workflows.mtow import converge_design
 
@@ -70,26 +72,77 @@ def _build_summary(result: Dict) -> Dict:
         "propeller_diameter_limited": phase1.get("prop_diameter_limited", False),
         "disc_loading_target_N_m2": phase1.get("disc_loading_target", phase1["disc_loading"]),
         "disc_loading_actual_N_m2": phase1["disc_loading"],
-        "cruise_speed_m_s": phase3["V_cruise"],
+        # Reference design condition (not an optimized cruise result).
+        "reference_level_flight_TAS_m_s": phase3["carry_forward"]["reference_level_flight"]["TAS_m_s"],
+        "reference_level_flight_CL":      phase3["carry_forward"]["reference_level_flight"]["CL"],
+        "reference_level_flight_CD":      phase3["carry_forward"]["reference_level_flight"]["CD"],
+        "cruise_speed_m_s": phase3["V_cruise"],  # backward compat alias
         "cruise_speed_min_required_m_s": phase3["V_min_required"],
         "cruise_speed_min_requirement_active": phase3["V_min_requirement_active"],
-        "fixed_wing_ROC_m_s": phase3["ROC"],
-        "cruise_advance_ratio": phase4["J"],
-        "cruise_rpm": result["cruise_rpm"],
-        "hover_power_total_W": phase2["P_elec"] * n_rotors,
+        # ROC from mission geometry requirement, not optimized single profile.
+        "minimum_required_ROC_m_s": phase3["carry_forward"]["minimum_required_average_ROC_m_s"],
+        "fixed_wing_ROC_m_s": phase3["ROC"],  # backward compat alias
+        "optimized_climb_EAS_m_s": phase3["optimized_climb_EAS_m_s"],
+        "optimized_climb_angle_deg": phase3["optimized_climb_angle_deg"],
+        "max_fixed_wing_climb_angle_deg": phase3["max_fixed_wing_climb_angle_deg"],
+        "climb_horizontal_distance_m": phase3["climb_horizontal_distance_m"],
+        "level_cruise_distance_m": phase3["level_cruise_distance_m"],
+        "total_ground_track_distance_m": phase3["total_ground_track_distance_m"],
+        "spiral_excess_ground_track_distance_m": phase3["spiral_excess_ground_track_distance_m"],
+        "outbound_time_s": phase3["t_total_outbound"],
+        # Energy and power from separate critical cases.
+        "mission_envelope": {
+            "energy_critical_target_distance_m": phase3["carry_forward"]["energy_sizing_case"]["target_distance_m"],
+            "maximum_mission_load_energy_Wh":    phase3["carry_forward"]["energy_sizing_case"]["total_load_energy_Wh"],
+            "power_critical_target_distance_m":  phase3["carry_forward"]["power_sizing_case"]["target_distance_m"],
+            "maximum_peak_electrical_power_W":   phase3["carry_forward"]["power_sizing_case"]["peak_electrical_power_W"],
+            "maximum_wingborne_electrical_power_W": phase3["carry_forward"]["power_sizing_case"]["maximum_wingborne_electrical_power_W"],
+            "time_critical_target_distance_m":   phase3["carry_forward"]["time_sizing_case"]["target_distance_m"],
+            "maximum_outbound_time_s":           phase3["carry_forward"]["time_sizing_case"]["outbound_time_s"],
+            "distance_sweep": phase3["diagnostics"]["distance_sweep"],
+        },
+        "mission_electrical_energy_Wh": phase3["E_total_Wh"],
+        "mission_power_feasible": phase4.get("feasible"),
+        "peak_electrical_power_W": phase3["peak_electrical_power_W"],
+        "max_affordable_electrical_power_W": phase3["max_affordable_electrical_power_W"],
+        "power_margin_W": phase3["power_margin_W"],
+        "required_power_margin_W": phase3["required_power_margin_W"],
+        "power_margin_over_required_W": phase3["power_margin_over_required_W"],
+        "minimum_power_margin_fraction": phase3["minimum_power_margin_fraction"],
+        "preliminary_hover_power_W": phase3["P_hover_target"],
+        "preliminary_transition_power_W": phase3["P_transition"],
+        "phase2_hover_power_estimate_W": phase2["P_elec"] * n_rotors,
+        "forward_flight_efficiency": phase3["eta_fw"],
         "battery_mass_kg": phase5["m_batt_kg"],
         "installed_battery_energy_Wh": phase5["E_total_Wh"],
         "phase5_transition_energy_source": phase5.get("transition_energy_source", "phase3_mission_optimise"),
         "wing_area_m2": phase8["S"],
         "wing_span_m": phase8["b"],
         "wing_mean_chord_m": phase8["c_bar"],
+        "wing_loading_N_m2": phase8["W_S_design"],
+        "wing_stall_EAS_m_s": phase8["stall_EAS_m_s"],
+        "wing_stall_TAS_mission_m_s": phase8["stall_TAS_mission_m_s"],
+        "wing_stall_TAS_transition_m_s": phase8["stall_TAS_transition_m_s"],
         "wing_stall_speed_m_s": phase8["V_stall"],
+        "transition_complete_speed_m_s": phase3["transition_complete_speed_m_s"],
+        "transition_complete_speed_margin_m_s": phase3.get("transition_complete_speed_margin_m_s"),
+        "max_transition_complete_speed_m_s": phase3["carry_forward"]["transition_reference"].get("max_transition_complete_speed_m_s"),
         "canard_area_m2": phase9["S_c"],
         "canard_span_m": phase9["b_c"],
         "canard_mean_chord_m": phase9["c_bar_c"],
         "Re_main": result["Re_main"],
         "Re_canard": result["Re_canard"],
     }
+    if result.get("wing_area_optimization"):
+        wing_opt = result["wing_area_optimization"]
+        summary.update({
+            "wing_area_selection_mode": wing_opt["mode"],
+            "wing_area_optimization_converged": wing_opt["converged"],
+            "wing_area_local_minimum_verified": wing_opt[
+                "local_minimum_verified"
+            ],
+            "wing_area_candidate_count": wing_opt["evaluation_count"],
+        })
     if phase10:
         summary.update({
             "neutral_point_x_over_c": phase10["x_np_over_c"],
@@ -105,6 +158,15 @@ def _build_summary(result: Dict) -> Dict:
             "operational_cg_aft_margin_over_mac": phase10.get("operational_aft_margin_over_mac"),
             "mass_cg_inside_theoretical": phase10.get("mass_CG_inside_theoretical"),
             "required_CG_shift_over_mac": phase10.get("required_CG_shift_over_mac"),
+            "scissor_area_ratio": phase10.get("area_ratio"),
+            "scissor_Cm_ac": phase10.get("Cm_ac"),
+            "scissor_Cm_ac_source": phase10.get("Cm_ac_source"),
+            "scissor_crossing_area_ratio": phase10.get("scissor_line_crossing_area_ratio"),
+            "scissor_min_area_ratio_fixed_cg": phase10.get("ShS_min_for_fixed_cg"),
+            "scissor_max_area_ratio_fixed_cg": phase10.get("ShS_max_for_fixed_cg"),
+            "scissor_current_area_feasible_fixed_cg": phase10.get("current_area_ratio_feasible_for_fixed_cg"),
+            "scissor_lower_bound_governed_by": phase10.get("fixed_cg_lower_bound_governed_by"),
+            "scissor_upper_bound_governed_by": phase10.get("fixed_cg_upper_bound_governed_by"),
         })
     if phase11:
         summary.update({
@@ -234,7 +296,7 @@ def _build_summary(result: Dict) -> Dict:
 
 def _build_cli_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run the completed Bellona Phase 1-16 propulsion, aerodynamics, controls, transition, stability, mass, and MTOW convergence loop."
+        description="Run the Bellona preliminary mission, aerodynamics, controls, transition, stability, mass, and MTOW convergence loop."
     )
     parser.add_argument("--mtow-kg", type=float, default=50.0,
                         help="MTOW seed for the Phase 1-16 loop, or fixed MTOW when --fixed-mtow is used.")
@@ -257,14 +319,37 @@ def _build_cli_parser() -> argparse.ArgumentParser:
                         help="Optional CAD/geometry propeller diameter cap.")
     parser.add_argument("--battery-specific-energy-wh-kg", type=float,
                         default=Assumptions.battery_specific_energy_Wh_kg)
-    parser.add_argument("--stall-speed-target-max-m-s", type=float,
-                        default=Assumptions.stall_speed_target_max_m_s)
     parser.add_argument("--wing-area-seed-m2", type=float,
                         default=Assumptions.preliminary_wing_area_m2)
-    parser.add_argument("--cruise-j-target", type=float,
-                        default=Assumptions.cruise_J_target)
+    parser.add_argument("--wing-area-m2", type=float, default=None,
+                        help="Optional fixed wing-area override; otherwise wing area is optimized for minimum converged MTOW.")
+    parser.add_argument("--cd0", type=float, default=Assumptions.CD0)
+    parser.add_argument("--aspect-ratio", type=float, default=Assumptions.AR)
+    parser.add_argument("--oswald-efficiency", type=float,
+                        default=Assumptions.oswald_e)
+    parser.add_argument("--cl-max-guess", type=float,
+                        default=Assumptions.CL_max_guess)
+    parser.add_argument("--mission-cl-limit-fraction", type=float,
+                        default=Assumptions.mission_CL_limit_fraction)
+    parser.add_argument("--max-transition-complete-speed-m-s", type=float,
+                        default=Assumptions.max_transition_complete_speed_m_s,
+                        help="Reject wing-area candidates that require transition completion above this TAS at transition altitude.")
+    parser.add_argument("--max-stall-eas-m-s", type=float, default=None,
+                        help="Optional direct stall EAS cap; by default the transition-complete speed limit is used instead.")
+    parser.add_argument("--minimum-power-margin-fraction", type=float,
+                        default=Assumptions.minimum_power_margin_fraction,
+                        help="Required reserve below the affordable electrical-power cap.")
+    parser.add_argument("--max-fixed-wing-climb-angle-deg", type=float,
+                        default=Assumptions.max_fixed_wing_climb_angle_deg,
+                        help="Model-validity cap for wing-borne climb segments.")
+    parser.add_argument("--cruise-stall-margin-deg", type=float,
+                        default=Assumptions.cruise_stall_margin_deg)
+    parser.add_argument("--canard-stall-before-wing-margin-deg", type=float,
+                        default=Assumptions.canard_stall_before_wing_margin_deg)
     parser.add_argument("--canard-volume-coeff", type=float,
                         default=Assumptions.canard_volume_coeff)
+    parser.add_argument("--canard-cl-limit-fraction", type=float,
+                        default=Assumptions.canard_CL_limit_fraction)
     parser.add_argument("--canard-volume-grid-min", type=float,
                         default=Assumptions.canard_volume_grid_min)
     parser.add_argument("--canard-volume-grid-max", type=float,
@@ -315,6 +400,28 @@ def _build_cli_parser() -> argparse.ArgumentParser:
                         default=Assumptions.transition_cruise_margin_frac)
     parser.add_argument("--transition-accel-m-s2", type=float,
                         default=Assumptions.transition_accel_m_s2)
+    parser.add_argument("--vertical-takeoff-height-m", type=float,
+                        default=Assumptions.vertical_takeoff_height_m)
+    parser.add_argument("--vertical-takeoff-rate-m-s", type=float,
+                        default=Assumptions.vertical_takeoff_rate_m_s)
+    parser.add_argument("--mission-altitude-step-m", type=float,
+                        default=Assumptions.mission_altitude_step_m)
+    parser.add_argument("--disallow-spiral-climb", action="store_true",
+                        help="Reject climbs whose ground-track distance exceeds the required point-to-point range.")
+    parser.add_argument("--eta-prop", type=float, default=Assumptions.eta_prop,
+                        help="Assumed propulsive efficiency in wing-borne flight.")
+    parser.add_argument("--eta-motor", type=float, default=Assumptions.eta_motor)
+    parser.add_argument("--eta-esc", type=float, default=Assumptions.eta_ESC)
+    parser.add_argument("--max-affordable-electrical-power-w", type=float,
+                        default=Assumptions.max_affordable_electrical_power_W)
+    parser.add_argument("--preliminary-hover-power-w", type=float,
+                        default=Assumptions.preliminary_hover_power_W)
+    parser.add_argument("--preliminary-transition-power-w", type=float,
+                        default=Assumptions.preliminary_transition_power_W)
+    parser.add_argument("--run-multistage-mission", action="store_true",
+                        help="Also run the three-band climb profile extension.")
+    parser.add_argument("--run-minimum-time-reference", action="store_true",
+                        help="Also run the minimum-time reference climb.")
     parser.add_argument("--dynamic-cm-q", type=float, default=None,
                         help="Optional pitch damping derivative for Phase 14.")
     parser.add_argument("--dynamic-cm-alpha-dot", type=float,
@@ -332,10 +439,14 @@ def _build_cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dynamic-cn-r", type=float,
                         default=Assumptions.dynamic_Cn_r)
 
-    parser.add_argument("--use-xfoil", action="store_true",
-                        help="Try to run XFOIL; falls back to project table values if unavailable.")
-    parser.add_argument("--xfoil-path", default=None,
-                        help="Path to an XFOIL executable.")
+    parser.add_argument(
+        "--use-xfoil",
+        action=argparse.BooleanOptionalAction,
+        default=Assumptions.use_xfoil,
+        help="Run XFOIL when available; use --no-use-xfoil for project-table fallback values.",
+    )
+    parser.add_argument("--xfoil-path", default=Assumptions.xfoil_path,
+                        help="Optional XFOIL executable override; defaults to xfoil/xfoilp4.exe.")
     parser.add_argument("--airfoil-main-file", default=None,
                         help="Optional SD7037 coordinate file for XFOIL.")
     parser.add_argument("--airfoil-canard-file", default=None,
@@ -345,11 +456,14 @@ def _build_cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("--outer-max-iter", type=int, default=30)
     parser.add_argument("--mtow-tol", type=float, default=0.01)
     parser.add_argument("--mtow-damping", type=float, default=0.4)
-    parser.add_argument("--j-tol", type=float, default=0.01)
     parser.add_argument("--area-tol", type=float, default=0.01)
     parser.add_argument("--re-tol", type=float, default=0.02)
     parser.add_argument("--plot", default=None,
                         help="Optional path for the Phase 6 constraint diagram.")
+    parser.add_argument("--mission-profile-plot", default=None,
+                        help="Optional path for the eight-panel mission profile plot.")
+    parser.add_argument("--scissor-plot", default=None,
+                        help="Optional path for the Phase 10 canard scissor plot.")
     parser.add_argument("--json", dest="json_path", default=None,
                         help="Optional path to write full JSON results.")
     return parser
@@ -368,11 +482,34 @@ def _inputs_from_args(args) -> Tuple[Mission, Assumptions, Dict[str, str]]:
         thrust_to_weight=args.thrust_to_weight,
         disc_loading_target_N_m2=args.disc_loading_target_n_m2,
         prop_diameter_max_m=args.prop_diameter_max_m,
+        vertical_takeoff_height_m=args.vertical_takeoff_height_m,
+        vertical_takeoff_rate_m_s=args.vertical_takeoff_rate_m_s,
+        mission_altitude_step_m=args.mission_altitude_step_m,
+        allow_spiral_climb=not args.disallow_spiral_climb,
+        eta_prop=args.eta_prop,
+        eta_motor=args.eta_motor,
+        eta_ESC=args.eta_esc,
+        max_affordable_electrical_power_W=args.max_affordable_electrical_power_w,
+        preliminary_hover_power_W=args.preliminary_hover_power_w,
+        preliminary_transition_power_W=args.preliminary_transition_power_w,
+        run_multistage_mission_extension=args.run_multistage_mission,
+        run_minimum_time_reference=args.run_minimum_time_reference,
         battery_specific_energy_Wh_kg=args.battery_specific_energy_wh_kg,
         preliminary_wing_area_m2=args.wing_area_seed_m2,
-        stall_speed_target_max_m_s=args.stall_speed_target_max_m_s,
-        cruise_J_target=args.cruise_j_target,
+        wing_area_m2=args.wing_area_m2,
+        CD0=args.cd0,
+        AR=args.aspect_ratio,
+        oswald_e=args.oswald_efficiency,
+        CL_max_guess=args.cl_max_guess,
+        mission_CL_limit_fraction=args.mission_cl_limit_fraction,
+        max_transition_complete_speed_m_s=args.max_transition_complete_speed_m_s,
+        max_stall_EAS_m_s=args.max_stall_eas_m_s,
+        minimum_power_margin_fraction=args.minimum_power_margin_fraction,
+        max_fixed_wing_climb_angle_deg=args.max_fixed_wing_climb_angle_deg,
+        cruise_stall_margin_deg=args.cruise_stall_margin_deg,
+        canard_stall_before_wing_margin_deg=args.canard_stall_before_wing_margin_deg,
         canard_volume_coeff=args.canard_volume_coeff,
+        canard_CL_limit_fraction=args.canard_cl_limit_fraction,
         canard_volume_grid_min=args.canard_volume_grid_min,
         canard_volume_grid_max=args.canard_volume_grid_max,
         canard_volume_grid_step=args.canard_volume_grid_step,
@@ -420,9 +557,9 @@ def _inputs_from_args(args) -> Tuple[Mission, Assumptions, Dict[str, str]]:
 
 def _print_summary(summary: Dict) -> None:
     if "phase16_relative_error" in summary:
-        print("Bellona Phase 1-16 propulsion/aerodynamics/canard/control/stability/mass sizing")
+        print("Bellona Phase 1-16 preliminary mission/aerodynamics/control/stability/mass sizing")
     else:
-        print("Bellona Phase 1-15 fixed-MTOW propulsion/aerodynamics/canard/control/stability/mass sizing")
+        print("Bellona Phase 1-15 fixed-MTOW preliminary mission/aerodynamics/control/stability/mass sizing")
     print(f"  Converged: {summary['converged']} ({summary['stopped_reason']})")
     if summary.get("outer_iterations") is None:
         print(f"  Iterations: {summary['iterations']}")
@@ -451,7 +588,32 @@ def _print_summary(summary: Dict) -> None:
         f"{summary['cruise_speed_m_s']:.2f} m/s "
         f"(min {summary['cruise_speed_min_required_m_s']:.2f})"
     )
-    print(f"  Cruise RPM / J: {summary['cruise_rpm']:.0f} rpm / {summary['cruise_advance_ratio']:.3f}")
+    print(
+        "  Climb EAS / range split: "
+        f"{summary['optimized_climb_EAS_m_s']:.2f} m/s, "
+        f"gamma={summary['optimized_climb_angle_deg']:.1f} deg "
+        f"(limit {summary['max_fixed_wing_climb_angle_deg']:.1f}), "
+        f"climb={summary['climb_horizontal_distance_m']:.0f} m, "
+        f"cruise={summary['level_cruise_distance_m']:.0f} m"
+    )
+    if summary["spiral_excess_ground_track_distance_m"] > 1e-6:
+        print(
+            "  Idealized spiral: "
+            f"excess ground track={summary['spiral_excess_ground_track_distance_m']:.0f} m, "
+            f"total ground track={summary['total_ground_track_distance_m']:.0f} m"
+        )
+    print(
+        "  Mission: "
+        f"outbound={summary['outbound_time_s']:.1f} s, "
+        f"electrical energy={summary['mission_electrical_energy_Wh'] / 1000.0:.2f} kWh"
+    )
+    print(
+        "  Mission power: "
+        f"peak={summary['peak_electrical_power_W'] / 1000.0:.2f} kW, "
+        f"limit={summary['max_affordable_electrical_power_W'] / 1000.0:.2f} kW, "
+        f"margin={summary['power_margin_W'] / 1000.0:.2f} kW, "
+        f"reserve excess={summary['power_margin_over_required_W'] / 1000.0:.2f} kW"
+    )
     if summary.get("effective_thrust_to_weight") is not None:
         print(
             "  Effective T/W and arms: "
@@ -459,9 +621,39 @@ def _print_summary(summary: Dict) -> None:
             f"pitch arm frac={summary['effective_hover_pitch_arm_fraction_fuselage']:.3f}, "
             f"roll arm frac={summary['effective_hover_roll_arm_fraction_span']:.3f}"
         )
-    print(f"  Hover power: {summary['hover_power_total_W'] / 1000.0:.2f} kW")
+    print(
+        "  Preliminary hover/transition power: "
+        f"{summary['preliminary_hover_power_W'] / 1000.0:.2f} / "
+        f"{summary['preliminary_transition_power_W'] / 1000.0:.2f} kW"
+    )
     print(f"  Battery: {summary['battery_mass_kg']:.2f} kg, {summary['installed_battery_energy_Wh'] / 1000.0:.2f} kWh")
-    print(f"  Wing: {summary['wing_area_m2']:.2f} m^2, span {summary['wing_span_m']:.2f} m")
+    print(
+        "  Wing: "
+        f"{summary['wing_area_m2']:.2f} m^2, "
+        f"span {summary['wing_span_m']:.2f} m, "
+        f"W/S={summary['wing_loading_N_m2']:.1f} N/m^2"
+    )
+    print(
+        "  Calculated stall EAS / mission TAS / transition TAS: "
+        f"{summary['wing_stall_EAS_m_s']:.2f} / "
+        f"{summary['wing_stall_TAS_mission_m_s']:.2f} / "
+        f"{summary['wing_stall_TAS_transition_m_s']:.2f} m/s"
+    )
+    if summary.get("max_transition_complete_speed_m_s") is not None:
+        print(
+            "  Transition-complete speed: "
+            f"{summary['transition_complete_speed_m_s']:.2f} m/s "
+            f"(limit {summary['max_transition_complete_speed_m_s']:.2f}, "
+            f"margin {summary['transition_complete_speed_margin_m_s']:.2f})"
+        )
+    if summary.get("wing_area_selection_mode") is not None:
+        print(
+            "  Wing-area selection: "
+            f"{summary['wing_area_selection_mode']}, "
+            f"evaluations={summary['wing_area_candidate_count']}, "
+            f"converged={summary['wing_area_optimization_converged']}, "
+            f"local minimum={summary['wing_area_local_minimum_verified']}"
+        )
     print(f"  Canard: {summary['canard_area_m2']:.2f} m^2, span {summary['canard_span_m']:.2f} m")
     if summary.get("wing_mac_le_x_m") is not None:
         print(
@@ -496,6 +688,20 @@ def _print_summary(summary: Dict) -> None:
                 f"feasible={summary['operational_cg_feasible']}"
             )
         print(f"  Neutral point: {summary['neutral_point_x_over_c']:.3f} x/c")
+        if summary.get("scissor_min_area_ratio_fixed_cg") is not None:
+            scissor_upper = summary["scissor_max_area_ratio_fixed_cg"]
+            scissor_upper_text = (
+                "none"
+                if scissor_upper is None
+                else f"{scissor_upper:.3f}"
+            )
+            print(
+                "  Scissor area window: "
+                f"S_c/S={summary['scissor_area_ratio']:.3f}, "
+                f"fixed-CG lower={summary['scissor_min_area_ratio_fixed_cg']:.3f}, "
+                f"upper={scissor_upper_text}, "
+                f"current feasible={summary['scissor_current_area_feasible_fixed_cg']}"
+            )
     if "elevon_chord_fraction" in summary:
         print(
             "  Elevon: "
@@ -574,13 +780,12 @@ def main(argv=None) -> int:
             mission=mission,
             assumptions=assumptions,
             max_inner_iter=args.max_inner_iter,
-            j_tol=args.j_tol,
             area_tol=args.area_tol,
             re_tol=args.re_tol,
             constraint_plot_path=args.plot,
             airfoil_files=airfoil_files,
         )
-        description = "Bellona Phase 1-15 fixed-MTOW propulsion/aerodynamics/canard/control/transition/stability/mass sizing result."
+        description = "Bellona Phase 1-15 fixed-MTOW preliminary mission/aerodynamics/control/stability/mass sizing result."
     else:
         result = converge_design(
             MTOW_seed_kg=args.mtow_kg,
@@ -590,13 +795,12 @@ def main(argv=None) -> int:
             tol=args.mtow_tol,
             damping=args.mtow_damping,
             max_inner_iter=args.max_inner_iter,
-            j_tol=args.j_tol,
             area_tol=args.area_tol,
             re_tol=args.re_tol,
             constraint_plot_path=args.plot,
             airfoil_files=airfoil_files,
         )
-        description = "Bellona Phase 1-16 MTOW-converged propulsion/aerodynamics/canard/control/transition/stability/mass sizing result."
+        description = "Bellona Phase 1-16 MTOW-converged preliminary mission/aerodynamics/control/stability/mass sizing result."
     summary = _build_summary(result)
     payload = {
         "description": description,
@@ -610,6 +814,8 @@ def main(argv=None) -> int:
             "assumptions": asdict(assumptions),
             "airfoil_files": airfoil_files,
             "constraint_plot_path": args.plot,
+            "mission_profile_plot_path": args.mission_profile_plot,
+            "scissor_plot_path": args.scissor_plot,
         },
         "summary": summary,
         "result": result,
@@ -627,4 +833,10 @@ def main(argv=None) -> int:
         print(f"  JSON written to: {json_path}")
     if args.plot:
         print(f"  Constraint diagram written to: {args.plot}")
+    if args.mission_profile_plot:
+        plot_mission_result(result["phase3"], args.mission_profile_plot)
+        print(f"  Mission profile written to: {args.mission_profile_plot}")
+    if args.scissor_plot:
+        plot_phase10_scissor(result["phase10"], args.scissor_plot)
+        print(f"  Scissor plot written to: {args.scissor_plot}")
     return 0

@@ -17,7 +17,6 @@ def converge_design(MTOW_seed_kg: float = 50.0,
                     tol: float = 0.01,
                     damping: float = 0.4,
                     max_inner_iter: int = 15,
-                    j_tol: float = 0.01,
                     area_tol: float = 0.01,
                     re_tol: float = 0.02,
                     constraint_plot_path=None,
@@ -27,21 +26,22 @@ def converge_design(MTOW_seed_kg: float = 50.0,
       0. ISA tables
       1. Phase 1  prop diameter
       2. Phase 2  hover/climb power
-      3. Phase 3  mission optimise  (V_cruise, gamma, h_tr DERIVED here)
-      4. Phase 4  J coupling  inner V_cruiseJ loop with Ph3
-      5. Phase 7  airfoil  inner Re loop seeded from Ph3 V_cruise
-      6. Phase 8  wing  V_stall DERIVED here from CL,max,3D and W/S
-      7. Phase 7' Re-loop refine (one iteration)
-      8. Phase 9  canard
-      9. Phase 10 scissor (canard form)  inner CGcanard loop with Ph9
-     10. Phase 11 FW elevon
-     11. Phase 12 hover elevon  MAX-of with Ph11 closes elevon spec
-     12. Phase 13 transition blending
-     13. Phase 5  energy / battery
-     14. Phase 15 mass  produces new MTOW
-     15. Phase 16 converge check (damping 0.4)
-     16. Phase 6  constraint diagram VERIFY (final)
-     17. Phase 14 dynamic stability VERIFY (final)
+      3. Wing-area search evaluates coupled fixed-area candidates.
+      4. Phase 3  mission optimise  (V_cruise, gamma, h_tr DERIVED here)
+      5. Phase 4  preliminary mission-power validation
+      6. Phase 7  airfoil  inner Re loop seeded from Ph3 V_cruise
+      7. Phase 8  wing  stall speed calculated from selected wing area
+      8. Phase 7' Re-loop refine
+      9. Phase 9  canard
+     10. Phase 10 scissor (canard form)  inner CGcanard loop with Ph9
+     11. Phase 11 FW elevon
+     12. Phase 12 hover elevon  MAX-of with Ph11 closes elevon spec
+     13. Phase 13 transition blending
+     14. Phase 5  energy / battery
+     15. Phase 15 mass  produces new MTOW
+     16. Phase 16 converge check (damping 0.4) plus wing-area convergence
+     17. Phase 6  constraint diagram VERIFY (final)
+     18. Phase 14 dynamic stability VERIFY (final)
     """
     if mission is None:
         mission = Mission()
@@ -60,19 +60,39 @@ def converge_design(MTOW_seed_kg: float = 50.0,
     outer_history = []
     final_result = None
     outer_converged = False
+    wing_area_converged = False
+    outer_failure_reason = None
+    previous_wing_area_m2 = None
 
     for outer_it in range(max_iter):
-        result = iterate_phases_1_to_15(
-            MTOW_kg=MTOW_current,
-            mission=mission,
-            assumptions=assumptions,
-            max_inner_iter=max_inner_iter,
-            j_tol=j_tol,
-            area_tol=area_tol,
-            re_tol=re_tol,
-            constraint_plot_path=constraint_plot_path,
-            airfoil_files=airfoil_files,
-        )
+        try:
+            result = iterate_phases_1_to_15(
+                MTOW_kg=MTOW_current,
+                mission=mission,
+                assumptions=assumptions,
+                max_inner_iter=max_inner_iter,
+                area_tol=area_tol,
+                re_tol=re_tol,
+                constraint_plot_path=constraint_plot_path,
+                airfoil_files=airfoil_files,
+            )
+        except ValueError as exc:
+            if final_result is None:
+                raise
+            outer_failure_reason = str(exc)
+            outer_history.append({
+                "outer_iteration": outer_it + 1,
+                "MTOW_input_kg": float(MTOW_current),
+                "MTOW_mass_estimate_kg": None,
+                "MTOW_next_kg": None,
+                "mass_delta_kg": None,
+                "relative_error": None,
+                "inner_converged": False,
+                "inner_iterations": 0,
+                "control_closure_iterations": 0,
+                "stopped_reason": outer_failure_reason,
+            })
+            break
         MTOW_estimate = result["phase15"]["MTOW_estimate_kg"]
         phase16 = phase16_mtow_converge(
             MTOW_current,
@@ -83,6 +103,23 @@ def converge_design(MTOW_seed_kg: float = 50.0,
         result = dict(result)
         result["phase16"] = phase16
         final_result = result
+        selected_wing_area_m2 = float(result["phase8"]["S"])
+        wing_area_relative_change = (
+            None
+            if previous_wing_area_m2 is None
+            else abs(selected_wing_area_m2 - previous_wing_area_m2)
+            / previous_wing_area_m2
+        )
+        wing_area_converged = (
+            assumptions.wing_area_m2 is not None
+            or (
+                wing_area_relative_change is not None
+                and wing_area_relative_change <= area_tol
+                and result.get("wing_area_optimization", {}).get(
+                    "converged", False
+                )
+            )
+        )
 
         outer_history.append({
             "outer_iteration": outer_it + 1,
@@ -91,6 +128,12 @@ def converge_design(MTOW_seed_kg: float = 50.0,
             "MTOW_next_kg": phase16["MTOW_next_kg"],
             "mass_delta_kg": phase16["delta_kg"],
             "relative_error": phase16["relative_error"],
+            "selected_wing_area_m2": selected_wing_area_m2,
+            "wing_area_relative_change": wing_area_relative_change,
+            "wing_area_converged": bool(wing_area_converged),
+            "wing_area_candidate_count": result.get(
+                "wing_area_optimization", {}
+            ).get("evaluation_count"),
             "inner_converged": bool(result.get("converged", False)),
             "inner_iterations": len(result.get("history", [])),
             "control_closure_iterations": len(result.get("control_mass_history", [])),
@@ -103,15 +146,18 @@ def converge_design(MTOW_seed_kg: float = 50.0,
             "stopped_reason": result.get("stopped_reason", ""),
         })
 
-        if phase16["converged"]:
+        if phase16["converged"] and wing_area_converged:
             outer_converged = True
             break
+        previous_wing_area_m2 = selected_wing_area_m2
         MTOW_current = phase16["MTOW_next_kg"]
 
     final_result = dict(final_result)
     inner_converged = bool(final_result.get("converged", False))
     final_result["inner_converged"] = inner_converged
     final_result["outer_converged"] = bool(outer_converged)
+    final_result["wing_area_converged"] = bool(wing_area_converged)
+    final_result["outer_failure_reason"] = outer_failure_reason
     final_result["converged"] = bool(inner_converged and outer_converged)
     final_result["outer_history"] = outer_history
     final_result["outer_iterations"] = len(outer_history)
@@ -122,12 +168,17 @@ def converge_design(MTOW_seed_kg: float = 50.0,
         else final_result["phase16"]["MTOW_next_kg"]
     )
     final_result["notes"] = list(final_result.get("notes", [])) + [
-        "Phase 16 closes the MTOW loop by feeding the Phase 15 mass estimate back into the fixed-MTOW sizing pass."
+        "Phase 16 closes the MTOW loop by feeding the Phase 15 mass estimate back into the fixed-MTOW sizing pass.",
+        "MTOW convergence also requires the selected wing area to stop changing between outer iterations.",
     ]
     final_result["warnings"] = list(final_result.get("warnings", []))
     if not outer_converged:
         final_result["warnings"].append(
-            "Phase 16 did not meet the requested MTOW convergence tolerance before max_iter."
+            "Phase 16 did not meet the requested MTOW and wing-area convergence tolerances before max_iter."
+        )
+    if outer_failure_reason is not None:
+        final_result["warnings"].append(
+            f"Phase 16 stopped when the next MTOW iterate became infeasible: {outer_failure_reason}"
         )
 
     effective_assumptions = Assumptions(
@@ -145,7 +196,12 @@ def converge_design(MTOW_seed_kg: float = 50.0,
             if warning not in existing:
                 final_result["warnings"].append(warning)
 
-    if inner_converged and outer_converged:
+    if outer_failure_reason is not None:
+        final_result["stopped_reason"] = (
+            "Phase 16 MTOW iteration became mission-infeasible before convergence: "
+            + outer_failure_reason
+        )
+    elif inner_converged and outer_converged:
         open_issues = []
         if final_result.get("phase11", {}) and not final_result["phase11"].get("feasible_preliminary_elevon", True):
             open_issues.append("Phase 11 fixed-wing elevon")

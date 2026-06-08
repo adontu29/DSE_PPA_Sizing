@@ -1,36 +1,9 @@
 """Shared atmosphere and simple sizing helper equations."""
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from typing import Tuple
 
 import numpy as np
-
-from .models import Assumptions
-
-
-def transition_cruise_speed_requirement(assumptions: Assumptions) -> Dict:
-    """Estimate the minimum cruise speed needed to complete transition blending."""
-    if not 0.0 < assumptions.wing_stall_margin <= 1.0:
-        raise ValueError("wing_stall_margin should be in the range 0 < margin <= 1.")
-    if assumptions.stall_speed_target_max_m_s <= 0.0:
-        raise ValueError("stall_speed_target_max_m_s must be positive.")
-    if assumptions.transition_blend_end_frac <= 0.0:
-        raise ValueError("transition_blend_end_frac must be positive.")
-    if assumptions.transition_cruise_margin_frac < 0.0:
-        raise ValueError("transition_cruise_margin_frac must be non-negative.")
-
-    V_stall_design = np.sqrt(
-        assumptions.wing_stall_margin
-    ) * assumptions.stall_speed_target_max_m_s
-    V_blend_end = assumptions.transition_blend_end_frac * V_stall_design
-    V_cruise_min = (1.0 + assumptions.transition_cruise_margin_frac) * V_blend_end
-    return {
-        "V_stall_design_estimate_m_s": float(V_stall_design),
-        "V_blend_end_estimate_m_s": float(V_blend_end),
-        "V_cruise_min_m_s": float(V_cruise_min),
-        "margin_frac": float(assumptions.transition_cruise_margin_frac),
-    }
-
 
 def isa(h: float) -> Tuple[float, float, float, float]:
     """ISA 1976 atmosphere (troposphere only, 011 km).

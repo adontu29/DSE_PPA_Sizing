@@ -173,11 +173,15 @@ def _design_sanity_checks(result: Dict, mission: Mission,
         [assumptions.thrust_to_weight_min, assumptions.thrust_to_weight_max],
     )
     if phase13:
+        cf3 = phase3.get("carry_forward", {})
+        ref_TAS = cf3.get("reference_level_flight", {}).get(
+            "TAS_m_s", phase3.get("V_cruise", 0.0)
+        )
         add(
             "cruise_speed_transition_margin",
-            phase3["V_cruise"] >= phase13["V_cruise_required_for_margin"],
-            "Cruise speed must clear transition blend end plus margin.",
-            phase3["V_cruise"],
+            ref_TAS >= phase13["V_cruise_required_for_margin"],
+            "Reference level-flight speed must clear transition blend end plus margin.",
+            ref_TAS,
             phase13["V_cruise_required_for_margin"],
         )
     if phase15:
@@ -222,7 +226,14 @@ def _design_sanity_checks(result: Dict, mission: Mission,
             False,
         )
     if phase13 and phase13.get("E_transition_estimate_Wh") is not None:
-        phase3_E = phase3["E_transition_Wh"]
+        # Compare against the energy-critical case transition energy.
+        cf3 = phase3.get("carry_forward", {})
+        phase3_E = float(
+            cf3.get("energy_sizing_case", {}).get(
+                "segment_summaries", {}
+            ).get("transition", {}).get("energy_Wh",
+                  phase3.get("E_transition_Wh", 0.0))
+        )
         phase13_E = phase13["E_transition_estimate_Wh"]
         diff = abs(phase13_E - phase3_E) / max(phase3_E, 1e-9)
         add(
@@ -249,13 +260,106 @@ def _design_sanity_checks(result: Dict, mission: Mission,
         airfoil_sources,
         "xfoil",
     )
+    cf3 = phase3.get("carry_forward", {})
+    transition_ref = cf3.get("transition_reference", {})
+    transition_margin = transition_ref.get("transition_complete_speed_margin_m_s")
     add(
-        "stall_speed_limit",
-        phase8["V_stall"] <= assumptions.stall_speed_target_max_m_s,
-        "Stall speed must not exceed the selected target.",
-        phase8["V_stall"],
-        assumptions.stall_speed_target_max_m_s,
+        "transition_complete_speed_limit",
+        None if transition_margin is None else transition_margin >= -1e-9,
+        "Transition-complete speed must not exceed the selected tailsitter handoff limit.",
+        transition_ref.get("minimum_transition_complete_TAS_m_s"),
+        transition_ref.get("max_transition_complete_speed_m_s"),
     )
+    stall_eas_margin = transition_ref.get("stall_EAS_margin_m_s")
+    add(
+        "stall_eas_limit",
+        None if stall_eas_margin is None else stall_eas_margin >= -1e-9,
+        "Calculated stall EAS must not exceed the optional selected limit.",
+        transition_ref.get("stall_EAS_m_s"),
+        transition_ref.get("max_stall_EAS_m_s"),
+    )
+    power_margin_over_required = cf3.get("minimum_constraint_margins", {}).get(
+        "power_margin_over_required_W"
+    )
+    add(
+        "mission_power_reserve_margin",
+        None if power_margin_over_required is None else power_margin_over_required >= -1e-6,
+        "Mission power margin must exceed the selected reserve fraction.",
+        power_margin_over_required,
+        0.0,
+    )
+    max_climb_angle = max(
+        (
+            row.get("optimized_climb_angle_deg", -np.inf)
+            for row in phase3.get("diagnostics", {}).get("distance_sweep", [])
+            if row.get("feasible")
+        ),
+        default=phase3.get("optimized_climb_angle_deg"),
+    )
+    add(
+        "fixed_wing_climb_angle_limit",
+        None if max_climb_angle is None else max_climb_angle <= assumptions.max_fixed_wing_climb_angle_deg + 1e-9,
+        "Fixed-wing climb angle must remain inside the selected model-validity bound.",
+        max_climb_angle,
+        assumptions.max_fixed_wing_climb_angle_deg,
+    )
+    mission_cl_margin = cf3.get("minimum_constraint_margins", {}).get(
+        "CL_margin"
+    )
+    add(
+        "mission_cl_allowed_compliance",
+        None if mission_cl_margin is None else mission_cl_margin >= -1e-9,
+        "Every required mission state must remain at or below CL_allowed.",
+        mission_cl_margin,
+        0.0,
+    )
+    ref_lf = cf3.get("reference_level_flight", {})
+    CL_max = phase8.get("CL_max_3D")
+    cruise_CL = ref_lf.get("CL")
+    cruise_stall_margin_deg = None
+    if CL_max is not None and cruise_CL is not None and phase8.get("CL_a", 0.0) > 0.0:
+        cruise_stall_margin_deg = float(
+            np.rad2deg((CL_max - cruise_CL) / phase8["CL_a"])
+        )
+    add(
+        "cruise_stall_margin_estimate",
+        None if cruise_stall_margin_deg is None else cruise_stall_margin_deg >= assumptions.cruise_stall_margin_deg,
+        "Reference cruise condition should retain the selected Stone-style stall-angle margin estimate.",
+        cruise_stall_margin_deg,
+        assumptions.cruise_stall_margin_deg,
+    )
+    canard_stall_margin_deg = None
+    if (
+        phase7.get("main", {}).get("alpha_stall_deg") is not None
+        and phase7.get("canard", {}).get("alpha_stall_deg") is not None
+    ):
+        canard_stall_margin_deg = float(
+            phase7["main"]["alpha_stall_deg"]
+            - phase7["canard"]["alpha_stall_deg"]
+        )
+    add(
+        "canard_stalls_before_wing_estimate",
+        None if canard_stall_margin_deg is None else canard_stall_margin_deg >= assumptions.canard_stall_before_wing_margin_deg,
+        "Canard stall angle should precede wing stall angle by the selected Stone-style margin.",
+        canard_stall_margin_deg,
+        assumptions.canard_stall_before_wing_margin_deg,
+    )
+    wing_area_optimization = result.get("wing_area_optimization", {})
+    if wing_area_optimization:
+        add(
+            "wing_area_optimization_convergence",
+            wing_area_optimization.get("converged"),
+            "Wing-area optimization must converge or be explicitly fixed.",
+            wing_area_optimization.get("selected_area_m2"),
+            wing_area_optimization.get("area_tolerance"),
+        )
+        add(
+            "wing_area_local_minimum_verified",
+            wing_area_optimization.get("local_minimum_verified"),
+            "Neighboring wing areas must be heavier or infeasible.",
+            wing_area_optimization.get("verification_neighbors"),
+            "selected local minimum",
+        )
 
     passed_values = [item["passed"] for item in checks.values() if item["passed"] is not None]
     return {
