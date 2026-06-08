@@ -36,6 +36,7 @@ dist/
 Thumbs.db
 
 # Generated sizing outputs and scratch extraction artifacts.
+outputs/
 results/
 figures/*.png
 figures/*.pdf
