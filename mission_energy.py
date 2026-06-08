@@ -98,7 +98,7 @@ def aerodynamic_speed_limits(weight_N, wing, mission, aircraft, isa_density):
     }
 
 
-def transition_blending(stall_speed_m_s, aircraft, cruise_true_speed_m_s):
+def transition_blending(stall_speed_m_s, mission, aircraft, cruise_true_speed_m_s):
     blend_start = (
         setting(aircraft, "transition_blend_start_fraction", 0.50)
         * stall_speed_m_s

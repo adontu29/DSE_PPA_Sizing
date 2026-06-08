@@ -37,6 +37,12 @@ AIRCRAFT = {
     "MTOW_kg": 52.78,
     "g_m_s2": 9.80665,
     "wing_area_m2": 6.8,
+    "design_stall_EAS_m_s": 10.0,
+    "stall_speed_sweep_min_m_s": 10.0,
+    "stall_speed_sweep_max_m_s": 20.0,
+    "stall_speed_sweep_step_m_s": 1.0,
+    "sizing_iteration_count": 8,
+    "sizing_mass_tolerance_kg": 0.02,
     "wing_aspect_ratio": 7.0,
     "wing_taper": 0.40,
     "wing_CL_max": 1.28,
@@ -125,9 +131,18 @@ def propeller_disk_estimate(weight_N):
     }
 
 
-def wing_geometry(weight_N, rho_cruise):
+def wing_area_from_stall_speed(weight_N, stall_EAS_m_s=None):
+    """Wing area from the selected sea-level stall speed."""
+    rho_sea_level = isa_density(0.0)
+    if stall_EAS_m_s is None:
+        stall_EAS_m_s = AIRCRAFT["design_stall_EAS_m_s"]
+    return 2.0 * weight_N / (rho_sea_level * AIRCRAFT["wing_CL_max"] * stall_EAS_m_s**2)
+
+
+def wing_geometry(weight_N, rho_cruise, wing_area=None):
     """Wing geometry and reference lift condition."""
-    wing_area = AIRCRAFT["wing_area_m2"]
+    if wing_area is None:
+        wing_area = AIRCRAFT["wing_area_m2"]
     aspect_ratio = AIRCRAFT["wing_aspect_ratio"]
     span = math.sqrt(wing_area * aspect_ratio)
     chord = wing_area / span
@@ -330,6 +345,22 @@ def write_mass_breakdown(path, mass):
             writer.writerow([name, component_mass, mass["locations_fuselage_m"][name]])
 
 
+def write_iteration_history(path, history):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=list(history[0].keys()))
+        writer.writeheader()
+        writer.writerows(history)
+
+
+def write_table_csv(path, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def plot_scissor(path, wing, candidates, selected):
     area_ratios = [item["canard"]["area_ratio"] for item in candidates]
     x_forward = [item["scissor"]["x_forward_over_mac"] for item in candidates]
@@ -366,15 +397,160 @@ def plot_scissor(path, wing, candidates, selected):
 def plot_mission_profile(path, mission):
     times = [point[0] for point in mission["profile"]]
     altitudes = [point[1] for point in mission["profile"]]
-    fig, ax = plt.subplots(figsize=(8.0, 4.5))
-    ax.plot(times, altitudes, marker="o", color="#1f77b4")
-    ax.set_xlabel("time [s]")
-    ax.set_ylabel("altitude [m]")
-    ax.set_title("Mission profile")
+    time_min = [time / 60.0 for time in times]
+    altitude_km = [altitude / 1000.0 for altitude in altitudes]
+    states = mission["states"]
+    segments = mission["segment_summaries"]
+
+    fig, axes = plt.subplots(2, 3, figsize=(14.0, 8.2))
+    fig.suptitle("Bellona mission profile and energy sizing", fontsize=16, fontweight="bold")
+    fig.text(
+        0.5,
+        0.935,
+        (
+            f"Load energy {mission['total_energy_Wh'] / 1000.0:.2f} kWh | "
+            f"Installed battery {mission['installed_battery_energy_Wh'] / 1000.0:.2f} kWh | "
+            f"Climb EAS {mission['optimized_climb_EAS_m_s']:.1f} m/s | "
+            f"gamma {mission['optimized_climb_angle_deg']:.1f} deg"
+        ),
+        ha="center",
+        fontsize=10,
+        color="#3d4752",
+    )
+
+    ax = axes[0, 0]
+    ax.plot(time_min, altitude_km, color="#005f73", linewidth=2.4)
+    ax.fill_between(time_min, altitude_km, color="#005f73", alpha=0.10)
+    ax.set_title("Altitude timeline")
+    ax.set_xlabel("time [min]")
+    ax.set_ylabel("altitude [km]")
     ax.grid(True, alpha=0.25)
-    fig.tight_layout()
+
+    ax = axes[0, 1]
+    track_x_km = [0.0, 0.0]
+    track_h_km = [0.0, altitude_km[1] if len(altitude_km) > 1 else 0.0]
+    x_m = segments["transition"]["distance_m"]
+    track_x_km.append(x_m / 1000.0)
+    track_h_km.append(track_h_km[-1])
+    for state in states:
+        x_m += state["delta_x_m"]
+        track_x_km.append(x_m / 1000.0)
+        track_h_km.append(state["altitude_m"] / 1000.0)
+    ax.plot(track_x_km, track_h_km, color="#0a9396", linewidth=2.4)
+    ax.fill_between(track_x_km, track_h_km, color="#0a9396", alpha=0.10)
+    ax.axvline(mission["climb_horizontal_distance_m"] / 1000.0, color="#94d2bd", linestyle="--", linewidth=1.2)
+    ax.set_title("Altitude over ground track")
+    ax.set_xlabel("ground track [km]")
+    ax.set_ylabel("altitude [km]")
+    ax.grid(True, alpha=0.25)
+
+    climb_states = [state for state in states if state["segment"] == "wing_borne_climb"]
+    state_altitude_km = [state["altitude_mid_m"] / 1000.0 for state in climb_states]
+
+    ax = axes[0, 2]
+    if climb_states:
+        ax.plot([state["speed_m_s"] for state in climb_states], state_altitude_km, color="#001219", linewidth=2.2, label="TAS")
+        ax.plot([state["EAS_m_s"] for state in climb_states], state_altitude_km, color="#ee9b00", linewidth=2.0, linestyle="--", label="EAS")
+    ax.set_title("Climb speed schedule")
+    ax.set_xlabel("speed [m/s]")
+    ax.set_ylabel("altitude [km]")
+    ax.grid(True, alpha=0.25)
+    ax.legend(frameon=False, fontsize=8)
+
+    ax = axes[1, 0]
+    if climb_states:
+        ax.plot([state["electrical_power_W"] / 1000.0 for state in climb_states], state_altitude_km, color="#bb3e03", linewidth=2.2, label="wing-borne climb")
+    ax.axvline(14.0, color="#9b2226", linestyle=":", linewidth=1.8, label="hover assumption")
+    ax.axvline(8.0, color="#ca6702", linestyle="--", linewidth=1.5, label="transition assumption")
+    ax.set_title("Electrical power")
+    ax.set_xlabel("power [kW]")
+    ax.set_ylabel("altitude [km]")
+    ax.grid(True, alpha=0.25)
+    ax.legend(frameon=False, fontsize=8)
+
+    ax = axes[1, 1]
+    segment_names = ["vertical_takeoff", "transition", "wing_borne_climb", "level_cruise", "mission_hover"]
+    labels = ["takeoff", "transition", "climb", "cruise", "hover"]
+    energy_kWh = [segments[name]["energy_Wh"] / 1000.0 for name in segment_names]
+    colors = ["#005f73", "#0a9396", "#ee9b00", "#ca6702", "#9b2226"]
+    ax.bar(labels, energy_kWh, color=colors, width=0.65)
+    ax.set_title("Segment energy")
+    ax.set_ylabel("load energy [kWh]")
+    ax.tick_params(axis="x", rotation=25)
+    ax.grid(True, axis="y", alpha=0.25)
+    for index, value in enumerate(energy_kWh):
+        ax.text(index, value + 0.02, f"{value:.2f}", ha="center", va="bottom", fontsize=8)
+
+    ax = axes[1, 2]
+    if climb_states:
+        CL = [state["CL"] for state in climb_states]
+        rate_of_climb = [state["rate_of_climb_m_s"] for state in climb_states]
+        ax.plot(CL, state_altitude_km, color="#3d405b", linewidth=2.2, label="CL")
+        CL_allowed = mission["mission_grid"]["aerodynamic_speed_limits"]["CL_allowed"]
+        ax.axvline(CL_allowed, color="#9b2226", linestyle="--", linewidth=1.5, label="CL limit")
+        ax2 = ax.twiny()
+        ax2.plot(rate_of_climb, state_altitude_km, color="#2a9d8f", linewidth=1.8, linestyle=":", label="rate of climb")
+        ax2.set_xlabel("rate of climb [m/s]", color="#2a9d8f")
+        ax2.tick_params(axis="x", colors="#2a9d8f")
+    ax.set_title("Lift coefficient and climb rate")
+    ax.set_xlabel("CL")
+    ax.set_ylabel("altitude [km]")
+    ax.grid(True, alpha=0.25)
+    ax.legend(frameon=False, fontsize=8, loc="lower right")
+
+    fig.tight_layout(rect=[0.0, 0.0, 1.0, 0.91])
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=150)
+    fig.savefig(path, dpi=180)
+    fig.savefig(path.with_suffix(".pdf"))
+    plt.close(fig)
+
+
+def plot_stall_speed_sweep(path, rows, selected_stall_EAS_m_s):
+    feasible_rows = [row for row in rows if row["feasible"]]
+    if not feasible_rows:
+        return
+    failed_speeds = [row["design_stall_EAS_m_s"] for row in rows if not row["feasible"]]
+
+    speeds = [row["design_stall_EAS_m_s"] for row in feasible_rows]
+    masses = [row["MTOW_mass_estimate_kg"] for row in feasible_rows]
+    wing_areas = [row["wing_area_m2"] for row in feasible_rows]
+    energies = [row["mission_energy_Wh"] / 1000.0 for row in feasible_rows]
+
+    fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.2))
+    fig.suptitle("Stall speed sweep", fontsize=15, fontweight="bold")
+
+    if failed_speeds:
+        failed_start = min(failed_speeds) - 0.5 * AIRCRAFT["stall_speed_sweep_step_m_s"]
+        failed_end = max(failed_speeds) + 0.5 * AIRCRAFT["stall_speed_sweep_step_m_s"]
+        for ax in axes:
+            ax.axvspan(failed_start, failed_end, color="#9b2226", alpha=0.08, label="transition infeasible")
+
+    axes[0].plot(speeds, masses, marker="o", color="#005f73")
+    axes[0].axvline(selected_stall_EAS_m_s, color="#9b2226", linestyle="--", label="selected")
+    axes[0].set_xlabel("design stall EAS [m/s]")
+    axes[0].set_ylabel("final mass [kg]")
+    axes[0].set_title("Mass closure")
+    axes[0].grid(True, alpha=0.25)
+    axes[0].legend(frameon=False, fontsize=8)
+
+    axes[1].plot(speeds, wing_areas, marker="o", color="#0a9396")
+    axes[1].axvline(selected_stall_EAS_m_s, color="#9b2226", linestyle="--")
+    axes[1].set_xlabel("design stall EAS [m/s]")
+    axes[1].set_ylabel("wing area [m2]")
+    axes[1].set_title("Wing loading effect")
+    axes[1].grid(True, alpha=0.25)
+
+    axes[2].plot(speeds, energies, marker="o", color="#ee9b00")
+    axes[2].axvline(selected_stall_EAS_m_s, color="#9b2226", linestyle="--")
+    axes[2].set_xlabel("design stall EAS [m/s]")
+    axes[2].set_ylabel("mission load energy [kWh]")
+    axes[2].set_title("Mission energy")
+    axes[2].grid(True, alpha=0.25)
+
+    fig.tight_layout(rect=[0.0, 0.0, 1.0, 0.90])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=180)
+    fig.savefig(path.with_suffix(".pdf"))
     plt.close(fig)
 
 
@@ -383,25 +559,95 @@ def plot_mission_profile(path, mission):
 # ---------------------------------------------------------------------------
 
 
-def run_sizing(output_dir=OUTPUT_DIR, make_plots=True):
-    output_dir = Path(output_dir)
-
-    weight_N = AIRCRAFT["MTOW_kg"] * AIRCRAFT["g_m_s2"]
+def run_sizing_pass(weight_N, wing_area_m2):
+    """One pass through mission, canard, wing position, and mass."""
     rho_cruise = isa_density(MISSION["altitude_m"])
     propeller = propeller_disk_estimate(weight_N)
-    wing = wing_geometry(weight_N, rho_cruise)
+    wing = wing_geometry(weight_N, rho_cruise, wing_area_m2)
     mission = run_mission_energy(weight_N, wing, MISSION, AIRCRAFT, isa_density)
     wing["cruise_true_speed_m_s"] = mission["cruise_true_speed_m_s"]
     wing["CL_trim"] = mission["CL_cruise"]
     selected, candidates = canard_and_wing_iteration(wing, mission, propeller)
 
-    summary = {
+    return {
+        "wing": wing,
+        "mission": mission,
+        "propeller": propeller,
+        "selected": selected,
+        "candidates": candidates,
+    }
+
+
+def coupled_sizing_iteration(design_stall_EAS_m_s):
+    """Iterate mass, stall-speed wing area, mission energy, and canard sizing."""
+    mass_kg = AIRCRAFT["MTOW_kg"]
+    history = []
+    result = None
+
+    for iteration in range(1, AIRCRAFT["sizing_iteration_count"] + 1):
+        weight_N = mass_kg * AIRCRAFT["g_m_s2"]
+        wing_area_m2 = wing_area_from_stall_speed(weight_N, design_stall_EAS_m_s)
+        result = run_sizing_pass(weight_N, wing_area_m2)
+        estimated_mass_kg = result["selected"]["mass"]["total_mass_kg"]
+
+        history.append({
+            "iteration": iteration,
+            "mass_used_kg": mass_kg,
+            "wing_area_m2": result["wing"]["area_m2"],
+            "stall_EAS_m_s": result["wing"]["stall_EAS_m_s"],
+            "climb_EAS_m_s": result["mission"]["optimized_climb_EAS_m_s"],
+            "mission_energy_Wh": result["mission"]["total_energy_Wh"],
+            "battery_mass_kg": result["mission"]["battery_mass_kg"],
+            "canard_area_ratio": result["selected"]["canard"]["area_ratio"],
+            "estimated_mass_kg": estimated_mass_kg,
+            "mass_change_kg": estimated_mass_kg - mass_kg,
+        })
+
+        if abs(estimated_mass_kg - mass_kg) <= AIRCRAFT["sizing_mass_tolerance_kg"]:
+            mass_kg = estimated_mass_kg
+            break
+
+        mass_kg = estimated_mass_kg
+
+    weight_N = mass_kg * AIRCRAFT["g_m_s2"]
+    wing_area_m2 = wing_area_from_stall_speed(weight_N, design_stall_EAS_m_s)
+    result = run_sizing_pass(weight_N, wing_area_m2)
+    result["iteration_history"] = history
+    result["final_mass_used_kg"] = mass_kg
+    result["design_stall_EAS_m_s"] = design_stall_EAS_m_s
+    return result
+
+
+def stall_speed_sweep_values():
+    values = []
+    speed = AIRCRAFT["stall_speed_sweep_min_m_s"]
+    maximum = AIRCRAFT["stall_speed_sweep_max_m_s"]
+    step = AIRCRAFT["stall_speed_sweep_step_m_s"]
+    while speed <= maximum + 1e-9:
+        values.append(round(speed, 6))
+        speed += step
+    return values
+
+
+def make_summary(result):
+    wing = result["wing"]
+    mission = result["mission"]
+    propeller = result["propeller"]
+    selected = result["selected"]
+    candidates = result["candidates"]
+
+    return {
         "MTOW_input_kg": AIRCRAFT["MTOW_kg"],
+        "MTOW_used_for_final_pass_kg": result["final_mass_used_kg"],
         "MTOW_mass_estimate_kg": selected["mass"]["total_mass_kg"],
+        "mass_closure_error_kg": selected["mass"]["total_mass_kg"] - result["final_mass_used_kg"],
+        "sizing_iterations_used": len(result["iteration_history"]),
+        "design_stall_EAS_m_s": result["design_stall_EAS_m_s"],
         "wing_area_m2": wing["area_m2"],
         "wing_span_m": wing["span_m"],
         "wing_chord_m": wing["chord_m"],
         "wing_stall_EAS_m_s": wing["stall_EAS_m_s"],
+        "minimum_climb_EAS_m_s": mission["mission_grid"]["aerodynamic_speed_limits"]["minimum_climb_EAS_m_s"],
         "cruise_true_speed_m_s": mission["cruise_true_speed_m_s"],
         "CL_trim": wing["CL_trim"],
         "CD_trim": mission["CD_trim"],
@@ -429,11 +675,90 @@ def run_sizing(output_dir=OUTPUT_DIR, make_plots=True):
         "candidate_count": len(candidates),
     }
 
+
+def sweep_stall_speed():
+    rows = []
+    feasible_results = []
+
+    for stall_speed in stall_speed_sweep_values():
+        try:
+            result = coupled_sizing_iteration(stall_speed)
+            summary = make_summary(result)
+            feasible = result["selected"]["feasible"]
+            row = {
+                "design_stall_EAS_m_s": stall_speed,
+                "feasible": feasible,
+                "failure_reason": "" if feasible else "Scissor constraints not feasible.",
+                "MTOW_mass_estimate_kg": summary["MTOW_mass_estimate_kg"],
+                "mass_closure_error_kg": summary["mass_closure_error_kg"],
+                "wing_area_m2": summary["wing_area_m2"],
+                "wing_span_m": summary["wing_span_m"],
+                "minimum_climb_EAS_m_s": summary["minimum_climb_EAS_m_s"],
+                "optimized_climb_EAS_m_s": summary["optimized_climb_EAS_m_s"],
+                "cruise_true_speed_m_s": summary["cruise_true_speed_m_s"],
+                "mission_energy_Wh": summary["mission_energy_Wh"],
+                "battery_mass_kg": summary["battery_mass_kg"],
+                "canard_area_ratio": summary["canard_area_ratio"],
+                "canard_area_m2": summary["canard_area_m2"],
+                "outbound_time_s": summary["outbound_time_s"],
+                "peak_electrical_power_W": summary["peak_electrical_power_W"],
+                "sizing_iterations_used": summary["sizing_iterations_used"],
+            }
+            rows.append(row)
+            if feasible:
+                feasible_results.append((summary["MTOW_mass_estimate_kg"], result, summary))
+        except RuntimeError as error:
+            rows.append({
+                "design_stall_EAS_m_s": stall_speed,
+                "feasible": False,
+                "failure_reason": str(error),
+                "MTOW_mass_estimate_kg": "",
+                "mass_closure_error_kg": "",
+                "wing_area_m2": "",
+                "wing_span_m": "",
+                "minimum_climb_EAS_m_s": "",
+                "optimized_climb_EAS_m_s": "",
+                "cruise_true_speed_m_s": "",
+                "mission_energy_Wh": "",
+                "battery_mass_kg": "",
+                "canard_area_ratio": "",
+                "canard_area_m2": "",
+                "outbound_time_s": "",
+                "peak_electrical_power_W": "",
+                "sizing_iterations_used": "",
+            })
+
+    if not feasible_results:
+        raise RuntimeError("No feasible stall-speed point was found in the sweep.")
+
+    feasible_results.sort(key=lambda item: item[0])
+    _, result, summary = feasible_results[0]
+    return result, summary, rows
+
+
+def run_sizing(output_dir=OUTPUT_DIR, make_plots=True):
+    output_dir = Path(output_dir)
+
+    result, summary, sweep_rows = sweep_stall_speed()
+    wing = result["wing"]
+    mission = result["mission"]
+    propeller = result["propeller"]
+    selected = result["selected"]
+    candidates = result["candidates"]
+    history = result["iteration_history"]
+
     write_key_value_csv(output_dir / "summary.csv", summary)
     write_mass_breakdown(output_dir / "mass_breakdown.csv", selected["mass"])
+    write_iteration_history(output_dir / "iteration_history.csv", history)
+    write_table_csv(output_dir / "stall_speed_sweep.csv", sweep_rows)
     if make_plots:
         plot_scissor(output_dir / "scissor_plot.png", wing, candidates, selected)
         plot_mission_profile(output_dir / "mission_profile.png", mission)
+        plot_stall_speed_sweep(
+            output_dir / "stall_speed_sweep.png",
+            sweep_rows,
+            summary["design_stall_EAS_m_s"],
+        )
 
     return {
         "summary": summary,
@@ -442,6 +767,8 @@ def run_sizing(output_dir=OUTPUT_DIR, make_plots=True):
         "propeller": propeller,
         "selected": selected,
         "candidates": candidates,
+        "iteration_history": history,
+        "stall_speed_sweep": sweep_rows,
     }
 
 
@@ -450,7 +777,11 @@ def main():
     summary = result["summary"]
     print("Bellona simplified sizing")
     print(f"  MTOW estimate: {summary['MTOW_mass_estimate_kg']:.2f} kg")
-    print(f"  Wing: {summary['wing_area_m2']:.2f} m^2, span {summary['wing_span_m']:.2f} m")
+    print(
+        "  Wing: "
+        f"{summary['wing_area_m2']:.2f} m^2, span {summary['wing_span_m']:.2f} m, "
+        f"stall EAS={summary['design_stall_EAS_m_s']:.1f} m/s"
+    )
     print(
         "  Mission: "
         f"{summary['mission_energy_Wh'] / 1000.0:.2f} kWh load, "

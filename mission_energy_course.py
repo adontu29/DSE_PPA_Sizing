@@ -1,0 +1,745 @@
+"""Course-method wing-borne climb from power available.
+
+This file follows the lecture workflow for a constant-EAS climb:
+
+    RC_s = (P_a - P_r) / W
+    RC   = RC_s / (1 + V/g * dV/dH)
+
+The result is separate from the main mission model so both approaches can be
+compared before choosing which one to use in the sizing workflow.
+"""
+
+from __future__ import annotations
+
+import csv
+import math
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+
+RHO_SEA_LEVEL = 1.225
+
+
+def setting(values, name, default):
+    return values[name] if name in values else default
+
+
+def linspace(start, stop, count):
+    if count == 1:
+        return [float(start)]
+    step = (stop - start) / (count - 1)
+    return [float(start + index * step) for index in range(count)]
+
+
+def true_airspeed_from_eas(equivalent_airspeed_m_s, density_kg_m3):
+    return equivalent_airspeed_m_s * math.sqrt(RHO_SEA_LEVEL / density_kg_m3)
+
+
+def induced_drag_factor(aircraft):
+    return 1.0 / (
+        math.pi
+        * aircraft["wing_aspect_ratio"]
+        * aircraft["oswald_efficiency"]
+    )
+
+
+def forward_efficiency(aircraft):
+    return setting(
+        aircraft,
+        "forward_flight_efficiency",
+        setting(aircraft, "eta_prop", 0.75)
+        * setting(aircraft, "eta_motor", 0.90)
+        * setting(aircraft, "eta_ESC", 0.95),
+    )
+
+
+def permitted_lift_coefficient(aircraft):
+    fraction_limit = (
+        setting(aircraft, "mission_CL_limit_fraction", 0.90)
+        * aircraft["wing_CL_max"]
+    )
+    stall_margin_deg = setting(aircraft, "cruise_stall_margin_deg", 3.0)
+    margin_limit = (
+        aircraft["wing_CL_max"]
+        - aircraft["wing_CL_alpha_per_rad"] * math.radians(stall_margin_deg)
+    )
+    return min(fraction_limit, margin_limit)
+
+
+def default_eas_grid(weight_N, wing, aircraft):
+    CL_allowed = permitted_lift_coefficient(aircraft)
+    minimum_eas = math.sqrt(
+        2.0 * weight_N
+        / (RHO_SEA_LEVEL * wing["area_m2"] * CL_allowed)
+    )
+    lower = 1.001 * minimum_eas
+    upper = max(1.8 * lower, lower + 12.0)
+    return linspace(lower, upper, 13)
+
+
+def default_power_grid(aircraft):
+    """Electrical power search grid for the course-method climb."""
+    minimum_power_W = setting(aircraft, "course_climb_power_min_W", 500.0)
+    maximum_power_W = setting(
+        aircraft,
+        "course_climb_available_power_W",
+        setting(aircraft, "max_affordable_electrical_power_W", 20000.0),
+    )
+    step_W = setting(aircraft, "course_climb_power_step_W", 500.0)
+    count = int((maximum_power_W - minimum_power_W) / step_W) + 1
+    return [minimum_power_W + index * step_W for index in range(count)]
+
+
+def constant_eas_dv_dh(equivalent_airspeed_m_s, altitude_m, isa_density):
+    """Numerical dV_TAS/dH for constant EAS."""
+    step_m = 1.0
+    lower_h = max(0.0, altitude_m - step_m)
+    upper_h = altitude_m + step_m
+    lower_v = true_airspeed_from_eas(equivalent_airspeed_m_s, isa_density(lower_h))
+    upper_v = true_airspeed_from_eas(equivalent_airspeed_m_s, isa_density(upper_h))
+    return (upper_v - lower_v) / (upper_h - lower_h)
+
+
+def climb_state_from_power_available(
+    weight_N,
+    wing,
+    aircraft,
+    isa_density,
+    altitude_m,
+    equivalent_airspeed_m_s,
+    available_electrical_power_W,
+):
+    density = isa_density(altitude_m)
+    true_speed = true_airspeed_from_eas(equivalent_airspeed_m_s, density)
+    q = 0.5 * density * true_speed**2
+    CL = weight_N / (q * wing["area_m2"])
+    CD = aircraft["CD0"] + induced_drag_factor(aircraft) * CL**2
+    drag_N = q * wing["area_m2"] * CD
+
+    power_required_propulsive_W = drag_N * true_speed
+    selected_power_available_propulsive_W = (
+        available_electrical_power_W * forward_efficiency(aircraft)
+    )
+    thrust_from_selected_power_N = selected_power_available_propulsive_W / true_speed
+    thrust_limit_N = (
+        setting(aircraft, "course_climb_max_thrust_to_weight", 0.50)
+        * weight_N
+    )
+    usable_thrust_N = min(thrust_from_selected_power_N, thrust_limit_N)
+    power_available_propulsive_W = usable_thrust_N * true_speed
+    electrical_power_used_W = power_available_propulsive_W / forward_efficiency(aircraft)
+    steady_rate_of_climb_m_s = (
+        power_available_propulsive_W - power_required_propulsive_W
+    ) / weight_N
+
+    dV_dH = constant_eas_dv_dh(equivalent_airspeed_m_s, altitude_m, isa_density)
+    acceleration_correction = 1.0 + true_speed / aircraft["g_m_s2"] * dV_dH
+    rate_of_climb_m_s = steady_rate_of_climb_m_s / acceleration_correction
+
+    return {
+        "altitude_m": altitude_m,
+        "density_kg_m3": density,
+        "EAS_m_s": equivalent_airspeed_m_s,
+        "TAS_m_s": true_speed,
+        "dV_dH": dV_dH,
+        "CL": CL,
+        "CD": CD,
+        "drag_N": drag_N,
+        "power_required_propulsive_W": power_required_propulsive_W,
+        "power_available_propulsive_W": power_available_propulsive_W,
+        "selected_power_available_propulsive_W": selected_power_available_propulsive_W,
+        "power_available_electrical_W": available_electrical_power_W,
+        "electrical_power_used_W": electrical_power_used_W,
+        "thrust_from_selected_power_N": thrust_from_selected_power_N,
+        "usable_thrust_N": usable_thrust_N,
+        "thrust_limit_N": thrust_limit_N,
+        "thrust_limited": usable_thrust_N < thrust_from_selected_power_N,
+        "steady_rate_of_climb_m_s": steady_rate_of_climb_m_s,
+        "rate_of_climb_m_s": rate_of_climb_m_s,
+        "acceleration_correction": acceleration_correction,
+    }
+
+
+def simulate_course_climb(
+    weight_N,
+    wing,
+    mission,
+    aircraft,
+    isa_density,
+    equivalent_airspeed_m_s,
+    available_electrical_power_W=None,
+):
+    """Integrate the lecture RC equation through altitude."""
+    if available_electrical_power_W is None:
+        available_electrical_power_W = setting(
+            aircraft,
+            "course_climb_available_power_W",
+            setting(aircraft, "max_affordable_electrical_power_W", 20000.0),
+        )
+
+    start_altitude = mission["vertical_takeoff_height_m"]
+    target_altitude = mission["altitude_m"]
+    altitude_step = setting(mission, "altitude_step_m", 100.0)
+    CL_allowed = permitted_lift_coefficient(aircraft)
+
+    states = []
+    time_s = 0.0
+    distance_m = 0.0
+    energy_Wh = 0.0
+    altitude = start_altitude
+
+    while altitude < target_altitude - 1e-9:
+        next_altitude = min(altitude + altitude_step, target_altitude)
+        mid_altitude = 0.5 * (altitude + next_altitude)
+        state = climb_state_from_power_available(
+            weight_N,
+            wing,
+            aircraft,
+            isa_density,
+            mid_altitude,
+            equivalent_airspeed_m_s,
+            available_electrical_power_W,
+        )
+        if state["CL"] > CL_allowed:
+            return {
+                "feasible": False,
+                "failure_reason": f"CL limit exceeded at {mid_altitude:.0f} m.",
+                "states": states,
+            }
+        if state["rate_of_climb_m_s"] <= 0.0:
+            return {
+                "feasible": False,
+                "failure_reason": f"No positive climb rate at {mid_altitude:.0f} m.",
+                "states": states,
+            }
+
+        delta_h = next_altitude - altitude
+        delta_t = delta_h / state["rate_of_climb_m_s"]
+        climb_angle = math.asin(
+            min(0.999, state["rate_of_climb_m_s"] / state["TAS_m_s"])
+        )
+        delta_x = state["TAS_m_s"] * math.cos(climb_angle) * delta_t
+        delta_energy = state["electrical_power_used_W"] * delta_t / 3600.0
+
+        time_s += delta_t
+        distance_m += delta_x
+        energy_Wh += delta_energy
+        state.update({
+            "altitude_start_m": altitude,
+            "altitude_end_m": next_altitude,
+            "delta_h_m": delta_h,
+            "delta_t_s": delta_t,
+            "delta_x_m": delta_x,
+            "delta_energy_Wh": delta_energy,
+            "thrust_to_weight": state["usable_thrust_N"] / weight_N,
+            "time_s": time_s,
+            "distance_m": distance_m,
+            "energy_Wh": energy_Wh,
+            "climb_angle_deg": math.degrees(climb_angle),
+        })
+        states.append(state)
+        altitude = next_altitude
+
+    return {
+        "feasible": True,
+        "failure_reason": None,
+        "EAS_m_s": equivalent_airspeed_m_s,
+        "available_electrical_power_W": available_electrical_power_W,
+        "average_electrical_power_used_W": energy_Wh * 3600.0 / time_s,
+        "thrust_limited": any(state["thrust_limited"] for state in states),
+        "max_thrust_to_weight": max(state["thrust_to_weight"] for state in states),
+        "time_s": time_s,
+        "distance_m": distance_m,
+        "energy_Wh": energy_Wh,
+        "states": states,
+    }
+
+
+def estimate_takeoff_transition(weight_N, wing, mission, aircraft, isa_density):
+    """Low-altitude takeoff and speed-based transition estimates."""
+    transition_altitude = mission["vertical_takeoff_height_m"]
+    rho_transition = isa_density(transition_altitude)
+    stall_speed = math.sqrt(
+        2.0 * weight_N
+        / (rho_transition * wing["area_m2"] * aircraft["wing_CL_max"])
+    )
+    blend_start = setting(aircraft, "transition_blend_start_fraction", 0.50) * stall_speed
+    blend_end = setting(aircraft, "transition_blend_end_fraction", 1.20) * stall_speed
+    acceleration = setting(aircraft, "transition_accel_m_s2", 1.0)
+
+    takeoff_time = transition_altitude / mission["vertical_takeoff_rate_m_s"]
+    takeoff_energy = aircraft["hover_power_W"] * takeoff_time / 3600.0
+    transition_time = blend_end / acceleration
+    transition_distance = blend_end**2 / (2.0 * acceleration)
+    transition_energy = aircraft["transition_power_W"] * transition_time / 3600.0
+
+    return {
+        "transition_altitude_m": transition_altitude,
+        "takeoff_time_s": takeoff_time,
+        "takeoff_energy_Wh": takeoff_energy,
+        "stall_speed_transition_m_s": stall_speed,
+        "blend_start_m_s": blend_start,
+        "blend_end_m_s": blend_end,
+        "transition_time_s": transition_time,
+        "transition_distance_m": transition_distance,
+        "transition_energy_Wh": transition_energy,
+    }
+
+
+def estimate_level_cruise(weight_N, wing, mission, aircraft, isa_density, distance_m, true_speed_m_s):
+    """Simple level-cruise segment after climb, if any range remains."""
+    if distance_m <= 0.0:
+        return {
+            "distance_m": 0.0,
+            "time_s": 0.0,
+            "energy_Wh": 0.0,
+            "electrical_power_W": 0.0,
+            "CL": 0.0,
+        }
+
+    density = isa_density(mission["altitude_m"])
+    q = 0.5 * density * true_speed_m_s**2
+    CL = weight_N / (q * wing["area_m2"])
+    CD = aircraft["CD0"] + induced_drag_factor(aircraft) * CL**2
+    drag_N = q * wing["area_m2"] * CD
+    electrical_power = drag_N * true_speed_m_s / forward_efficiency(aircraft)
+    time_s = distance_m / true_speed_m_s
+    energy_Wh = electrical_power * time_s / 3600.0
+    return {
+        "distance_m": distance_m,
+        "time_s": time_s,
+        "energy_Wh": energy_Wh,
+        "electrical_power_W": electrical_power,
+        "CL": CL,
+    }
+
+
+def segment_summary(time_s, energy_Wh, distance_m=0.0):
+    return {
+        "time_s": time_s,
+        "energy_Wh": energy_Wh,
+        "distance_m": distance_m,
+        "average_power_W": energy_Wh * 3600.0 / time_s if time_s > 0.0 else 0.0,
+    }
+
+
+def build_course_mission(weight_N, wing, mission, aircraft, isa_density, selected_climb):
+    """Wrap the course-method climb in the full mission energy timeline."""
+    takeoff_transition = estimate_takeoff_transition(
+        weight_N,
+        wing,
+        mission,
+        aircraft,
+        isa_density,
+    )
+    ground_before_cruise = (
+        takeoff_transition["transition_distance_m"]
+        + selected_climb["distance_m"]
+    )
+    remaining_cruise_distance = max(0.0, mission["range_m"] - ground_before_cruise)
+    spiral_excess_distance = max(0.0, ground_before_cruise - mission["range_m"])
+    final_climb_speed = selected_climb["states"][-1]["TAS_m_s"]
+    cruise = estimate_level_cruise(
+        weight_N,
+        wing,
+        mission,
+        aircraft,
+        isa_density,
+        remaining_cruise_distance,
+        final_climb_speed,
+    )
+    hover_energy = aircraft["hover_power_W"] * mission["hover_time_s"] / 3600.0
+
+    segments = {
+        "vertical_takeoff": segment_summary(
+            takeoff_transition["takeoff_time_s"],
+            takeoff_transition["takeoff_energy_Wh"],
+        ),
+        "transition": segment_summary(
+            takeoff_transition["transition_time_s"],
+            takeoff_transition["transition_energy_Wh"],
+            takeoff_transition["transition_distance_m"],
+        ),
+        "wing_borne_climb": segment_summary(
+            selected_climb["time_s"],
+            selected_climb["energy_Wh"],
+            selected_climb["distance_m"],
+        ),
+        "level_cruise": segment_summary(
+            cruise["time_s"],
+            cruise["energy_Wh"],
+            cruise["distance_m"],
+        ),
+        "mission_hover": segment_summary(
+            mission["hover_time_s"],
+            hover_energy,
+        ),
+    }
+
+    total_load_energy_Wh = sum(segment["energy_Wh"] for segment in segments.values())
+    installed_battery_energy_Wh = (
+        total_load_energy_Wh
+        / aircraft["battery_efficiency"]
+        / aircraft["battery_usable_fraction"]
+    )
+
+    time = 0.0
+    distance = 0.0
+    altitude = 0.0
+    profile = [(time, distance, altitude)]
+    time += takeoff_transition["takeoff_time_s"]
+    altitude = takeoff_transition["transition_altitude_m"]
+    profile.append((time, distance, altitude))
+    time += takeoff_transition["transition_time_s"]
+    distance += takeoff_transition["transition_distance_m"]
+    profile.append((time, distance, altitude))
+    for state in selected_climb["states"]:
+        profile.append((
+            time + state["time_s"],
+            distance + state["distance_m"],
+            state["altitude_end_m"],
+        ))
+    time += selected_climb["time_s"]
+    distance += selected_climb["distance_m"]
+    if cruise["time_s"] > 0.0:
+        time += cruise["time_s"]
+        distance += cruise["distance_m"]
+        profile.append((time, distance, mission["altitude_m"]))
+    time += mission["hover_time_s"]
+    profile.append((time, distance, mission["altitude_m"]))
+
+    return {
+        "takeoff_transition": takeoff_transition,
+        "climb": selected_climb,
+        "cruise": cruise,
+        "segments": segments,
+        "profile": profile,
+        "total_load_energy_Wh": total_load_energy_Wh,
+        "installed_battery_energy_Wh": installed_battery_energy_Wh,
+        "battery_mass_kg": installed_battery_energy_Wh / aircraft["battery_specific_energy_Wh_kg"],
+        "total_mission_time_s": time,
+        "total_ground_track_m": distance,
+        "spiral_excess_distance_m": spiral_excess_distance,
+    }
+
+
+def optimize_course_climb(weight_N, wing, mission, aircraft, isa_density):
+    """Select the lowest-energy climb that meets the climb-time requirement."""
+    candidates = []
+    climb_time_limit_s = setting(mission, "course_climb_time_limit_s", 600.0)
+    for available_power_W in default_power_grid(aircraft):
+        for equivalent_airspeed_m_s in default_eas_grid(weight_N, wing, aircraft):
+            candidate = simulate_course_climb(
+                weight_N,
+                wing,
+                mission,
+                aircraft,
+                isa_density,
+                equivalent_airspeed_m_s,
+                available_electrical_power_W=available_power_W,
+            )
+            if candidate["feasible"]:
+                candidate["meets_time_limit"] = candidate["time_s"] <= climb_time_limit_s
+                candidate["climb_time_margin_s"] = climb_time_limit_s - candidate["time_s"]
+            else:
+                candidate["meets_time_limit"] = False
+                candidate["climb_time_margin_s"] = None
+            candidates.append(candidate)
+
+    feasible = [
+        candidate
+        for candidate in candidates
+        if candidate["feasible"] and candidate["meets_time_limit"]
+    ]
+    if not feasible:
+        climb_candidates = [candidate for candidate in candidates if candidate["feasible"]]
+        if climb_candidates:
+            closest = min(climb_candidates, key=lambda candidate: candidate["time_s"])
+            closest["failure_reason"] = "No feasible climb candidate meets the 10 min climb time requirement."
+            closest["climb_time_limit_s"] = climb_time_limit_s
+            closest["complies_with_time_limit"] = False
+            return closest, candidates
+        return candidates[-1], candidates
+
+    selected = min(feasible, key=lambda candidate: candidate["energy_Wh"])
+    selected["climb_time_limit_s"] = climb_time_limit_s
+    selected["complies_with_time_limit"] = True
+    return selected, candidates
+
+
+def write_course_climb_csv(path, selected):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow([
+            "altitude_m",
+            "TAS_m_s",
+            "EAS_m_s",
+            "RC_s_m_s",
+            "RC_m_s",
+            "dV_dH",
+            "CL",
+            "power_required_propulsive_W",
+            "power_available_propulsive_W",
+            "selected_power_available_propulsive_W",
+            "electrical_power_used_W",
+            "usable_thrust_N",
+            "thrust_limit_N",
+            "thrust_to_weight",
+            "delta_t_s",
+            "delta_energy_Wh",
+        ])
+        for state in selected["states"]:
+            writer.writerow([
+                state["altitude_m"],
+                state["TAS_m_s"],
+                state["EAS_m_s"],
+                state["steady_rate_of_climb_m_s"],
+                state["rate_of_climb_m_s"],
+                state["dV_dH"],
+                state["CL"],
+                state["power_required_propulsive_W"],
+                state["power_available_propulsive_W"],
+                state["selected_power_available_propulsive_W"],
+                state["electrical_power_used_W"],
+                state["usable_thrust_N"],
+                state["thrust_limit_N"],
+                state["thrust_to_weight"],
+                state["delta_t_s"],
+                state["delta_energy_Wh"],
+            ])
+
+
+def write_course_mission_summary(path, mission_result):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rows = {
+        "total_load_energy_Wh": mission_result["total_load_energy_Wh"],
+        "installed_battery_energy_Wh": mission_result["installed_battery_energy_Wh"],
+        "battery_mass_kg": mission_result["battery_mass_kg"],
+        "total_mission_time_s": mission_result["total_mission_time_s"],
+        "total_ground_track_m": mission_result["total_ground_track_m"],
+        "spiral_excess_distance_m": mission_result["spiral_excess_distance_m"],
+        "takeoff_energy_Wh": mission_result["segments"]["vertical_takeoff"]["energy_Wh"],
+        "transition_energy_Wh": mission_result["segments"]["transition"]["energy_Wh"],
+        "climb_energy_Wh": mission_result["segments"]["wing_borne_climb"]["energy_Wh"],
+        "cruise_energy_Wh": mission_result["segments"]["level_cruise"]["energy_Wh"],
+        "hover_energy_Wh": mission_result["segments"]["mission_hover"]["energy_Wh"],
+    }
+    with open(path, "w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(["quantity", "value"])
+        for name, value in rows.items():
+            writer.writerow([name, value])
+
+
+def plot_course_climb(path, selected):
+    states = selected["states"]
+    altitude_km = [state["altitude_m"] / 1000.0 for state in states]
+
+    fig, axes = plt.subplots(2, 2, figsize=(11.0, 7.5))
+    fig.suptitle("Course-method constant-EAS climb", fontsize=15, fontweight="bold")
+    fig.text(
+        0.5,
+        0.925,
+        (
+            f"EAS {selected['EAS_m_s']:.1f} m/s | "
+            f"P_avail {selected['available_electrical_power_W'] / 1000.0:.1f} kW | "
+            f"T/W cap {selected['max_thrust_to_weight']:.2f} | "
+            f"time {selected['time_s'] / 60.0:.1f} min | "
+            f"energy {selected['energy_Wh'] / 1000.0:.2f} kWh"
+        ),
+        ha="center",
+        fontsize=10,
+        color="#3d4752",
+    )
+    if not selected.get("complies_with_time_limit", True):
+        fig.text(
+            0.5,
+            0.895,
+            "Closest candidate shown: current power/thrust limits do not meet the 10 min climb requirement",
+            ha="center",
+            fontsize=9,
+            color="#9b2226",
+        )
+
+    ax = axes[0, 0]
+    ax.plot([state["time_s"] / 60.0 for state in states], altitude_km, color="#005f73", linewidth=2.3)
+    ax.set_title("Altitude timeline")
+    ax.set_xlabel("time [min]")
+    ax.set_ylabel("altitude [km]")
+    ax.grid(True, alpha=0.25)
+
+    ax = axes[0, 1]
+    ax.plot([state["TAS_m_s"] for state in states], altitude_km, color="#001219", linewidth=2.2, label="TAS")
+    ax.plot([state["EAS_m_s"] for state in states], altitude_km, color="#ee9b00", linestyle="--", linewidth=2.0, label="EAS")
+    ax.set_title("Constant EAS, increasing TAS")
+    ax.set_xlabel("speed [m/s]")
+    ax.set_ylabel("altitude [km]")
+    ax.legend(frameon=False, fontsize=8)
+    ax.grid(True, alpha=0.25)
+
+    ax = axes[1, 0]
+    ax.plot([state["steady_rate_of_climb_m_s"] for state in states], altitude_km, color="#bb3e03", linewidth=2.2, label="RC_s")
+    ax.plot([state["rate_of_climb_m_s"] for state in states], altitude_km, color="#0a9396", linewidth=2.0, linestyle="--", label="RC")
+    ax.set_title("Lecture rate-of-climb correction")
+    ax.set_xlabel("rate of climb [m/s]")
+    ax.set_ylabel("altitude [km]")
+    ax.legend(frameon=False, fontsize=8)
+    ax.grid(True, alpha=0.25)
+
+    ax = axes[1, 1]
+    ax.plot([state["power_required_propulsive_W"] / 1000.0 for state in states], altitude_km, color="#9b2226", linewidth=2.2, label="P_r")
+    ax.plot([state["power_available_propulsive_W"] / 1000.0 for state in states], altitude_km, color="#3d405b", linestyle="--", linewidth=2.0, label="P_a")
+    ax.set_title("Power available and required")
+    ax.set_xlabel("propulsive power [kW]")
+    ax.set_ylabel("altitude [km]")
+    ax.legend(frameon=False, fontsize=8)
+    ax.grid(True, alpha=0.25)
+
+    fig.tight_layout(rect=[0.0, 0.0, 1.0, 0.90])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=180)
+    fig.savefig(path.with_suffix(".pdf"))
+    plt.close(fig)
+
+
+def plot_course_mission_profile(path, mission_result):
+    profile = mission_result["profile"]
+    segments = mission_result["segments"]
+    climb_states = mission_result["climb"]["states"]
+    times_min = [point[0] / 60.0 for point in profile]
+    distances_km = [point[1] / 1000.0 for point in profile]
+    altitudes_km = [point[2] / 1000.0 for point in profile]
+
+    fig, axes = plt.subplots(2, 2, figsize=(11.5, 7.8))
+    fig.suptitle("Course-method mission energy profile", fontsize=15, fontweight="bold")
+    fig.text(
+        0.5,
+        0.925,
+        (
+            f"Load energy {mission_result['total_load_energy_Wh'] / 1000.0:.2f} kWh | "
+            f"Battery {mission_result['battery_mass_kg']:.1f} kg | "
+            f"mission time {mission_result['total_mission_time_s'] / 60.0:.1f} min"
+        ),
+        ha="center",
+        fontsize=10,
+        color="#3d4752",
+    )
+
+    ax = axes[0, 0]
+    ax.plot(times_min, altitudes_km, color="#005f73", linewidth=2.3)
+    ax.fill_between(times_min, altitudes_km, color="#005f73", alpha=0.10)
+    ax.set_title("Altitude timeline")
+    ax.set_xlabel("time [min]")
+    ax.set_ylabel("altitude [km]")
+    ax.grid(True, alpha=0.25)
+
+    ax = axes[0, 1]
+    ax.plot(distances_km, altitudes_km, color="#0a9396", linewidth=2.3)
+    ax.fill_between(distances_km, altitudes_km, color="#0a9396", alpha=0.10)
+    ax.set_title("Altitude over ground track")
+    ax.set_xlabel("ground track [km]")
+    ax.set_ylabel("altitude [km]")
+    ax.grid(True, alpha=0.25)
+
+    ax = axes[1, 0]
+    segment_names = ["vertical_takeoff", "transition", "wing_borne_climb", "level_cruise", "mission_hover"]
+    labels = ["takeoff", "transition", "climb", "cruise", "hover"]
+    energies = [segments[name]["energy_Wh"] / 1000.0 for name in segment_names]
+    colors = ["#005f73", "#0a9396", "#ee9b00", "#ca6702", "#9b2226"]
+    ax.bar(labels, energies, color=colors, width=0.65)
+    ax.set_title("Segment energy")
+    ax.set_ylabel("load energy [kWh]")
+    ax.tick_params(axis="x", rotation=20)
+    ax.grid(True, axis="y", alpha=0.25)
+    for index, value in enumerate(energies):
+        ax.text(index, value + 0.02, f"{value:.2f}", ha="center", va="bottom", fontsize=8)
+
+    ax = axes[1, 1]
+    altitude_km = [state["altitude_m"] / 1000.0 for state in climb_states]
+    ax.plot([state["TAS_m_s"] for state in climb_states], altitude_km, color="#001219", linewidth=2.2, label="TAS")
+    ax.plot([state["EAS_m_s"] for state in climb_states], altitude_km, color="#ee9b00", linestyle="--", linewidth=2.0, label="EAS")
+    ax2 = ax.twiny()
+    ax2.plot([state["electrical_power_used_W"] / 1000.0 for state in climb_states], altitude_km, color="#bb3e03", linestyle=":", linewidth=2.0, label="power")
+    ax.set_title("Climb speed and power")
+    ax.set_xlabel("speed [m/s]")
+    ax.set_ylabel("altitude [km]")
+    ax2.set_xlabel("electrical power [kW]", color="#bb3e03")
+    ax2.tick_params(axis="x", colors="#bb3e03")
+    ax.grid(True, alpha=0.25)
+    ax.legend(frameon=False, fontsize=8, loc="lower right")
+
+    fig.tight_layout(rect=[0.0, 0.0, 1.0, 0.90])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=180)
+    fig.savefig(path.with_suffix(".pdf"))
+    plt.close(fig)
+
+
+def run_course_climb_demo(output_dir="outputs"):
+    """Run the course method with the current sizing inputs."""
+    from simple_sizing import AIRCRAFT, MISSION, isa_density, wing_geometry
+
+    output_dir = Path(output_dir)
+    weight_N = AIRCRAFT["MTOW_kg"] * AIRCRAFT["g_m_s2"]
+    wing = wing_geometry(weight_N, isa_density(MISSION["altitude_m"]))
+    selected, candidates = optimize_course_climb(
+        weight_N,
+        wing,
+        MISSION,
+        AIRCRAFT,
+        isa_density,
+    )
+    if not selected["feasible"]:
+        raise RuntimeError(f"No feasible course-method climb: {selected['failure_reason']}")
+
+    mission_result = build_course_mission(
+        weight_N,
+        wing,
+        MISSION,
+        AIRCRAFT,
+        isa_density,
+        selected,
+    )
+    write_course_climb_csv(output_dir / "course_climb_profile.csv", selected)
+    write_course_mission_summary(output_dir / "course_mission_summary.csv", mission_result)
+    plot_course_climb(output_dir / "course_climb_profile.png", selected)
+    plot_course_mission_profile(output_dir / "course_mission_profile.png", mission_result)
+    return {
+        "selected": selected,
+        "candidates": candidates,
+        "mission": mission_result,
+    }
+
+
+def main():
+    result = run_course_climb_demo()
+    selected = result["selected"]
+    mission = result["mission"]
+    print("Course-method wing-borne climb")
+    if not selected.get("complies_with_time_limit", True):
+        print("  Requirement status: NOT MET")
+        print(
+            "  Current limits do not allow a 10 min climb; "
+            "showing the fastest feasible candidate."
+        )
+    else:
+        print("  Requirement status: MET")
+    print(f"  EAS: {selected['EAS_m_s']:.2f} m/s")
+    print(f"  Available electrical power: {selected['available_electrical_power_W'] / 1000.0:.2f} kW")
+    print(f"  Average electrical power used: {selected['average_electrical_power_used_W'] / 1000.0:.2f} kW")
+    print(f"  Max thrust-to-weight: {selected['max_thrust_to_weight']:.2f}")
+    print(f"  Time: {selected['time_s'] / 60.0:.2f} min")
+    print(f"  Energy: {selected['energy_Wh'] / 1000.0:.2f} kWh")
+    print(f"  Distance: {selected['distance_m'] / 1000.0:.2f} km")
+    print(f"  Mission load energy incl. hover/transition: {mission['total_load_energy_Wh'] / 1000.0:.2f} kWh")
+    print(f"  Battery mass: {mission['battery_mass_kg']:.2f} kg")
+    print("  Outputs written to: outputs")
+
+
+if __name__ == "__main__":
+    main()
