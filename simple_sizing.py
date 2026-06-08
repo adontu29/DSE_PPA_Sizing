@@ -1,8 +1,3 @@
-"""Bellona simplified sizing script.
-
-The inputs are grouped at the top. The workflow at the bottom runs the sizing
-calculation and writes the report tables and figures.
-"""
 
 from __future__ import annotations
 
@@ -14,6 +9,8 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+from mission_energy import run_mission_energy
 
 
 # ---------------------------------------------------------------------------
@@ -31,6 +28,8 @@ MISSION = {
     "vertical_takeoff_rate_m_s": 2.0,
     "transition_time_s": 12.0,
     "average_climb_rate_m_s": 10.0,
+    "altitude_step_m": 100.0,
+    "allow_spiral_climb": True,
     "mission_equipment_mass_kg": 7.3,
 }
 
@@ -57,6 +56,18 @@ AIRCRAFT = {
     "CD0": 0.040,
     "oswald_efficiency": 0.78,
     "cruise_true_speed_m_s": 15.0,
+    "minimum_cruise_true_speed_m_s": 0.0,
+    "mission_CL_limit_fraction": 0.90,
+    "cruise_stall_margin_deg": 3.0,
+    "max_affordable_electrical_power_W": 20000.0,
+    "minimum_power_margin_fraction": 0.05,
+    "max_fixed_wing_climb_angle_deg": 30.0,
+    "transition_accel_m_s2": 1.0,
+    "transition_blend_start_fraction": 0.50,
+    "transition_blend_end_fraction": 1.20,
+    "transition_cruise_margin_fraction": 0.05,
+    "transition_sample_count": 9,
+    "max_transition_complete_speed_m_s": 20.0,
     "forward_flight_efficiency": 0.75 * 0.90 * 0.95,
     "hover_power_W": 14000.0,
     "transition_power_W": 8000.0,
@@ -84,7 +95,7 @@ MASS = {
 
 
 # ---------------------------------------------------------------------------
-# Atmosphere, mission, and wing equations
+# Atmosphere and wing equations
 # ---------------------------------------------------------------------------
 
 
@@ -141,55 +152,6 @@ def wing_geometry(weight_N, rho_cruise):
         "cruise_true_speed_m_s": cruise_speed,
         "CL_trim": CL_trim,
         "CL_alpha_per_rad": AIRCRAFT["wing_CL_alpha_per_rad"],
-    }
-
-
-def mission_energy(weight_N, wing, rho_cruise):
-    """Energy estimate for hover, transition, and wing-borne climb."""
-    speed = wing["cruise_true_speed_m_s"]
-    q = 0.5 * rho_cruise * speed**2
-    induced_factor = 1.0 / (math.pi * AIRCRAFT["wing_aspect_ratio"] * AIRCRAFT["oswald_efficiency"])
-    CD = AIRCRAFT["CD0"] + induced_factor * wing["CL_trim"] ** 2
-    drag_N = q * wing["area_m2"] * CD
-
-    climb_rate = MISSION["average_climb_rate_m_s"]
-    climb_time_s = MISSION["altitude_m"] / climb_rate
-    climb_power_W = (drag_N * speed + weight_N * climb_rate) / AIRCRAFT["forward_flight_efficiency"]
-
-    takeoff_time_s = MISSION["vertical_takeoff_height_m"] / MISSION["vertical_takeoff_rate_m_s"]
-    transition_time_s = MISSION["transition_time_s"]
-    hover_time_s = MISSION["hover_time_s"]
-
-    energies = {
-        "vertical_takeoff_Wh": AIRCRAFT["hover_power_W"] * takeoff_time_s / 3600.0,
-        "transition_Wh": AIRCRAFT["transition_power_W"] * transition_time_s / 3600.0,
-        "wing_borne_climb_Wh": climb_power_W * climb_time_s / 3600.0,
-        "mission_hover_Wh": AIRCRAFT["hover_power_W"] * hover_time_s / 3600.0,
-    }
-    total_energy_Wh = sum(energies.values())
-    battery_mass_kg = (
-        total_energy_Wh
-        / AIRCRAFT["battery_specific_energy_Wh_kg"]
-        / AIRCRAFT["battery_usable_fraction"]
-        / AIRCRAFT["battery_efficiency"]
-    )
-
-    profile = [
-        (0.0, 0.0),
-        (takeoff_time_s, MISSION["vertical_takeoff_height_m"]),
-        (takeoff_time_s + transition_time_s, MISSION["vertical_takeoff_height_m"]),
-        (takeoff_time_s + transition_time_s + climb_time_s, MISSION["altitude_m"]),
-        (takeoff_time_s + transition_time_s + climb_time_s + hover_time_s, MISSION["altitude_m"]),
-    ]
-
-    return {
-        "drag_N": drag_N,
-        "CD_trim": CD,
-        "climb_power_W": climb_power_W,
-        "total_energy_Wh": total_energy_Wh,
-        "battery_mass_kg": battery_mass_kg,
-        "profile": profile,
-        **energies,
     }
 
 
@@ -408,7 +370,7 @@ def plot_mission_profile(path, mission):
     ax.plot(times, altitudes, marker="o", color="#1f77b4")
     ax.set_xlabel("time [s]")
     ax.set_ylabel("altitude [m]")
-    ax.set_title("Simplified mission profile")
+    ax.set_title("Mission profile")
     ax.grid(True, alpha=0.25)
     fig.tight_layout()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -428,7 +390,9 @@ def run_sizing(output_dir=OUTPUT_DIR, make_plots=True):
     rho_cruise = isa_density(MISSION["altitude_m"])
     propeller = propeller_disk_estimate(weight_N)
     wing = wing_geometry(weight_N, rho_cruise)
-    mission = mission_energy(weight_N, wing, rho_cruise)
+    mission = run_mission_energy(weight_N, wing, MISSION, AIRCRAFT, isa_density)
+    wing["cruise_true_speed_m_s"] = mission["cruise_true_speed_m_s"]
+    wing["CL_trim"] = mission["CL_cruise"]
     selected, candidates = canard_and_wing_iteration(wing, mission, propeller)
 
     summary = {
@@ -438,7 +402,11 @@ def run_sizing(output_dir=OUTPUT_DIR, make_plots=True):
         "wing_span_m": wing["span_m"],
         "wing_chord_m": wing["chord_m"],
         "wing_stall_EAS_m_s": wing["stall_EAS_m_s"],
+        "cruise_true_speed_m_s": mission["cruise_true_speed_m_s"],
         "CL_trim": wing["CL_trim"],
+        "CD_trim": mission["CD_trim"],
+        "optimized_climb_EAS_m_s": mission["optimized_climb_EAS_m_s"],
+        "optimized_climb_angle_deg": mission["optimized_climb_angle_deg"],
         "canard_area_ratio": selected["canard"]["area_ratio"],
         "canard_area_m2": selected["canard"]["area_m2"],
         "canard_span_m": selected["canard"]["span_m"],
@@ -450,6 +418,13 @@ def run_sizing(output_dir=OUTPUT_DIR, make_plots=True):
         "operational_cg_aft_x_over_c": selected["operational_aft_over_mac"],
         "battery_mass_kg": mission["battery_mass_kg"],
         "mission_energy_Wh": mission["total_energy_Wh"],
+        "installed_battery_energy_Wh": mission["installed_battery_energy_Wh"],
+        "outbound_time_s": mission["outbound_time_s"],
+        "total_mission_time_s": mission["total_mission_time_s"],
+        "climb_horizontal_distance_m": mission["climb_horizontal_distance_m"],
+        "level_cruise_distance_m": mission["level_cruise_distance_m"],
+        "spiral_excess_ground_track_distance_m": mission["spiral_excess_ground_track_distance_m"],
+        "peak_electrical_power_W": mission["peak_electrical_power_W"],
         "propeller_diameter_m": propeller["propeller_diameter_m"],
         "candidate_count": len(candidates),
     }
@@ -476,6 +451,12 @@ def main():
     print("Bellona simplified sizing")
     print(f"  MTOW estimate: {summary['MTOW_mass_estimate_kg']:.2f} kg")
     print(f"  Wing: {summary['wing_area_m2']:.2f} m^2, span {summary['wing_span_m']:.2f} m")
+    print(
+        "  Mission: "
+        f"{summary['mission_energy_Wh'] / 1000.0:.2f} kWh load, "
+        f"climb EAS={summary['optimized_climb_EAS_m_s']:.2f} m/s, "
+        f"gamma={summary['optimized_climb_angle_deg']:.1f} deg"
+    )
     print(f"  Canard: S_c/S_w={summary['canard_area_ratio']:.3f}, area {summary['canard_area_m2']:.2f} m^2")
     print(f"  CG: x/c={summary['x_CG_over_MAC']:.3f}, wing MAC LE x={summary['wing_mac_le_x_m']:.3f} m")
     print(f"  Battery: {summary['battery_mass_kg']:.2f} kg")

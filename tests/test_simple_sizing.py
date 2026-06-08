@@ -17,6 +17,8 @@ def test_simple_sizing_runs_and_creates_outputs(tmp_path):
     assert (tmp_path / "mass_breakdown.csv").exists()
     assert (tmp_path / "scissor_plot.png").exists()
     assert (tmp_path / "mission_profile.png").exists()
+    assert result["mission"]["segment_summaries"]["wing_borne_climb"]["energy_Wh"] > 0.0
+    assert result["mission"]["mission_grid"]["climb_EAS_m_s"]
 
 
 def test_summary_table_contains_main_report_values(tmp_path):
@@ -29,3 +31,5 @@ def test_summary_table_contains_main_report_values(tmp_path):
     assert "wing_area_m2" in rows
     assert "canard_area_ratio" in rows
     assert "x_CG_over_MAC" in rows
+    assert "optimized_climb_EAS_m_s" in rows
+    assert "installed_battery_energy_Wh" in rows

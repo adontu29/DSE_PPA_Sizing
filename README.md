@@ -5,6 +5,8 @@ be easy to inspect, present, and explain to aerospace engineers who want the
 equations and assumptions in one place.
 
 The full software-style package is archived in `archive/full_package/`.
+The mission-energy calculation is kept in `mission_energy.py` because it is one
+of the main drivers of the sizing result.
 
 ## Run
 
@@ -26,6 +28,7 @@ The script writes:
 Open `simple_sizing.py` and edit the input block at the top. The main values are:
 
 - mission altitude, range, and hover time
+- mission climb, transition, and power limits
 - MTOW estimate
 - wing area, aspect ratio, and aerodynamic coefficients
 - canard arm and canard area-ratio sweep
@@ -42,6 +45,11 @@ The script is organized like a sizing calculation:
 4. Canard scissor equations
 5. Canard/wing-position iteration
 6. Output tables and plots
+
+`mission_energy.py` contains the mission profile model used by the main script.
+It uses an altitude-stepped constant-EAS climb, transition-speed limits, a
+coarse climb/cruise grid search, segment powers, and battery sizing from the
+selected mission segments.
 
 Comments are kept short and equation-focused. The bottom of the file contains
 the workflow that runs the complete sizing calculation.
