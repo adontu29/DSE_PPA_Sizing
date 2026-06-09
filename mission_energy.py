@@ -59,6 +59,19 @@ def permitted_lift_coefficient(aircraft):
     return min(fraction_limit, margin_limit) 
 
 
+def transition_lift_coefficient_limit(aircraft):
+    margin_n = setting(aircraft, "transition_stall_margin_n", 1.25)
+    return aircraft["wing_CL_max"] / margin_n**2
+
+
+def transition_completion_speed(weight_N, wing, density, aircraft):
+    wing_lift_fraction = setting(aircraft, "transition_wing_lift_fraction_complete", 0.90)
+    return math.sqrt(
+        2.0 * wing_lift_fraction * weight_N
+        / (density * wing["area_m2"] * transition_lift_coefficient_limit(aircraft))
+    )
+
+
 def aerodynamic_speed_limits(weight_N, wing, mission, aircraft, isa_density):
     rho_transition = isa_density(mission["vertical_takeoff_height_m"])
     rho_target = isa_density(mission["altitude_m"])
@@ -73,11 +86,7 @@ def aerodynamic_speed_limits(weight_N, wing, mission, aircraft, isa_density):
     stall_EAS = stall_speed(RHO_SEA_LEVEL, aircraft["wing_CL_max"])
     minimum_climb_EAS = stall_speed(RHO_SEA_LEVEL, CL_allowed)
     stall_TAS_transition = stall_speed(rho_transition, aircraft["wing_CL_max"])
-    minimum_transition_complete_TAS = (
-        (1.0 + setting(aircraft, "transition_cruise_margin_fraction", 0.05))
-        * setting(aircraft, "transition_blend_end_fraction", 1.20)
-        * stall_TAS_transition
-    )
+    minimum_transition_complete_TAS = transition_completion_speed(weight_N, wing, rho_transition, aircraft)
     minimum_aero_cruise_TAS = stall_speed(rho_target, CL_allowed)
     minimum_cruise_TAS = max(
         minimum_transition_complete_TAS,
@@ -98,27 +107,39 @@ def aerodynamic_speed_limits(weight_N, wing, mission, aircraft, isa_density):
     }
 
 
-def transition_blending(stall_speed_m_s, mission, aircraft, cruise_true_speed_m_s):
+def transition_blending(weight_N, wing, density, mission, aircraft, cruise_true_speed_m_s):
+    complete_speed = transition_completion_speed(weight_N, wing, density, aircraft)
     blend_start = (
         setting(aircraft, "transition_blend_start_fraction", 0.50)
-        * stall_speed_m_s
-    )
-    blend_end = (
-        setting(aircraft, "transition_blend_end_fraction", 1.20)
-        * stall_speed_m_s
+        * complete_speed
     )
     acceleration = setting(aircraft, "transition_accel_m_s2", 1.0)
-    exit_speed = blend_end
+    exit_speed = complete_speed
     time_s = exit_speed / acceleration
     distance_m = exit_speed**2 / (2.0 * acceleration)
-    complete_speed = (
-        (1.0 + setting(aircraft, "transition_cruise_margin_fraction", 0.05))
-        * blend_end
-    )
+
+    wing_lift_fraction = setting(aircraft, "transition_wing_lift_fraction_complete", 0.90)
+    q = 0.5 * density * complete_speed**2
+    CL = wing_lift_fraction * weight_N / (q * wing["area_m2"])
+    CD = aircraft["CD0"] + induced_drag_factor(aircraft) * CL**2
+    drag = q * wing["area_m2"] * CD
+    mass_kg = weight_N / aircraft["g_m_s2"]
+    forward_force = drag + mass_kg * acceleration
+    vertical_force = max(0.0, (1.0 - wing_lift_fraction) * weight_N)
+    required_thrust = math.sqrt(forward_force**2 + vertical_force**2)
+    available_thrust = setting(aircraft, "thrust_to_weight", 1.0) * weight_N
+    thrust_margin = setting(aircraft, "transition_thrust_margin", 1.15)
+
+    forward_power = forward_force * complete_speed / forward_efficiency(aircraft)
+    vertical_power = aircraft["hover_power_W"] * (vertical_force / weight_N) ** 1.5
+    peak_power = forward_power + vertical_power
+    average_power = 0.5 * (aircraft["hover_power_W"] + peak_power)
+    maximum_power = setting(aircraft, "max_affordable_electrical_power_W", 18000.0)
+    required_power_margin = setting(aircraft, "minimum_power_margin_fraction", 0.05) * maximum_power
 
     samples = []
     for speed in linspace(0.0, exit_speed, setting(aircraft, "transition_sample_count", 9)):
-        xi = (speed - blend_start) / (blend_end - blend_start)
+        xi = (speed - blend_start) / (exit_speed - blend_start)
         xi = min(1.0, max(0.0, xi))
         alpha_fixed_wing = 3.0 * xi**2 - 2.0 * xi**3
         samples.append({
@@ -129,12 +150,35 @@ def transition_blending(stall_speed_m_s, mission, aircraft, cruise_true_speed_m_
 
     return {
         "V_blend_start_m_s": blend_start,
-        "V_blend_end_m_s": blend_end,
+        "V_blend_end_m_s": exit_speed,
         "V_exit_m_s": exit_speed,
         "t_transition_s": time_s,
         "distance_transition_m": distance_m,
         "transition_complete_speed_m_s": complete_speed,
         "cruise_speed_margin_over_complete_m_s": cruise_true_speed_m_s - complete_speed,
+        "wing_lift_fraction_complete": wing_lift_fraction,
+        "CL_complete": CL,
+        "CL_limit": transition_lift_coefficient_limit(aircraft),
+        "drag_N": drag,
+        "forward_force_N": forward_force,
+        "vertical_force_N": vertical_force,
+        "required_thrust_N": required_thrust,
+        "available_thrust_N": available_thrust,
+        "required_thrust_with_margin_N": thrust_margin * required_thrust,
+        "peak_electrical_power_W": peak_power,
+        "average_electrical_power_W": average_power,
+        "power_margin_W": maximum_power - peak_power,
+        "feasible": (
+            thrust_margin * required_thrust <= available_thrust
+            and peak_power <= maximum_power - required_power_margin
+        ),
+        "failure_reason": (
+            "Transition thrust requirement above installed thrust."
+            if thrust_margin * required_thrust > available_thrust
+            else "Transition power requirement above available power."
+            if peak_power > maximum_power - required_power_margin
+            else None
+        ),
         "schedule": samples,
     }
 
@@ -146,7 +190,9 @@ def takeoff_and_transition(weight_N, wing, mission, aircraft, isa_density, cruis
         / (rho_transition * wing["area_m2"] * aircraft["wing_CL_max"])
     )
     transition = transition_blending(
-        stall_speed,
+        weight_N,
+        wing,
+        rho_transition,
         mission,
         aircraft,
         cruise_true_speed_m_s,
@@ -158,7 +204,7 @@ def takeoff_and_transition(weight_N, wing, mission, aircraft, isa_density, cruis
     )
     takeoff_energy = aircraft["hover_power_W"] * takeoff_time / 3600.0
     transition_energy = (
-        aircraft["transition_power_W"]
+        transition["average_electrical_power_W"]
         * transition["t_transition_s"]
         / 3600.0
     )
@@ -371,9 +417,8 @@ def complete_candidate(weight_N, wing, mission, aircraft, isa_density, equivalen
         cruise_speed,
     )
     transition = takeoff_transition["transition"]
-    max_transition_speed = setting(aircraft, "max_transition_complete_speed_m_s", 20.0)
-    if transition["transition_complete_speed_m_s"] > max_transition_speed:
-        return {"feasible": False, "failure_reason": "Transition speed above selected limit."}
+    if not transition["feasible"]:
+        return {"feasible": False, "failure_reason": transition["failure_reason"]}
     if cruise_speed < transition["transition_complete_speed_m_s"]:
         return {"feasible": False, "failure_reason": "Cruise speed below transition completion speed."}
 
@@ -448,7 +493,7 @@ def complete_candidate(weight_N, wing, mission, aircraft, isa_density, equivalen
     states = climb["states"] + cruise["states"]
     power_values = (
         [state["electrical_power_W"] for state in states]
-        + [aircraft["hover_power_W"], aircraft["transition_power_W"]]
+        + [aircraft["hover_power_W"], transition["peak_electrical_power_W"]]
     )
     total_energy = sum(segment["energy_Wh"] for segment in segment_summaries.values())
 
@@ -639,6 +684,10 @@ def run_mission_energy(weight_N, wing, mission, aircraft, isa_density):
         "cruise_true_speed_m_s": mission_result["cruise_true_speed_m_s"],
         "optimized_climb_EAS_m_s": mission_result["optimized_climb_EAS_m_s"],
         "optimized_climb_angle_deg": mission_result["optimized_climb_angle_deg"],
+        "transition_complete_speed_m_s": mission_result["takeoff_transition"]["transition"]["transition_complete_speed_m_s"],
+        "transition_peak_electrical_power_W": mission_result["takeoff_transition"]["transition"]["peak_electrical_power_W"],
+        "transition_required_thrust_N": mission_result["takeoff_transition"]["transition"]["required_thrust_N"],
+        "transition_available_thrust_N": mission_result["takeoff_transition"]["transition"]["available_thrust_N"],
         "outbound_time_s": mission_result["outbound_time_s"],
         "total_mission_time_s": mission_result["total_mission_time_s"],
         "climb_horizontal_distance_m": mission_result["climb_horizontal_distance_m"],

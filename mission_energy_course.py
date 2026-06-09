@@ -275,7 +275,8 @@ def estimate_takeoff_transition(weight_N, wing, mission, aircraft, isa_density):
     takeoff_energy = aircraft["hover_power_W"] * takeoff_time / 3600.0
     transition_time = blend_end / acceleration
     transition_distance = blend_end**2 / (2.0 * acceleration)
-    transition_energy = aircraft["transition_power_W"] * transition_time / 3600.0
+    transition_power = setting(aircraft, "transition_power_W", 0.5 * aircraft["hover_power_W"])
+    transition_energy = transition_power * transition_time / 3600.0
 
     return {
         "transition_altitude_m": transition_altitude,
@@ -286,6 +287,7 @@ def estimate_takeoff_transition(weight_N, wing, mission, aircraft, isa_density):
         "blend_end_m_s": blend_end,
         "transition_time_s": transition_time,
         "transition_distance_m": transition_distance,
+        "transition_power_W": transition_power,
         "transition_energy_Wh": transition_energy,
     }
 
