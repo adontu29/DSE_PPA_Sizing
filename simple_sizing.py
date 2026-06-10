@@ -582,7 +582,11 @@ def mass_and_cg(wing, canard, mission, propeller, wing_mac_le_x_m):
 def solve_wing_position(wing, canard, mission, propeller, target_x_cg_over_mac):
     """Shift the wing group until the mass CG reaches the scissor target."""
     mass_at_zero = mass_and_cg(wing, canard, mission, propeller, wing_mac_le_x_m=0.0)
-    moving_mass = mass_at_zero["masses_kg"]["wing"] + mass_at_zero["masses_kg"]["canard"]
+    moving_mass = (
+        mass_at_zero["masses_kg"]["wing"]
+        + mass_at_zero["masses_kg"]["canard"]
+        + mass_at_zero["masses_kg"]["battery"]
+    )
     slope = moving_mass / mass_at_zero["total_mass_kg"] - 1.0
     target_x_cg_m = target_x_cg_over_mac * wing["chord_m"]
     wing_shift_m = (target_x_cg_m - mass_at_zero["x_cg_m"]) / slope
