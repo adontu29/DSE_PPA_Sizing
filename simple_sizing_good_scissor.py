@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import csv
-import json
 import math
 from pathlib import Path
 
@@ -12,14 +11,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from mission_energy_course import build_course_mission, optimize_course_climb, permitted_lift_coefficient
-from scissor_plot import (
-    mach_number,
-    datcom_lift_slope,
-    aircraft_less_canard_lift_slope,
-    aerodynamic_centre_over_mac,
-    zero_lift_pitching_moment,
-    scissor_cg_limits,
-)
 
 
 # ---------------------------------------------------------------------------
@@ -67,18 +58,11 @@ AIRCRAFT = {
     "canard_area_ratio_min": 0.05,
     "canard_area_ratio_max": 0.80,
     "canard_area_ratio_step": 0.001,
-    "static_margin": 0.05,
+    "static_margin": 0.10,
     "cg_envelope_half_width_over_mac": 0.05,
     "cg_margin_over_mac": 0.02,
     "CD0": 0.040,
     "oswald_efficiency": 0.78,
-    # --- Scissor-plot aerodynamics (TU Delft AE3211-I, Lectures 7 & 8) ---
-    "datcom_eta": 0.95,                   # DATCOM airfoil efficiency (0.90-1.0)
-    "wing_sweep_quarter_chord_deg": 0.0,  # straight wing for this UAV
-    "wing_sweep_half_chord_deg": 0.0,
-    "canard_sweep_half_chord_deg": 0.0,
-    "wing_airfoil_cm0": -0.05,            # TODO: airfoil Cm0 from XFOIL (negative if cambered)
-    "wing_CL0": 0.20,                     # TODO: aircraft-less-canard CL at alpha=0, from XFOIL
     "cruise_true_speed_m_s": 15.0,
     "minimum_cruise_true_speed_m_s": 0.0,
     "mission_CL_limit_fraction": 0.90,
@@ -312,86 +296,25 @@ def solve_wing_position(wing, canard, mission, propeller, target_x_cg_over_mac):
 # ---------------------------------------------------------------------------
 
 
-def scissor_coefficients(wing):
-    """Course-method aerodynamic inputs for the canard scissor plot.
-
-    Computes the area-ratio-independent coefficients once (Lectures 7 & 8) and
-    is reused for every candidate area ratio. The equations and the canard sign
-    conventions live in scissor_plot.py.
-    """
-    cruise_speed = wing.get("cruise_true_speed_m_s", AIRCRAFT["cruise_true_speed_m_s"])
-    mach = mach_number(cruise_speed, MISSION["altitude_m"])
-    eta = AIRCRAFT["datcom_eta"]
-    fuselage_width = MASS["fuselage_width_m"]
-    fuselage_length = MASS["fuselage_length_m"]
-    mac = wing["chord_m"]                          # geometric mean chord used as c_bar
-    mean_geo_chord = wing["area_m2"] / wing["span_m"]
-
-    cl_alpha_wing = datcom_lift_slope(
-        AIRCRAFT["wing_aspect_ratio"], mach,
-        math.radians(AIRCRAFT["wing_sweep_half_chord_deg"]), eta,
-    )
-    cl_alpha_canard = datcom_lift_slope(           # (Vh/V) = 1 for a canard
-        AIRCRAFT["canard_aspect_ratio"], mach,
-        math.radians(AIRCRAFT["canard_sweep_half_chord_deg"]), eta,
-    )
-    cl_alpha_A_h = aircraft_less_canard_lift_slope(
-        cl_alpha_wing, fuselage_width, wing["span_m"],
-        wing["area_m2"], wing["root_chord_m"],
-    )
-
-    nose_length = fuselage_length - wing["root_chord_m"]   # estimate of l_fn
-    x_ac_over_mac = aerodynamic_centre_over_mac(
-        cl_alpha_A_h, fuselage_width, nose_length, wing["area_m2"], mac,
-        wing["span_m"], AIRCRAFT["wing_taper"], mean_geo_chord,
-        math.radians(AIRCRAFT["wing_sweep_quarter_chord_deg"]),
-    )
-    cmac = zero_lift_pitching_moment(
-        AIRCRAFT["wing_airfoil_cm0"], AIRCRAFT["wing_aspect_ratio"],
-        math.radians(AIRCRAFT["wing_sweep_half_chord_deg"]), cl_alpha_A_h,
-        fuselage_width, fuselage_length, wing["area_m2"], mac, AIRCRAFT["wing_CL0"],
-    )
-
-    # Controllability is sized at the most demanding wing-borne lift, i.e. the
-    # slowest wing-borne flight: CL_max limited by the stall margin. For a
-    # tailsitter there is no flaps-down approach case (VTOL handles low speed).
-    cl_A_h_control = AIRCRAFT["wing_CL_max"] / AIRCRAFT["climb_stall_margin_n"] ** 2
-
-    return {
-        "mach": mach,
-        "cl_alpha_wing": cl_alpha_wing,
-        "cl_alpha_canard": cl_alpha_canard,
-        "cl_alpha_A_h": cl_alpha_A_h,
-        "x_ac_over_mac": x_ac_over_mac,
-        "cmac": cmac,
-        # Canard control surface lifts up: CL_h > 0 (its usable max), not -1.
-        "cl_h_control": AIRCRAFT["canard_CL_limit_fraction"] * AIRCRAFT["canard_CL_max"],
-        "cl_A_h_control": cl_A_h_control,
-        "lh_over_mac": -AIRCRAFT["canard_arm_over_wing_chord"],  # < 0 for a canard
-        "static_margin": AIRCRAFT["static_margin"],
-    }
-
-
-def scissor_limits(area_ratio, coeffs):
-    """Forward (controllability) and aft (stability) CG limits at this Sc/Sw."""
-    if coeffs["cl_A_h_control"] <= 0.0:
+def scissor_limits(area_ratio, wing, canard):
+    """Lecture canard scissor equations."""
+    CL_h = canard["usable_CL"]
+    CL_Ah = wing["CL_trim"] - CL_h * area_ratio
+    if CL_Ah <= 0.0:
         return None
-    x_forward, x_aft = scissor_cg_limits(
-        area_ratio,
-        x_ac_over_mac=coeffs["x_ac_over_mac"],
-        static_margin=coeffs["static_margin"],
-        cl_alpha_canard=coeffs["cl_alpha_canard"],
-        cl_alpha_A_h=coeffs["cl_alpha_A_h"],
-        cl_h_control=coeffs["cl_h_control"],
-        cl_A_h_control=coeffs["cl_A_h_control"],
-        cmac=coeffs["cmac"],
-        lh_over_mac=coeffs["lh_over_mac"],
-    )
+
+    l_h_over_c = -AIRCRAFT["canard_arm_over_wing_chord"]
+    x_ac = wing["x_ac_m"] / wing["chord_m"]
+    stability_slope = canard["CL_alpha_per_rad"] / wing["CL_alpha_per_rad"] * l_h_over_c
+    control_slope = CL_h / CL_Ah * l_h_over_c
+
+    x_aft = x_ac + stability_slope * area_ratio - AIRCRAFT["static_margin"]
+    x_forward = x_ac + control_slope * area_ratio
     return {
         "x_forward_over_mac": x_forward,
         "x_aft_over_mac": x_aft,
         "cg_range_over_mac": x_aft - x_forward,
-        "CL_Ah": coeffs["cl_A_h_control"],
+        "CL_Ah": CL_Ah,
     }
 
 
@@ -401,13 +324,12 @@ def canard_and_wing_iteration(wing, mission, propeller):
     margin = AIRCRAFT["cg_margin_over_mac"]
     required_width = 2.0 * (half_width + margin)
 
-    coeffs = scissor_coefficients(wing)
     candidates = []
     steps = int((AIRCRAFT["canard_area_ratio_max"] - AIRCRAFT["canard_area_ratio_min"]) / AIRCRAFT["canard_area_ratio_step"]) + 1
     for i in range(steps):
         area_ratio = AIRCRAFT["canard_area_ratio_min"] + i * AIRCRAFT["canard_area_ratio_step"]
         canard = canard_geometry(area_ratio, wing)
-        scissor = scissor_limits(area_ratio, coeffs)
+        scissor = scissor_limits(area_ratio, wing, canard)
         if scissor is None:
             continue
 
@@ -475,96 +397,6 @@ def write_iteration_history(path, history):
         writer = csv.DictWriter(csv_file, fieldnames=list(history[0].keys()))
         writer.writeheader()
         writer.writerows(history)
-
-
-def build_full_summary(result):
-    """Structured dict of geometry, aerodynamics, and mission parameters."""
-    wing = result["wing"]
-    mission = result["mission"]
-    propeller = result["propeller"]
-    selected = result["selected"]
-    canard = selected["canard"]
-    mass = selected["mass"]
-    scissor = selected["scissor"]
-    coeffs = scissor_coefficients(wing)
-
-    return {
-        "mass": {
-            "MTOW_estimate_kg": mass["total_mass_kg"],
-            "MTOW_used_for_final_pass_kg": result["final_mass_used_kg"],
-            "mass_closure_error_kg": mass["total_mass_kg"] - result["final_mass_used_kg"],
-            "breakdown_kg": mass["masses_kg"],
-        },
-        "wing": {
-            "area_m2": wing["area_m2"],
-            "span_m": wing["span_m"],
-            "mean_chord_m": wing["chord_m"],
-            "root_chord_m": wing["root_chord_m"],
-            "tip_chord_m": wing["tip_chord_m"],
-            "aspect_ratio": AIRCRAFT["wing_aspect_ratio"],
-            "taper": AIRCRAFT["wing_taper"],
-            "x_ac_m_from_mac_le": wing["x_ac_m"],
-            "stall_EAS_m_s": wing["stall_EAS_m_s"],
-            "CL_max": AIRCRAFT["wing_CL_max"],
-            "CL_trim_cruise": wing["CL_trim"],
-            "mac_le_x_m_from_nose": mass["wing_mac_le_x_m"],
-        },
-        "canard": {
-            "area_ratio_Sc_Sw": canard["area_ratio"],
-            "area_m2": canard["area_m2"],
-            "span_m": canard["span_m"],
-            "chord_m": canard["chord_m"],
-            "arm_m": canard["arm_m"],
-            "aspect_ratio": AIRCRAFT["canard_aspect_ratio"],
-            "CL_max": AIRCRAFT["canard_CL_max"],
-        },
-        "aerodynamics_scissor": {
-            "mach": coeffs["mach"],
-            "CL_alpha_wing_per_rad": coeffs["cl_alpha_wing"],
-            "CL_alpha_canard_per_rad": coeffs["cl_alpha_canard"],
-            "CL_alpha_aircraft_less_canard_per_rad": coeffs["cl_alpha_A_h"],
-            "x_ac_over_mac": coeffs["x_ac_over_mac"],
-            "Cmac": coeffs["cmac"],
-            "CL_h_control": coeffs["cl_h_control"],
-            "CL_Ah_control": coeffs["cl_A_h_control"],
-            "lh_over_mac": coeffs["lh_over_mac"],
-            "static_margin": coeffs["static_margin"],
-            "scissor_forward_limit_x_over_mac": scissor["x_forward_over_mac"],
-            "scissor_aft_limit_x_over_mac": scissor["x_aft_over_mac"],
-            "scissor_cg_range_over_mac": scissor["cg_range_over_mac"],
-            "CD_trim": mission["CD_trim"],
-        },
-        "cg": {
-            "x_cg_over_mac": mass["x_cg_over_mac"],
-            "x_cg_m_from_mac_le": mass["x_cg_m"],
-            "operational_fwd_over_mac": selected["operational_fwd_over_mac"],
-            "operational_aft_over_mac": selected["operational_aft_over_mac"],
-        },
-        "mission": {
-            "cruise_true_speed_m_s": mission["cruise_true_speed_m_s"],
-            "CL_cruise": mission["CL_cruise"],
-            "optimized_climb_EAS_m_s": mission["optimized_climb_EAS_m_s"],
-            "optimized_climb_angle_deg": mission["optimized_climb_angle_deg"],
-            "total_energy_Wh": mission["total_energy_Wh"],
-            "installed_battery_energy_Wh": mission["installed_battery_energy_Wh"],
-            "battery_mass_kg": mission["battery_mass_kg"],
-            "peak_electrical_power_W": mission["peak_electrical_power_W"],
-            "total_mission_time_s": mission["total_mission_time_s"],
-            "climb_horizontal_distance_m": mission["climb_horizontal_distance_m"],
-            "level_cruise_distance_m": mission["level_cruise_distance_m"],
-        },
-        "propeller": {
-            "diameter_m": propeller["propeller_diameter_m"],
-            "n_rotors": AIRCRAFT["n_rotors"],
-        },
-        "selected_wing_area_m2": result["selected_wing_area_m2"],
-    }
-
-
-def write_json_summary(path, result):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as json_file:
-        json.dump(build_full_summary(result), json_file, indent=2)
 
 
 def write_table_csv(path, rows):
@@ -1088,7 +920,6 @@ def run_sizing(output_dir=OUTPUT_DIR, make_plots=True):
     write_mass_breakdown(output_dir / "mass_breakdown.csv", selected["mass"])
     write_iteration_history(output_dir / "iteration_history.csv", history)
     write_table_csv(output_dir / "wing_area_sweep.csv", sweep_rows)
-    write_json_summary(output_dir / "aircraft_summary.json", result)
     if make_plots:
         plot_scissor(output_dir / "scissor_plot.png", wing, candidates, selected)
         plot_mission_profile(output_dir / "mission_profile.png", mission)
