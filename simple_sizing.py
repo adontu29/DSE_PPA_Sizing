@@ -148,6 +148,9 @@ AIRCRAFT = {
     # The manoeuvre is entered at this multiple of the stall speed (1.3 = airworthiness-style
     # approach margin; set to 1.0 to decelerate from the stall speed itself).
     "back_transition_approach_speed_factor": 1.30,
+     
+    "battery_cg_offset_over_mac": 0.0,   # battery CG as fraction of MAC, measured from wing MAC LE
+                                       # 0.0 = at MAC LE, 0.25 = at quarter-chord, negative = forward
 }
 
 MASS = {
@@ -450,12 +453,10 @@ def back_transition_stall_limit():
 
 
 def propeller_disk_estimate(weight_N):
-    """Disk area from selected disk loading."""
     thrust_total = AIRCRAFT["thrust_to_weight"] * weight_N
     thrust_per_rotor = thrust_total / AIRCRAFT["n_rotors"]
     disk_area = thrust_per_rotor / AIRCRAFT["disc_loading_N_m2"]
     diameter = 2.0 * math.sqrt(disk_area / math.pi)
-
     return {
         "thrust_total_N": thrust_total,
         "thrust_per_rotor_N": thrust_per_rotor,
@@ -519,45 +520,64 @@ def canard_geometry(area_ratio, wing):
 
 
 def mass_and_cg(wing, canard, mission, propeller, wing_mac_le_x_m):
-    """Mass estimate and longitudinal CG relative to the wing MAC leading edge."""
     power_for_motor_sizing = max(
         AIRCRAFT["hover_power_W"],
         mission.get("peak_electrical_power_W", mission["climb_power_W"]),
     )
 
     masses = {
-        "wing": MASS["wing_areal_density_kg_m2"] * wing["area_m2"],
-        "canard": MASS["canard_areal_density_kg_m2"] * canard["area_m2"],
-        "fuselage": MASS["fuselage_linear_density_kg_m"] * MASS["fuselage_length_m"],
+        "wing":              MASS["wing_areal_density_kg_m2"]    * wing["area_m2"],
+        "canard":            MASS["canard_areal_density_kg_m2"]  * canard["area_m2"],
+        "fuselage":          MASS["fuselage_linear_density_kg_m"] * MASS["fuselage_length_m"],
         "boom_landing_gear": MASS["boom_landing_gear_mass_kg"],
-        "motors": MASS["motor_specific_mass_kg_W"] * power_for_motor_sizing,
-        "ESCs": MASS["esc_specific_mass_kg_W"] * power_for_motor_sizing,
-        "propellers": AIRCRAFT["n_rotors"] * MASS["prop_mass_coeff_kg_m2"] * propeller["propeller_diameter_m"] ** 2,
-        "battery": mission["battery_mass_kg"],
-        "avionics": MASS["avionics_mass_kg"],
+        "motors":            MASS["motor_specific_mass_kg_W"]    * power_for_motor_sizing,
+        "ESCs":              MASS["esc_specific_mass_kg_W"]      * power_for_motor_sizing,
+        "propellers":        AIRCRAFT["n_rotors"] * MASS["prop_mass_coeff_kg_m2"]
+                             * propeller["propeller_diameter_m"] ** 2,
+        "battery":           mission["battery_mass_kg"],
+        "avionics":          MASS["avionics_mass_kg"],
         "mission_equipment": MISSION["mission_equipment_mass_kg"],
     }
-    masses["wiring"] = MASS["wiring_fraction"] * (masses["motors"] + masses["ESCs"] + masses["avionics"])
-    masses["contingency"] = MASS["contingency_fraction"] * sum(masses.values())
 
+    masses["wiring"] = MASS["wiring_fraction"] * (
+        masses["motors"] + masses["ESCs"] + masses["avionics"]
+    )
+
+    # Contingency applied on full subtotal including wiring
+    subtotal = sum(masses.values())
+    masses["contingency"] = MASS["contingency_fraction"] * subtotal
+
+    # ------------------------------------------------------------------
+    # Longitudinal CG locations
+    # ------------------------------------------------------------------
     locations = {name: 0.0 for name in masses}
-    locations["wing"] = wing_mac_le_x_m + wing["x_ac_m"]
-    locations["canard"] = wing_mac_le_x_m + canard["x_ac_m"]
 
+    # Wing and canard move with wing_mac_le_x_m as before
+    locations["wing"]    = wing_mac_le_x_m + wing["x_ac_m"]
+    locations["canard"]  = wing_mac_le_x_m + canard["x_ac_m"]
+
+    # Battery placed near the wing MAC LE; offset tunable via AIRCRAFT parameter
+    battery_offset = AIRCRAFT.get("battery_cg_offset_over_mac", 0.0) * wing["chord_m"]
+    locations["battery"] = wing_mac_le_x_m + battery_offset
+
+    # Everything else (motors, ESCs, fuselage, booms, avionics, wiring,
+    # contingency, mission equipment) remains at fuselage datum x=0
+    # as in the original — restoring the solver slope behaviour
+
+    # ------------------------------------------------------------------
     total_mass = sum(masses.values())
     x_cg_fuselage_m = sum(masses[name] * locations[name] for name in masses) / total_mass
     x_cg_m = x_cg_fuselage_m - wing_mac_le_x_m
 
     return {
-        "total_mass_kg": total_mass,
-        "masses_kg": masses,
+        "total_mass_kg":        total_mass,
+        "masses_kg":            masses,
         "locations_fuselage_m": locations,
-        "wing_mac_le_x_m": wing_mac_le_x_m,
-        "x_cg_fuselage_m": x_cg_fuselage_m,
-        "x_cg_m": x_cg_m,
-        "x_cg_over_mac": x_cg_m / wing["chord_m"],
+        "wing_mac_le_x_m":      wing_mac_le_x_m,
+        "x_cg_fuselage_m":      x_cg_fuselage_m,
+        "x_cg_m":               x_cg_m,
+        "x_cg_over_mac":        x_cg_m / wing["chord_m"],
     }
-
 
 def solve_wing_position(wing, canard, mission, propeller, target_x_cg_over_mac):
     """Shift the wing group until the mass CG reaches the scissor target."""
@@ -1373,12 +1393,23 @@ def sweep_wing_area(show_progress=False):
             scissor_ok = result["selected"]["feasible"]
             stall_ok = result["wing"]["stall_EAS_m_s"] <= stall_limit["stall_EAS_max_m_s"]
             feasible = scissor_ok and stall_ok
+
+            print(
+                f"S={wing_area:.2f} m²  "
+                f"stall={result['wing']['stall_EAS_m_s']:.1f}/{stall_limit['stall_EAS_max_m_s']:.1f} m/s  "
+                f"scissor={'OK' if scissor_ok else 'FAIL'}  "
+                f"stall={'OK' if stall_ok else 'FAIL'}  "
+                f"canard_ratio={result['selected']['canard']['area_ratio']:.3f}  "
+                f"mass={result['selected']['mass']['total_mass_kg']:.1f} kg"
+            )
+
             if not stall_ok:
                 failure_reason = "Stall speed above back-transition limit."
             elif not scissor_ok:
                 failure_reason = "Scissor constraints not feasible."
             else:
                 failure_reason = ""
+
             row = {
                 "wing_area_m2": wing_area,
                 "feasible": feasible,
@@ -1427,32 +1458,42 @@ def sweep_wing_area(show_progress=False):
                 1,
             )
         except RuntimeError as error:
+            print(f"S={wing_area:.2f} m²  RUNTIME ERROR: {error}")
             rows.append({
                 "wing_area_m2": wing_area,
                 "feasible": False,
                 "failure_reason": str(error),
-                "MTOW_mass_estimate_kg": "",
-                "mass_closure_error_kg": "",
-                "wing_span_m": "",
-                "wing_stall_EAS_m_s": "",
-                "max_stall_EAS_m_s": "",
-                "minimum_climb_EAS_m_s": "",
-                "optimized_climb_EAS_m_s": "",
-                "max_climb_CL": "",
-                "climb_CL_limit": "",
-                "course_climb_available_power_W": "",
-                "course_climb_average_power_W": "",
-                "course_climb_time_s": "",
-                "course_climb_max_thrust_to_weight": "",
-                "course_climb_thrust_limit": "",
-                "cruise_true_speed_m_s": "",
-                "mission_energy_Wh": "",
-                "battery_mass_kg": "",
-                "canard_area_ratio": "",
-                "canard_area_m2": "",
-                "outbound_time_s": "",
-                "peak_electrical_power_W": "",
-                "propeller_diameter_m": "",
+                "MTOW_mass_estimate_kg": "", "mass_closure_error_kg": "",
+                "wing_span_m": "", "wing_stall_EAS_m_s": "", "max_stall_EAS_m_s": "",
+                "minimum_climb_EAS_m_s": "", "optimized_climb_EAS_m_s": "",
+                "max_climb_CL": "", "climb_CL_limit": "",
+                "course_climb_available_power_W": "", "course_climb_average_power_W": "",
+                "course_climb_time_s": "", "course_climb_max_thrust_to_weight": "",
+                "course_climb_thrust_limit": "", "cruise_true_speed_m_s": "",
+                "mission_energy_Wh": "", "battery_mass_kg": "",
+                "canard_area_ratio": "", "canard_area_m2": "",
+                "outbound_time_s": "", "peak_electrical_power_W": "",
+                "sizing_iterations_used": "",
+            })
+
+        except Exception as error:
+            import traceback
+            print(f"S={wing_area:.2f} m²  UNEXPECTED ERROR: {type(error).__name__}: {error}")
+            traceback.print_exc()
+            rows.append({
+                "wing_area_m2": wing_area,
+                "feasible": False,
+                "failure_reason": f"{type(error).__name__}: {error}",
+                "MTOW_mass_estimate_kg": "", "mass_closure_error_kg": "",
+                "wing_span_m": "", "wing_stall_EAS_m_s": "", "max_stall_EAS_m_s": "",
+                "minimum_climb_EAS_m_s": "", "optimized_climb_EAS_m_s": "",
+                "max_climb_CL": "", "climb_CL_limit": "",
+                "course_climb_available_power_W": "", "course_climb_average_power_W": "",
+                "course_climb_time_s": "", "course_climb_max_thrust_to_weight": "",
+                "course_climb_thrust_limit": "", "cruise_true_speed_m_s": "",
+                "mission_energy_Wh": "", "battery_mass_kg": "",
+                "canard_area_ratio": "", "canard_area_m2": "",
+                "outbound_time_s": "", "peak_electrical_power_W": "",
                 "sizing_iterations_used": "",
             })
             area_elapsed = time.perf_counter() - area_start
