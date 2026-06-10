@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import json
 import math
+import time
 from pathlib import Path
 
 import matplotlib
@@ -19,6 +20,12 @@ from scissor_plot import (
     aerodynamic_centre_over_mac,
     zero_lift_pitching_moment,
     scissor_cg_limits,
+)
+from xfoil_wrapper import (
+    analyze_airfoil_pair,
+    datcom_efficiency_from_section_slope,
+    mach_number as xfoil_mach_number,
+    reynolds_number,
 )
 
 
@@ -79,6 +86,31 @@ AIRCRAFT = {
     "canard_sweep_half_chord_deg": 0.0,
     "wing_airfoil_cm0": -0.05,            # TODO: airfoil Cm0 from XFOIL (negative if cambered)
     "wing_CL0": 0.20,                     # TODO: aircraft-less-canard CL at alpha=0, from XFOIL
+    "wing_datcom_eta": 0.95,
+    "canard_datcom_eta": 0.95,
+    "use_xfoil_airfoil_updates": True,
+    "xfoil_path": "xfoil/xfoilp4.exe",
+    "xfoil_sd7037_file": "xfoil/sd7037.dat",
+    "xfoil_transition_x_c": 0.50,
+    "xfoil_reynolds_rounding": 0.0,
+    "xfoil_reynolds_update_threshold": 5000.0,
+    "xfoil_mach_rounding": 0.02,
+    "xfoil_mach_command_min": 0.20,
+    "xfoil_alpha_start_deg": -6.0,
+    "xfoil_alpha_end_deg": 18.0,
+    "xfoil_alpha_step_deg": 1.0,
+    "xfoil_timeout_s": 30.0,
+    "xfoil_clmax_to_aircraft_factor": 0.90,
+    # Full update step: XFOIL now runs in the OUTER loop (no oscillation risk),
+    # so relaxing is unnecessary and only forces extra full sweeps before the
+    # coefficients settle. 1.0 = converge in ~2 outer passes.
+    "xfoil_update_relaxation": 1.0,
+    "xfoil_update_tolerance_fraction": 0.005,
+    # XFOIL runs in an OUTER Reynolds-feedback loop around the whole wing-area
+    # sweep (not inside the sizing iterations): each outer pass = one full sweep
+    # + one XFOIL airfoil-pair run, repeated until the section coefficients stop
+    # changing. A handful of XFOIL calls total instead of thousands.
+    "xfoil_outer_iteration_count": 4,
     "cruise_true_speed_m_s": 15.0,
     "minimum_cruise_true_speed_m_s": 0.0,
     "mission_CL_limit_fraction": 0.90,
@@ -100,7 +132,13 @@ AIRCRAFT = {
     "n_rotors": 4,
     "thrust_to_weight": 1.30,
     "disc_loading_N_m2": 170.0,
-    # --- Back-transition requirement that sizes the wing ---
+    # --- Maximum stall speed (the wing-area lower bound) ---
+    # If this is a number (m/s, EAS) it is used directly as the stall cap and the
+    # back-transition logic below is ignored. Set it to None to instead DERIVE the
+    # cap from the back-transition deceleration budget further down.
+    "max_stall_EAS_m_s": 16,
+    # --- Back-transition requirement that sizes the wing (used only when the
+    #     override above is None) ---
     # The aircraft must decelerate from wing-borne flight to a 0 m/s hover
     # within this much horizontal ground track at the transition altitude.
     # SMALLER distance = more demanding = lower stall-speed cap = bigger wing.
@@ -128,6 +166,49 @@ MASS = {
 
 }
 
+AIRFOIL_AERO_KEYS = (
+    "wing_CL_max",
+    "wing_CL_alpha_per_rad",
+    "wing_airfoil_cm0",
+    "wing_CL0",
+    "wing_datcom_eta",
+    "canard_CL_max",
+    "canard_CL_alpha_per_rad",
+    "canard_datcom_eta",
+)
+BASE_AIRFOIL_AERO = {key: AIRCRAFT[key] for key in AIRFOIL_AERO_KEYS}
+
+
+def reset_airfoil_aero_defaults():
+    """Restore the fallback airfoil assumptions before a new sizing run."""
+    AIRCRAFT.update(BASE_AIRFOIL_AERO)
+
+
+def snapshot_aircraft():
+    """Copy the current aircraft input state for later reporting."""
+    return dict(AIRCRAFT)
+
+
+def restore_aircraft_snapshot(snapshot):
+    """Restore a stored aircraft state without replacing the global object."""
+    AIRCRAFT.update(snapshot)
+
+
+def format_duration(seconds):
+    seconds = max(0.0, float(seconds))
+    if seconds < 60.0:
+        return f"{seconds:.0f}s"
+    minutes, rem_seconds = divmod(seconds, 60.0)
+    if minutes < 60.0:
+        return f"{minutes:.0f}m {rem_seconds:.0f}s"
+    hours, rem_minutes = divmod(minutes, 60.0)
+    return f"{hours:.0f}h {rem_minutes:.0f}m"
+
+
+def progress(message, enabled=True, indent=0):
+    if enabled:
+        print(f"{'  ' * indent}{message}", flush=True)
+
 
 # ---------------------------------------------------------------------------
 # Atmosphere and wing equations
@@ -146,6 +227,173 @@ def isa_density(altitude_m):
     return rho0 * pressure_ratio * temperature0 / temperature
 
 
+def representative_xfoil_condition(mission):
+    """Mission state used for Reynolds-dependent 2D airfoil analysis."""
+    candidates = []
+    for state in mission.get("states", []):
+        if state.get("segment") != "wing_borne_climb":
+            continue
+        speed = state.get("speed_m_s")
+        if speed is None or speed <= 0.0:
+            continue
+        altitude = state.get("altitude_mid_m", state.get("altitude_m", MISSION["altitude_m"]))
+        unit_re = reynolds_number(altitude, speed, 1.0)
+        candidates.append({
+            "source": "minimum_Re_wing_borne_climb",
+            "altitude_m": altitude,
+            "true_speed_m_s": speed,
+            "mach": xfoil_mach_number(altitude, speed),
+            "unit_re_per_m": unit_re,
+            "CL": state.get("CL"),
+        })
+
+    if candidates:
+        return min(candidates, key=lambda item: item["unit_re_per_m"])
+
+    altitude = MISSION["altitude_m"]
+    speed = mission.get("cruise_true_speed_m_s", AIRCRAFT["cruise_true_speed_m_s"])
+    return {
+        "source": "cruise_fallback",
+        "altitude_m": altitude,
+        "true_speed_m_s": speed,
+        "mach": xfoil_mach_number(altitude, speed),
+        "unit_re_per_m": reynolds_number(altitude, speed, 1.0),
+        "CL": mission.get("CL_cruise"),
+    }
+
+
+def update_airfoil_aerodynamics_from_xfoil(
+    wing, mission, selected, show_progress=False, progress_indent=0
+):
+    """Update section-derived aero inputs using the current mission geometry."""
+    enabled = bool(AIRCRAFT.get("use_xfoil_airfoil_updates", False))
+    update = {
+        "enabled": enabled,
+        "changed": False,
+        "condition": None,
+        "updates": {},
+        "wing": None,
+        "canard": None,
+        "warnings": [],
+    }
+    if not enabled:
+        return update
+
+    canard = selected["canard"]
+    condition = representative_xfoil_condition(mission)
+    wing_re = condition["unit_re_per_m"] * wing["chord_m"]
+    canard_re = condition["unit_re_per_m"] * canard["chord_m"]
+    condition = dict(condition)
+    condition["wing_reynolds"] = wing_re
+    condition["canard_reynolds"] = canard_re
+    condition["wing_chord_m"] = wing["chord_m"]
+    condition["canard_chord_m"] = canard["chord_m"]
+    update["condition"] = condition
+
+    progress(
+        (
+            "XFOIL airfoils: "
+            f"Re_w={wing_re / 1e6:.3f}e6, "
+            f"Re_c={canard_re / 1e6:.3f}e6, "
+            f"M={condition['mach']:.3f}"
+        ),
+        show_progress,
+        progress_indent,
+    )
+
+    analysis = analyze_airfoil_pair(
+        xfoil_path=AIRCRAFT["xfoil_path"],
+        sd7037_file=AIRCRAFT["xfoil_sd7037_file"],
+        wing_reynolds=wing_re,
+        canard_reynolds=canard_re,
+        mach=condition["mach"],
+        x_transition=AIRCRAFT["xfoil_transition_x_c"],
+        reynolds_rounding=AIRCRAFT["xfoil_reynolds_rounding"],
+        reynolds_update_threshold=AIRCRAFT["xfoil_reynolds_update_threshold"],
+        mach_rounding=AIRCRAFT["xfoil_mach_rounding"],
+        alpha_start_deg=AIRCRAFT["xfoil_alpha_start_deg"],
+        alpha_end_deg=AIRCRAFT["xfoil_alpha_end_deg"],
+        alpha_step_deg=AIRCRAFT["xfoil_alpha_step_deg"],
+        mach_command_min=AIRCRAFT["xfoil_mach_command_min"],
+        timeout_s=AIRCRAFT["xfoil_timeout_s"],
+    )
+    update["wing"] = analysis["wing"]
+    update["canard"] = analysis["canard"]
+    update["warnings"] = analysis["warnings"]
+
+    values = {}
+    clmax_factor = AIRCRAFT["xfoil_clmax_to_aircraft_factor"]
+    if analysis["wing"] is not None:
+        wing_eta = datcom_efficiency_from_section_slope(
+            analysis["wing"]["cl_alpha_per_rad"]
+        )
+        values.update({
+            "wing_CL_max": clmax_factor * analysis["wing"]["cl_max"],
+            "wing_CL0": analysis["wing"]["cl_at_alpha0"],
+            "wing_airfoil_cm0": analysis["wing"]["cm_at_zero_lift"],
+            "wing_datcom_eta": wing_eta,
+            "wing_CL_alpha_per_rad": datcom_lift_slope(
+                AIRCRAFT["wing_aspect_ratio"],
+                condition["mach"],
+                math.radians(AIRCRAFT["wing_sweep_half_chord_deg"]),
+                wing_eta,
+            ),
+        })
+
+    if analysis["canard"] is not None:
+        canard_eta = datcom_efficiency_from_section_slope(
+            analysis["canard"]["cl_alpha_per_rad"]
+        )
+        values.update({
+            "canard_CL_max": clmax_factor * analysis["canard"]["cl_max"],
+            "canard_datcom_eta": canard_eta,
+            "canard_CL_alpha_per_rad": datcom_lift_slope(
+                AIRCRAFT["canard_aspect_ratio"],
+                condition["mach"],
+                math.radians(AIRCRAFT["canard_sweep_half_chord_deg"]),
+                canard_eta,
+            ),
+        })
+
+    tolerance = AIRCRAFT["xfoil_update_tolerance_fraction"]
+    relaxation = AIRCRAFT["xfoil_update_relaxation"]
+    for key, target_value in values.items():
+        old_value = AIRCRAFT[key]
+        new_value = old_value + relaxation * (target_value - old_value)
+        AIRCRAFT[key] = new_value
+        limit = tolerance * max(1.0, abs(old_value))
+        changed = abs(new_value - old_value) > limit
+        update["changed"] = update["changed"] or changed
+        update["updates"][key] = {
+            "old": old_value,
+            "target": target_value,
+            "new": new_value,
+            "changed": changed,
+        }
+
+    if update["updates"]:
+        progress(
+            (
+                "XFOIL update: "
+                f"CLmax_w={AIRCRAFT['wing_CL_max']:.3f}, "
+                f"CLmax_c={AIRCRAFT['canard_CL_max']:.3f}, "
+                f"eta_w={AIRCRAFT['wing_datcom_eta']:.3f}, "
+                f"eta_c={AIRCRAFT['canard_datcom_eta']:.3f}, "
+                f"changed={update['changed']}"
+            ),
+            show_progress,
+            progress_indent,
+        )
+    if update["warnings"]:
+        progress(
+            "XFOIL warning: " + " | ".join(update["warnings"]),
+            show_progress,
+            progress_indent,
+        )
+
+    return update
+
+
 def back_transition_stall_limit():
     """Largest stall speed the wing may have, derived from the back-transition.
 
@@ -159,6 +407,19 @@ def back_transition_stall_limit():
     returned as an EAS so it lines up with wing["stall_EAS_m_s"]; the dynamics
     themselves are worked in true airspeed at the transition altitude.
     """
+    # If the user pinned a maximum stall speed, that value leads and we skip the
+    # back-transition derivation entirely (the dynamics fields are left as None).
+    if AIRCRAFT["max_stall_EAS_m_s"] is not None:
+        return {
+            "source": "user-specified",
+            "a_max_m_s2": None,
+            "entry_TAS_m_s": None,
+            "stall_TAS_m_s": None,
+            "stall_EAS_max_m_s": AIRCRAFT["max_stall_EAS_m_s"],
+            "transition_time_s": None,
+            "transition_distance_m": None,
+        }
+
     g = AIRCRAFT["g_m_s2"]
     thrust_to_weight = AIRCRAFT["thrust_to_weight"]
     approach_factor = AIRCRAFT["back_transition_approach_speed_factor"]
@@ -178,6 +439,7 @@ def back_transition_stall_limit():
     stall_EAS_max = stall_TAS * math.sqrt(density_ratio)
 
     return {
+        "source": "back-transition",
         "a_max_m_s2": a_max,
         "entry_TAS_m_s": entry_TAS,
         "stall_TAS_m_s": stall_TAS,
@@ -321,7 +583,8 @@ def scissor_coefficients(wing):
     """
     cruise_speed = wing.get("cruise_true_speed_m_s", AIRCRAFT["cruise_true_speed_m_s"])
     mach = mach_number(cruise_speed, MISSION["altitude_m"])
-    eta = AIRCRAFT["datcom_eta"]
+    wing_eta = AIRCRAFT.get("wing_datcom_eta", AIRCRAFT["datcom_eta"])
+    canard_eta = AIRCRAFT.get("canard_datcom_eta", AIRCRAFT["datcom_eta"])
     fuselage_width = MASS["fuselage_width_m"]
     fuselage_length = MASS["fuselage_length_m"]
     mac = wing["chord_m"]                          # geometric mean chord used as c_bar
@@ -329,11 +592,11 @@ def scissor_coefficients(wing):
 
     cl_alpha_wing = datcom_lift_slope(
         AIRCRAFT["wing_aspect_ratio"], mach,
-        math.radians(AIRCRAFT["wing_sweep_half_chord_deg"]), eta,
+        math.radians(AIRCRAFT["wing_sweep_half_chord_deg"]), wing_eta,
     )
     cl_alpha_canard = datcom_lift_slope(           # (Vh/V) = 1 for a canard
         AIRCRAFT["canard_aspect_ratio"], mach,
-        math.radians(AIRCRAFT["canard_sweep_half_chord_deg"]), eta,
+        math.radians(AIRCRAFT["canard_sweep_half_chord_deg"]), canard_eta,
     )
     cl_alpha_A_h = aircraft_less_canard_lift_slope(
         cl_alpha_wing, fuselage_width, wing["span_m"],
@@ -479,6 +742,7 @@ def write_iteration_history(path, history):
 
 def build_full_summary(result):
     """Structured dict of geometry, aerodynamics, and mission parameters."""
+    aircraft = result.get("aircraft", AIRCRAFT)
     wing = result["wing"]
     mission = result["mission"]
     propeller = result["propeller"]
@@ -501,11 +765,11 @@ def build_full_summary(result):
             "mean_chord_m": wing["chord_m"],
             "root_chord_m": wing["root_chord_m"],
             "tip_chord_m": wing["tip_chord_m"],
-            "aspect_ratio": AIRCRAFT["wing_aspect_ratio"],
-            "taper": AIRCRAFT["wing_taper"],
+            "aspect_ratio": aircraft["wing_aspect_ratio"],
+            "taper": aircraft["wing_taper"],
             "x_ac_m_from_mac_le": wing["x_ac_m"],
             "stall_EAS_m_s": wing["stall_EAS_m_s"],
-            "CL_max": AIRCRAFT["wing_CL_max"],
+            "CL_max": aircraft["wing_CL_max"],
             "CL_trim_cruise": wing["CL_trim"],
             "mac_le_x_m_from_nose": mass["wing_mac_le_x_m"],
         },
@@ -515,11 +779,13 @@ def build_full_summary(result):
             "span_m": canard["span_m"],
             "chord_m": canard["chord_m"],
             "arm_m": canard["arm_m"],
-            "aspect_ratio": AIRCRAFT["canard_aspect_ratio"],
-            "CL_max": AIRCRAFT["canard_CL_max"],
+            "aspect_ratio": aircraft["canard_aspect_ratio"],
+            "CL_max": aircraft["canard_CL_max"],
         },
         "aerodynamics_scissor": {
             "mach": coeffs["mach"],
+            "wing_datcom_eta": aircraft["wing_datcom_eta"],
+            "canard_datcom_eta": aircraft["canard_datcom_eta"],
             "CL_alpha_wing_per_rad": coeffs["cl_alpha_wing"],
             "CL_alpha_canard_per_rad": coeffs["cl_alpha_canard"],
             "CL_alpha_aircraft_less_canard_per_rad": coeffs["cl_alpha_A_h"],
@@ -555,8 +821,10 @@ def build_full_summary(result):
         },
         "propeller": {
             "diameter_m": propeller["propeller_diameter_m"],
-            "n_rotors": AIRCRAFT["n_rotors"],
+            "propeller_diameter_m": propeller["propeller_diameter_m"],
+            "n_rotors": aircraft["n_rotors"],
         },
+        "airfoil_xfoil": result.get("xfoil_airfoil_update", {}),
         "selected_wing_area_m2": result["selected_wing_area_m2"],
     }
 
@@ -857,7 +1125,7 @@ def course_method_mission_energy(weight_N, wing):
     }
 
 
-def run_sizing_pass(weight_N, wing_area_m2):
+def _run_sizing_pass_once(weight_N, wing_area_m2):
     """One pass through mission, canard, wing position, and mass."""
     rho_cruise = isa_density(MISSION["altitude_m"])
     propeller = propeller_disk_estimate(weight_N)
@@ -876,7 +1144,19 @@ def run_sizing_pass(weight_N, wing_area_m2):
     }
 
 
-def coupled_sizing_iteration(wing_area_m2):
+def run_sizing_pass(weight_N, wing_area_m2, show_progress=False, progress_indent=0):
+    """One sizing pass at the section coefficients currently held in AIRCRAFT.
+
+    XFOIL is no longer called here: the airfoil section data is refreshed once
+    per outer Reynolds-feedback iteration in run_sizing(), so every pass inside
+    the wing-area sweep and mass loop is pure Python and fast.
+    """
+    result = _run_sizing_pass_once(weight_N, wing_area_m2)
+    result["aircraft"] = snapshot_aircraft()
+    return result
+
+
+def coupled_sizing_iteration(wing_area_m2, show_progress=False, progress_indent=0):
     """Iterate mass, mission energy, and canard sizing for one wing area."""
     mass_kg = AIRCRAFT["MTOW_kg"]
     history = []
@@ -884,8 +1164,22 @@ def coupled_sizing_iteration(wing_area_m2):
 
     for iteration in range(1, AIRCRAFT["sizing_iteration_count"] + 1):
         weight_N = mass_kg * AIRCRAFT["g_m_s2"]
-        result = run_sizing_pass(weight_N, wing_area_m2)
+        progress(
+            (
+                f"Mass iteration {iteration}/{AIRCRAFT['sizing_iteration_count']}: "
+                f"input mass={mass_kg:.2f} kg"
+            ),
+            show_progress,
+            progress_indent,
+        )
+        result = run_sizing_pass(
+            weight_N,
+            wing_area_m2,
+            show_progress=show_progress,
+            progress_indent=progress_indent + 1,
+        )
         estimated_mass_kg = result["selected"]["mass"]["total_mass_kg"]
+        mass_change_kg = estimated_mass_kg - mass_kg
 
         history.append({
             "iteration": iteration,
@@ -896,18 +1190,46 @@ def coupled_sizing_iteration(wing_area_m2):
             "mission_energy_Wh": result["mission"]["total_energy_Wh"],
             "battery_mass_kg": result["mission"]["battery_mass_kg"],
             "canard_area_ratio": result["selected"]["canard"]["area_ratio"],
+            "wing_CL_max": AIRCRAFT["wing_CL_max"],
+            "canard_CL_max": AIRCRAFT["canard_CL_max"],
+            "wing_datcom_eta": AIRCRAFT["wing_datcom_eta"],
+            "canard_datcom_eta": AIRCRAFT["canard_datcom_eta"],
             "estimated_mass_kg": estimated_mass_kg,
-            "mass_change_kg": estimated_mass_kg - mass_kg,
+            "mass_change_kg": mass_change_kg,
         })
 
+        progress(
+            (
+                f"Mass estimate={estimated_mass_kg:.2f} kg "
+                f"(delta {mass_change_kg:+.2f} kg); "
+                f"stall={result['wing']['stall_EAS_m_s']:.2f} m/s, "
+                f"climb EAS={result['mission']['optimized_climb_EAS_m_s']:.2f} m/s, "
+                f"Sc/Sw={result['selected']['canard']['area_ratio']:.3f}, "
+                f"CLmax_w/c={AIRCRAFT['wing_CL_max']:.3f}/{AIRCRAFT['canard_CL_max']:.3f}"
+            ),
+            show_progress,
+            progress_indent,
+        )
+
         if abs(estimated_mass_kg - mass_kg) <= AIRCRAFT["sizing_mass_tolerance_kg"]:
+            progress(
+                f"Mass converged within {AIRCRAFT['sizing_mass_tolerance_kg']:.2f} kg",
+                show_progress,
+                progress_indent,
+            )
             mass_kg = estimated_mass_kg
             break
 
         mass_kg = estimated_mass_kg
 
     weight_N = mass_kg * AIRCRAFT["g_m_s2"]
-    result = run_sizing_pass(weight_N, wing_area_m2)
+    progress("Final coupled pass at converged mass", show_progress, progress_indent)
+    result = run_sizing_pass(
+        weight_N,
+        wing_area_m2,
+        show_progress=show_progress,
+        progress_indent=progress_indent + 1,
+    )
     result["iteration_history"] = history
     result["final_mass_used_kg"] = mass_kg
     result["selected_wing_area_m2"] = wing_area_m2
@@ -931,6 +1253,8 @@ def make_summary(result):
     propeller = result["propeller"]
     selected = result["selected"]
     candidates = result["candidates"]
+    xfoil_update = result.get("xfoil_airfoil_update", {})
+    xfoil_condition = xfoil_update.get("condition") or {}
     wingborne_states = [state for state in mission["states"] if state["segment"] == "wing_borne_climb"]
     max_climb_CL = max([state["CL"] for state in wingborne_states] or [0.0])
     climb_CL_limit = AIRCRAFT["wing_CL_max"] / AIRCRAFT["climb_stall_margin_n"]**2
@@ -945,6 +1269,22 @@ def make_summary(result):
         "climb_stall_margin_n": AIRCRAFT["climb_stall_margin_n"],
         "climb_CL_limit": climb_CL_limit,
         "max_climb_CL": max_climb_CL,
+        "wing_CL_max": AIRCRAFT["wing_CL_max"],
+        "canard_CL_max": AIRCRAFT["canard_CL_max"],
+        "wing_CL_alpha_per_rad": AIRCRAFT["wing_CL_alpha_per_rad"],
+        "canard_CL_alpha_per_rad": AIRCRAFT["canard_CL_alpha_per_rad"],
+        "wing_CL0": AIRCRAFT["wing_CL0"],
+        "wing_airfoil_cm0": AIRCRAFT["wing_airfoil_cm0"],
+        "wing_datcom_eta": AIRCRAFT["wing_datcom_eta"],
+        "canard_datcom_eta": AIRCRAFT["canard_datcom_eta"],
+        "xfoil_enabled": xfoil_update.get("enabled", False),
+        "xfoil_changed_last_pass": xfoil_update.get("changed", False),
+        "xfoil_condition_source": xfoil_condition.get("source", ""),
+        "xfoil_condition_altitude_m": xfoil_condition.get("altitude_m", ""),
+        "xfoil_condition_true_speed_m_s": xfoil_condition.get("true_speed_m_s", ""),
+        "xfoil_condition_mach": xfoil_condition.get("mach", ""),
+        "xfoil_wing_Re": xfoil_condition.get("wing_reynolds", ""),
+        "xfoil_canard_Re": xfoil_condition.get("canard_reynolds", ""),
         "wing_area_m2": wing["area_m2"],
         "wing_span_m": wing["span_m"],
         "wing_chord_m": wing["chord_m"],
@@ -988,14 +1328,47 @@ def make_summary(result):
     }
 
 
-def sweep_wing_area():
+def sweep_wing_area(show_progress=False):
     rows = []
     feasible_results = []
     stall_limit = back_transition_stall_limit()   # same for every wing area, so compute once
+    wing_areas = wing_area_sweep_values()
+    sweep_start = time.perf_counter()
 
-    for wing_area in wing_area_sweep_values():
+    progress(
+        (
+            "Wing-area sweep: "
+            f"{len(wing_areas)} candidates from {wing_areas[0]:.2f} "
+            f"to {wing_areas[-1]:.2f} m^2"
+        ),
+        show_progress,
+    )
+
+    for index, wing_area in enumerate(wing_areas, start=1):
+        # Section coefficients are held fixed across the sweep; they are
+        # refreshed by the outer XFOIL loop in run_sizing(), not per wing area.
+        elapsed_before = time.perf_counter() - sweep_start
+        if index > 1:
+            average_time = elapsed_before / (index - 1)
+            eta_text = format_duration(average_time * (len(wing_areas) - index + 1))
+        else:
+            eta_text = "estimating"
+        progress(
+            (
+                f"[{index}/{len(wing_areas)} | "
+                f"{100.0 * (index - 1) / len(wing_areas):5.1f}% done] "
+                f"Wing area {wing_area:.2f} m^2 "
+                f"({len(wing_areas) - index} candidates left after this, ETA {eta_text})"
+            ),
+            show_progress,
+        )
+        area_start = time.perf_counter()
         try:
-            result = coupled_sizing_iteration(wing_area)
+            result = coupled_sizing_iteration(
+                wing_area,
+                show_progress=show_progress,
+                progress_indent=1,
+            )
             summary = make_summary(result)
             scissor_ok = result["selected"]["feasible"]
             stall_ok = result["wing"]["stall_EAS_m_s"] <= stall_limit["stall_EAS_max_m_s"]
@@ -1031,11 +1404,28 @@ def sweep_wing_area():
                 "canard_area_m2": summary["canard_area_m2"],
                 "outbound_time_s": summary["outbound_time_s"],
                 "peak_electrical_power_W": summary["peak_electrical_power_W"],
+                "propeller_diameter_m": summary["propeller_diameter_m"],
                 "sizing_iterations_used": summary["sizing_iterations_used"],
             }
             rows.append(row)
             if feasible:
                 feasible_results.append((summary["MTOW_mass_estimate_kg"], result, summary))
+            area_elapsed = time.perf_counter() - area_start
+            elapsed_total = time.perf_counter() - sweep_start
+            average_time = elapsed_total / index
+            remaining_time = average_time * (len(wing_areas) - index)
+            status = "feasible" if feasible else f"rejected: {failure_reason}"
+            progress(
+                (
+                    f"Result {status}; mass={summary['MTOW_mass_estimate_kg']:.2f} kg, "
+                    f"stall={summary['wing_stall_EAS_m_s']:.2f} m/s, "
+                    f"Sc/Sw={summary['canard_area_ratio']:.3f}, "
+                    f"time={format_duration(area_elapsed)}, "
+                    f"remaining ETA={format_duration(remaining_time)}"
+                ),
+                show_progress,
+                1,
+            )
         except RuntimeError as error:
             rows.append({
                 "wing_area_m2": wing_area,
@@ -1062,52 +1452,130 @@ def sweep_wing_area():
                 "canard_area_m2": "",
                 "outbound_time_s": "",
                 "peak_electrical_power_W": "",
+                "propeller_diameter_m": "",
                 "sizing_iterations_used": "",
             })
+            area_elapsed = time.perf_counter() - area_start
+            elapsed_total = time.perf_counter() - sweep_start
+            average_time = elapsed_total / index
+            remaining_time = average_time * (len(wing_areas) - index)
+            progress(
+                (
+                    f"Result failed: {error}; "
+                    f"time={format_duration(area_elapsed)}, "
+                    f"remaining ETA={format_duration(remaining_time)}"
+                ),
+                show_progress,
+                1,
+            )
 
     if not feasible_results:
         raise RuntimeError("No feasible wing-area point was found in the sweep.")
 
     feasible_results.sort(key=lambda item: item[0])
-    _, result, summary = feasible_results[0]
+    _, result, _ = feasible_results[0]
+    restore_aircraft_snapshot(result["aircraft"])
+    summary = make_summary(result)
+    progress(
+        (
+            "Selected feasible point: "
+            f"S={summary['wing_area_m2']:.2f} m^2, "
+            f"mass={summary['MTOW_mass_estimate_kg']:.2f} kg, "
+            f"Sc/Sw={summary['canard_area_ratio']:.3f}"
+        ),
+        show_progress,
+    )
     return result, summary, rows
 
 
-def run_sizing(output_dir=OUTPUT_DIR, make_plots=True):
-    output_dir = Path(output_dir)
+def sweep_with_xfoil_feedback(show_progress=True):
+    """Outer Reynolds-feedback loop around the wing-area sweep (Option A).
 
-    result, summary, sweep_rows = sweep_wing_area()
-    wing = result["wing"]
-    mission = result["mission"]
-    propeller = result["propeller"]
-    selected = result["selected"]
-    candidates = result["candidates"]
-    history = result["iteration_history"]
+    Each iteration runs one full wing-area sweep at the section coefficients
+    currently in AIRCRAFT, then refreshes those coefficients with a single
+    XFOIL airfoil-pair run at the best design's representative condition. It
+    repeats until XFOIL stops changing the coefficients, so XFOIL is launched
+    only a handful of times per sizing run rather than inside every pass.
+    """
+    xfoil_on = bool(AIRCRAFT.get("use_xfoil_airfoil_updates", False))
+    outer_count = max(1, int(AIRCRAFT.get("xfoil_outer_iteration_count", 1))) if xfoil_on else 1
+    last_update = {"enabled": xfoil_on, "changed": False, "condition": None}
+    result = sweep_rows = None
 
-    write_key_value_csv(output_dir / "summary.csv", summary)
-    write_mass_breakdown(output_dir / "mass_breakdown.csv", selected["mass"])
-    write_iteration_history(output_dir / "iteration_history.csv", history)
-    write_table_csv(output_dir / "wing_area_sweep.csv", sweep_rows)
-    write_json_summary(output_dir / "aircraft_summary.json", result)
-    if make_plots:
-        plot_scissor(output_dir / "scissor_plot.png", wing, candidates, selected)
-        plot_mission_profile(output_dir / "mission_profile.png", mission)
-        plot_wing_area_sweep(
-            output_dir / "wing_area_sweep.png",
-            sweep_rows,
-            summary["wing_area_m2"],
+    for outer in range(1, outer_count + 1):
+        if xfoil_on:
+            progress(f"XFOIL outer iteration {outer}/{outer_count}", show_progress)
+        result, _, sweep_rows = sweep_wing_area(show_progress=show_progress)
+        if not xfoil_on:
+            break
+        last_update = update_airfoil_aerodynamics_from_xfoil(
+            result["wing"], result["mission"], result["selected"],
+            show_progress=show_progress, progress_indent=1,
         )
+        if not last_update["changed"]:
+            progress(f"Airfoil aero converged after {outer}/{outer_count} XFOIL passes", show_progress)
+            break
+        progress("Section coefficients changed; re-running the wing-area sweep", show_progress)
 
-    return {
-        "summary": summary,
-        "wing": wing,
-        "mission": mission,
-        "propeller": propeller,
-        "selected": selected,
-        "candidates": candidates,
-        "iteration_history": history,
-        "wing_area_sweep": sweep_rows,
-    }
+    # The reported design must be sized at the final coefficients. If the loop
+    # hit its cap while still changing, run one more sweep to stay consistent.
+    if xfoil_on and last_update.get("changed"):
+        progress("Final wing-area sweep at the latest section coefficients", show_progress)
+        result, _, sweep_rows = sweep_wing_area(show_progress=show_progress)
+        last_update = dict(last_update, changed=False)
+
+    if result is not None:
+        result["xfoil_airfoil_update"] = last_update
+    return result, sweep_rows
+
+
+def run_sizing(output_dir=OUTPUT_DIR, make_plots=True, use_xfoil=None, show_progress=True):
+    output_dir = Path(output_dir)
+    reset_airfoil_aero_defaults()
+    previous_use_xfoil = AIRCRAFT["use_xfoil_airfoil_updates"]
+    if use_xfoil is not None:
+        AIRCRAFT["use_xfoil_airfoil_updates"] = bool(use_xfoil)
+
+    try:
+        progress("Starting Bellona sizing run", show_progress)
+        result, sweep_rows = sweep_with_xfoil_feedback(show_progress=show_progress)
+        summary = make_summary(result)
+        wing = result["wing"]
+        mission = result["mission"]
+        propeller = result["propeller"]
+        selected = result["selected"]
+        candidates = result["candidates"]
+        history = result["iteration_history"]
+
+        write_key_value_csv(output_dir / "summary.csv", summary)
+        write_mass_breakdown(output_dir / "mass_breakdown.csv", selected["mass"])
+        write_iteration_history(output_dir / "iteration_history.csv", history)
+        write_table_csv(output_dir / "wing_area_sweep.csv", sweep_rows)
+        write_json_summary(output_dir / "aircraft_summary.json", result)
+        if make_plots:
+            progress("Writing plots", show_progress)
+            plot_scissor(output_dir / "scissor_plot.png", wing, candidates, selected)
+            plot_mission_profile(output_dir / "mission_profile.png", mission)
+            plot_wing_area_sweep(
+                output_dir / "wing_area_sweep.png",
+                sweep_rows,
+                summary["wing_area_m2"],
+            )
+        progress(f"Outputs written to: {output_dir}", show_progress)
+
+        return {
+            "summary": summary,
+            "wing": wing,
+            "mission": mission,
+            "propeller": propeller,
+            "selected": selected,
+            "candidates": candidates,
+            "iteration_history": history,
+            "wing_area_sweep": sweep_rows,
+        }
+    finally:
+        if use_xfoil is not None:
+            AIRCRAFT["use_xfoil_airfoil_updates"] = previous_use_xfoil
 
 
 def main():
@@ -1120,12 +1588,18 @@ def main():
         f"{summary['wing_area_m2']:.2f} m^2, span {summary['wing_span_m']:.2f} m, "
         f"stall EAS={summary['wing_stall_EAS_m_s']:.1f} m/s"
     )
-    print(
-        "  Back-transition: "
-        f"stall EAS limit={summary['max_stall_EAS_m_s']:.1f} m/s "
-        f"(a_max={summary['back_transition_a_max_m_s2']:.2f} m/s^2, "
-        f"{summary['back_transition_distance_m']:.0f} m / {summary['back_transition_time_s']:.1f} s)"
-    )
+    if summary["back_transition_a_max_m_s2"] is None:
+        print(
+            "  Stall cap: "
+            f"stall EAS limit={summary['max_stall_EAS_m_s']:.1f} m/s (user-specified)"
+        )
+    else:
+        print(
+            "  Back-transition: "
+            f"stall EAS limit={summary['max_stall_EAS_m_s']:.1f} m/s "
+            f"(a_max={summary['back_transition_a_max_m_s2']:.2f} m/s^2, "
+            f"{summary['back_transition_distance_m']:.0f} m / {summary['back_transition_time_s']:.1f} s)"
+        )
     print(
         "  Climb CL: "
         f"max {summary['max_climb_CL']:.3f}, "
@@ -1145,6 +1619,7 @@ def main():
         f"T/W={summary['course_climb_max_thrust_to_weight']:.2f}/"
         f"{summary['course_climb_thrust_limit']:.2f}"
     )
+    print(f"  Propeller: diameter {summary['propeller_diameter_m']:.2f} m")
     print(f"  Canard: S_c/S_w={summary['canard_area_ratio']:.3f}, area {summary['canard_area_m2']:.2f} m^2")
     print(f"  CG: x/c={summary['x_CG_over_MAC']:.3f}, wing MAC LE x={summary['wing_mac_le_x_m']:.3f} m")
     print(f"  Battery: {summary['battery_mass_kg']:.2f} kg")

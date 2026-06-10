@@ -4,7 +4,11 @@ import simple_sizing
 
 
 def test_simple_sizing_runs_and_creates_outputs(tmp_path):
-    result = simple_sizing.run_sizing(output_dir=tmp_path)
+    result = simple_sizing.run_sizing(
+        output_dir=tmp_path,
+        use_xfoil=False,
+        show_progress=False,
+    )
     summary = result["summary"]
     selected = result["selected"]
 
@@ -26,7 +30,12 @@ def test_simple_sizing_runs_and_creates_outputs(tmp_path):
 
 
 def test_summary_table_contains_main_report_values(tmp_path):
-    simple_sizing.run_sizing(output_dir=tmp_path, make_plots=False)
+    simple_sizing.run_sizing(
+        output_dir=tmp_path,
+        make_plots=False,
+        use_xfoil=False,
+        show_progress=False,
+    )
 
     with open(tmp_path / "summary.csv", newline="", encoding="utf-8") as csv_file:
         rows = {row["quantity"]: row["value"] for row in csv.DictReader(csv_file)}
@@ -37,6 +46,8 @@ def test_summary_table_contains_main_report_values(tmp_path):
     assert "wing_stall_EAS_m_s" in rows
     assert "climb_CL_limit" in rows
     assert "max_climb_CL" in rows
+    assert "wing_CL_max" in rows
+    assert "xfoil_enabled" in rows
     assert "canard_area_ratio" in rows
     assert "x_CG_over_MAC" in rows
     assert "optimized_climb_EAS_m_s" in rows
