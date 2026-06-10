@@ -70,10 +70,14 @@ AIRCRAFT = {
     "canard_CL_limit_fraction": 0.90,
     "canard_aspect_ratio": 5.0,
     "canard_taper": 0.50,
-    "canard_arm_over_wing_chord": 2.50,
+    # Wing longitudinal position is now solved as the canard->wing arm (the
+    # canard is pinned to the nose, see MASS["nose_to_canard_m"]). These bound
+    # the solve; the wing MAC LE station = nose_to_canard + arm.
+    "canard_arm_min_m": 0.30,
+    "canard_arm_max_m": 4.10,
     "canard_area_ratio_min": 0.05,
     "canard_area_ratio_max": 0.80,
-    "canard_area_ratio_step": 0.001,
+    "canard_area_ratio_step": 0.005,
     "static_margin": 0.05,
     "cg_envelope_half_width_over_mac": 0.05,
     "cg_margin_over_mac": 0.02,
@@ -136,7 +140,7 @@ AIRCRAFT = {
     # If this is a number (m/s, EAS) it is used directly as the stall cap and the
     # back-transition logic below is ignored. Set it to None to instead DERIVE the
     # cap from the back-transition deceleration budget further down.
-    "max_stall_EAS_m_s": 16,
+    "max_stall_EAS_m_s": 16.0,   # hand-set from a separate back-transition calc
     # --- Back-transition requirement that sizes the wing (used only when the
     #     override above is None) ---
     # The aircraft must decelerate from wing-borne flight to a 0 m/s hover
@@ -149,21 +153,34 @@ AIRCRAFT = {
     # approach margin; set to 1.0 to decelerate from the stall speed itself).
     "back_transition_approach_speed_factor": 1.30,
      
-    "battery_cg_offset_over_mac": 0.0,   # battery CG as fraction of MAC, measured from wing MAC LE
+    "battery_cg_offset_over_mac": -0.25,   # battery CG as fraction of MAC, measured from wing MAC LE
                                        # 0.0 = at MAC LE, 0.25 = at quarter-chord, negative = forward
 }
 
 MASS = {
-    "wing_areal_density_kg_m2": 2.00,
-    "canard_areal_density_kg_m2": 1.70,
-    "fuselage_length_m": 2.20,
-    "fuselage_linear_density_kg_m": 2.20,
+    # Areal/linear densities calibrated to colleague estimates:
+    "wing_areal_density_kg_m2": 3.36,    # 12 kg @ 5 m span, AR 7 (3.57 m^2)
+    "canard_areal_density_kg_m2": 2.50,  # 2 kg @ 2 m span, AR 5 (0.80 m^2)
+    "fuselage_linear_density_kg_m": 2.61,  # 6 kg @ 2.30 m
+    # Fuselage length is DERIVED from the layout, not fixed: the canard sits
+    # nose_to_canard behind the nose, the wing sits wing_to_tail ahead of the
+    # tail, so L_fus = nose_to_canard + arm + wing_to_tail and grows with the
+    # canard->wing arm (which is the solved wing position).
+    "nose_to_canard_m": 0.35,
+    "wing_to_tail_m": 0.0,            # wing essentially at the fuselage tail
     "fuselage_width_m": 0.30,
-    "boom_landing_gear_mass_kg": 2.50,
-    "motor_specific_mass_kg_W": 0.00027,
+    "nose_bay_x_m": 0.10,             # station of nose electronics/payload
+    "boom_landing_gear_mass_kg": 2.50,   # struts/landing gear, at the wing
+    "motor_mass_each_kg": 2.8,        # per motor; on struts from the wing
     "esc_specific_mass_kg_W": 0.00008,
     "prop_mass_coeff_kg_m2": 0.10,
-    "avionics_mass_kg": 1.50,
+    "avionics_mass_kg": 0.60,         # in the nose bay
+    "sensor_mass_kg": 1.00,           # sensors in the nose
+    # Balloon-capture subsystem
+    "net_gun_mass_kg": 1.50,          # net + netgun, in the nose
+    "reel_mass_kg": 0.50,             # reel, ~at the CG (mid-body)
+    "parachute_mass_kg": 0.60,        # parachute, just ahead of the wing LE
+    "parachute_ahead_of_wing_le_m": 0.10,
     "wiring_fraction": 0.06,
     "contingency_fraction": 0.08,
 
@@ -502,95 +519,227 @@ def wing_geometry(weight_N, rho_cruise, wing_area=None):
 
 
 def canard_geometry(area_ratio, wing):
-    """Canard planform from selected area ratio."""
+    """Canard planform from selected area ratio.
+
+    Longitudinal position is no longer set here: the canard is pinned to the
+    nose and the wing position (canard->wing arm) is solved in
+    canard_and_wing_iteration, so the arm lives in the layout, not the planform.
+    """
     area = area_ratio * wing["area_m2"]
     span = math.sqrt(area * AIRCRAFT["canard_aspect_ratio"])
     chord = area / span
-    arm = AIRCRAFT["canard_arm_over_wing_chord"] * wing["chord_m"]
     return {
         "area_ratio": area_ratio,
         "area_m2": area,
         "span_m": span,
         "chord_m": chord,
-        "arm_m": arm,
-        "x_ac_m": wing["x_ac_m"] - arm,
         "CL_alpha_per_rad": AIRCRAFT["canard_CL_alpha_per_rad"],
         "usable_CL": AIRCRAFT["canard_CL_limit_fraction"] * AIRCRAFT["canard_CL_max"],
     }
 
 
-def mass_and_cg(wing, canard, mission, propeller, wing_mac_le_x_m):
+def longitudinal_layout(wing, canard, wing_le_m):
+    """Nose-referenced longitudinal layout for a given wing MAC LE station.
+
+    x is measured aft from the nose. The canard MAC LE is pinned at
+    nose_to_canard; the wing MAC LE is at wing_le_m; the fuselage tail is
+    wing_to_tail behind the wing, so L_fus = wing_le_m + wing_to_tail and the
+    arm (and fuselage length) grow as the wing moves aft.
+    """
+    c_w = wing["chord_m"]
+    c_c = canard["chord_m"]
+    nose_to_canard = MASS["nose_to_canard_m"]
+    L_fus = wing_le_m + MASS["wing_to_tail_m"]
+    return {
+        "wing_le_m": wing_le_m,
+        "canard_le_m": nose_to_canard,
+        "arm_m": wing_le_m - nose_to_canard,                  # canard->wing, > 0
+        "L_fus_m": L_fus,
+        "wing_quarter_m": wing_le_m + 0.25 * c_w,             # mass/AC station
+        "canard_quarter_m": nose_to_canard + 0.25 * c_c,
+        "lh_over_mac": (nose_to_canard - wing_le_m) / c_w,    # < 0 (canard ahead)
+    }
+
+
+def mass_and_cg(wing, canard, mission, propeller, wing_le_m):
+    """Mass build-up and CG for a wing MAC LE station (measured aft of nose).
+
+    Longitudinal layout (x aft of nose), from colleague mass estimates:
+      * nose bay (sensors, avionics, net+netgun) ........ nose_bay_x_m
+      * canard ........................................... pinned at nose_to_canard
+      * fuselage (uniform body) .......................... centroid L_fus/2
+      * reel (balloon subsystem, ~at CG) ................. mid-body
+      * parachute ........................................ just ahead of wing LE
+      * wing, motors+ESCs+props (on wing struts), booms,
+        battery .......................................... wing station
+    L_fus = wing_le_m + wing_to_tail grows with the canard->wing arm.
+    """
+    layout = longitudinal_layout(wing, canard, wing_le_m)
+    L_fus = layout["L_fus_m"]
+    c_w = wing["chord_m"]
+    n_rotors = AIRCRAFT["n_rotors"]
     power_for_motor_sizing = max(
         AIRCRAFT["hover_power_W"],
         mission.get("peak_electrical_power_W", mission["climb_power_W"]),
     )
 
-    masses = {
-        "wing":              MASS["wing_areal_density_kg_m2"]    * wing["area_m2"],
-        "canard":            MASS["canard_areal_density_kg_m2"]  * canard["area_m2"],
-        "fuselage":          MASS["fuselage_linear_density_kg_m"] * MASS["fuselage_length_m"],
-        "boom_landing_gear": MASS["boom_landing_gear_mass_kg"],
-        "motors":            MASS["motor_specific_mass_kg_W"]    * power_for_motor_sizing,
-        "ESCs":              MASS["esc_specific_mass_kg_W"]      * power_for_motor_sizing,
-        "propellers":        AIRCRAFT["n_rotors"] * MASS["prop_mass_coeff_kg_m2"]
-                             * propeller["propeller_diameter_m"] ** 2,
-        "battery":           mission["battery_mass_kg"],
-        "avionics":          MASS["avionics_mass_kg"],
-        "mission_equipment": MISSION["mission_equipment_mass_kg"],
-    }
+    nose_x = MASS["nose_bay_x_m"]
+    mid_x = 0.5 * L_fus
+    wing_x = layout["wing_quarter_m"]
+    parachute_x = wing_le_m - MASS["parachute_ahead_of_wing_le_m"]
+    # Battery is a large CG-trim mass; its station is selectable. "wing" (aft)
+    # is tail-heavy for a canard, "mid"/"nose" move the CG forward to help the
+    # scissor close.
 
+    battery_x = wing_le_m + AIRCRAFT.get("battery_cg_offset_over_mac", 0.0) * c_w
+
+    # name -> (mass_kg, station_m aft of nose)
+    components = {
+        "wing":       (MASS["wing_areal_density_kg_m2"] * wing["area_m2"],      wing_x),
+        "canard":     (MASS["canard_areal_density_kg_m2"] * canard["area_m2"],  layout["canard_quarter_m"]),
+        "fuselage":   (MASS["fuselage_linear_density_kg_m"] * L_fus,            mid_x),
+        "motors":     (n_rotors * MASS["motor_mass_each_kg"],                   wing_x),
+        "ESCs":       (MASS["esc_specific_mass_kg_W"] * power_for_motor_sizing, wing_x),
+        "propellers": (n_rotors * MASS["prop_mass_coeff_kg_m2"]
+                       * propeller["propeller_diameter_m"] ** 2,                wing_x),
+        "boom_landing_gear": (MASS["boom_landing_gear_mass_kg"],               wing_x),
+        "battery":    (mission["battery_mass_kg"],                             battery_x),
+        "avionics":   (MASS["avionics_mass_kg"],                               nose_x),
+        "sensors":    (MASS["sensor_mass_kg"],                                 nose_x),
+        "net_gun":    (MASS["net_gun_mass_kg"],                                nose_x),
+        "reel":       (MASS["reel_mass_kg"],                                   mid_x),
+        "parachute":  (MASS["parachute_mass_kg"],                              parachute_x),
+    }
+    masses = {name: m for name, (m, _) in components.items()}
+    locations = {name: x for name, (_, x) in components.items()}
+
+    # Wiring scales with the powered systems; contingency on the full subtotal.
     masses["wiring"] = MASS["wiring_fraction"] * (
         masses["motors"] + masses["ESCs"] + masses["avionics"]
     )
-
-    # Contingency applied on full subtotal including wiring
+    locations["wiring"] = mid_x
     subtotal = sum(masses.values())
     masses["contingency"] = MASS["contingency_fraction"] * subtotal
+    locations["contingency"] = mid_x
 
-    # ------------------------------------------------------------------
-    # Longitudinal CG locations
-    # ------------------------------------------------------------------
-    locations = {name: 0.0 for name in masses}
-
-    # Wing and canard move with wing_mac_le_x_m as before
-    locations["wing"]    = wing_mac_le_x_m + wing["x_ac_m"]
-    locations["canard"]  = wing_mac_le_x_m + canard["x_ac_m"]
-
-    # Battery placed near the wing MAC LE; offset tunable via AIRCRAFT parameter
-    battery_offset = AIRCRAFT.get("battery_cg_offset_over_mac", 0.0) * wing["chord_m"]
-    locations["battery"] = wing_mac_le_x_m + battery_offset
-
-    # Everything else (motors, ESCs, fuselage, booms, avionics, wiring,
-    # contingency, mission equipment) remains at fuselage datum x=0
-    # as in the original — restoring the solver slope behaviour
-
-    # ------------------------------------------------------------------
     total_mass = sum(masses.values())
-    x_cg_fuselage_m = sum(masses[name] * locations[name] for name in masses) / total_mass
-    x_cg_m = x_cg_fuselage_m - wing_mac_le_x_m
+    x_cg_nose_m = sum(masses[name] * locations[name] for name in masses) / total_mass
+    x_cg_m = x_cg_nose_m - wing_le_m                 # relative to wing MAC LE
 
     return {
         "total_mass_kg":        total_mass,
         "masses_kg":            masses,
         "locations_fuselage_m": locations,
-        "wing_mac_le_x_m":      wing_mac_le_x_m,
-        "x_cg_fuselage_m":      x_cg_fuselage_m,
+        "wing_mac_le_x_m":      wing_le_m,
+        "arm_m":                layout["arm_m"],
+        "fuselage_length_m":    L_fus,
+        "x_cg_fuselage_m":      x_cg_nose_m,
         "x_cg_m":               x_cg_m,
         "x_cg_over_mac":        x_cg_m / wing["chord_m"],
     }
 
-def solve_wing_position(wing, canard, mission, propeller, target_x_cg_over_mac):
-    """Shift the wing group until the mass CG reaches the scissor target."""
-    mass_at_zero = mass_and_cg(wing, canard, mission, propeller, wing_mac_le_x_m=0.0)
-    moving_mass = (
-        mass_at_zero["masses_kg"]["wing"]
-        + mass_at_zero["masses_kg"]["canard"]
-        + mass_at_zero["masses_kg"]["battery"]
-    )
-    slope = moving_mass / mass_at_zero["total_mass_kg"] - 1.0
-    target_x_cg_m = target_x_cg_over_mac * wing["chord_m"]
-    wing_shift_m = (target_x_cg_m - mass_at_zero["x_cg_m"]) / slope
-    return mass_and_cg(wing, canard, mission, propeller, wing_mac_le_x_m=wing_shift_m)
+def evaluate_wing_station(wing, canard, area_ratio, mission, propeller, wing_le_m):
+    """Scissor band, mass CG, and CG-envelope fit clearance at one wing station.
+
+    Both the band (via the arm-dependent lh and fuselage-length-dependent x_ac)
+    and the CG depend on wing_le_m, so they are evaluated together. `clearance`
+    is the worst-side gap between the operational CG envelope and the scissor
+    band (>= 0 means the envelope fits): positive is feasible, and maximising it
+    is the right objective for placing the wing, because the band *width* also
+    changes with the arm (merely centring the CG can land on a narrow band).
+    """
+    half_width = AIRCRAFT["cg_envelope_half_width_over_mac"]
+    margin = AIRCRAFT["cg_margin_over_mac"]
+
+    layout = longitudinal_layout(wing, canard, wing_le_m)
+    coeffs = scissor_coefficients(wing, layout["L_fus_m"], layout["lh_over_mac"])
+    scissor = scissor_limits(area_ratio, coeffs)
+    mass = mass_and_cg(wing, canard, mission, propeller, wing_le_m)
+
+    x_cg = mass["x_cg_over_mac"]
+    lower_clear = (x_cg - half_width) - (scissor["x_forward_over_mac"] + margin)
+    upper_clear = (scissor["x_aft_over_mac"] - margin) - (x_cg + half_width)
+    return {
+        "wing_le_m": wing_le_m,
+        "layout": layout,
+        "coeffs": coeffs,
+        "scissor": scissor,
+        "mass": mass,
+        "band_center": 0.5 * (scissor["x_forward_over_mac"] + scissor["x_aft_over_mac"]),
+        "lower_clearance": lower_clear,
+        "upper_clearance": upper_clear,
+        "clearance": min(lower_clear, upper_clear),
+    }
+
+
+def best_wing_station_by_clearance(wing, canard, area_ratio, mission, propeller, lo, hi):
+    """Return the bounded wing station with the largest CG-envelope clearance."""
+    sample_count = 41
+    best = None
+    for index in range(sample_count):
+        fraction = index / (sample_count - 1)
+        wing_le = lo + fraction * (hi - lo)
+        evaluation = evaluate_wing_station(
+            wing, canard, area_ratio, mission, propeller, wing_le
+        )
+        if best is None or evaluation["clearance"] > best["clearance"]:
+            best = evaluation
+
+    sample_step = (hi - lo) / (sample_count - 1)
+    left = max(lo, best["wing_le_m"] - sample_step)
+    right = min(hi, best["wing_le_m"] + sample_step)
+    for _ in range(24):
+        m1 = left + (right - left) / 3.0
+        m2 = right - (right - left) / 3.0
+        e1 = evaluate_wing_station(wing, canard, area_ratio, mission, propeller, m1)
+        e2 = evaluate_wing_station(wing, canard, area_ratio, mission, propeller, m2)
+        for evaluation in (e1, e2):
+            if evaluation["clearance"] > best["clearance"]:
+                best = evaluation
+        if e1["clearance"] < e2["clearance"]:
+            left = m1
+        else:
+            right = m2
+        if (right - left) < 1e-3:
+            break
+    return best
+
+
+def solve_wing_station(wing, canard, area_ratio, mission, propeller):
+    """Solve the smallest arm (shortest, lightest fuselage) that fits the envelope.
+
+    Moving the wing aft lengthens the arm, which monotonically widens the scissor
+    band and raises the CG-envelope fit clearance. So the lightest viable design
+    is the smallest wing station whose clearance >= 0. We bisect for that lower
+    crossing. If the longest arm is still infeasible, a bounded clearance search
+    returns the closest candidate so the sweep reports a useful near miss.
+    """
+    lo = MASS["nose_to_canard_m"] + AIRCRAFT["canard_arm_min_m"]
+    hi = MASS["nose_to_canard_m"] + AIRCRAFT["canard_arm_max_m"]
+
+    def evaluate(wing_le):
+        return evaluate_wing_station(wing, canard, area_ratio, mission, propeller, wing_le)
+
+    eval_lo, eval_hi = evaluate(lo), evaluate(hi)
+    if eval_hi["clearance"] < 0.0:
+        return best_wing_station_by_clearance(
+            wing, canard, area_ratio, mission, propeller, lo, hi
+        )
+    if eval_lo["clearance"] >= 0.0:
+        return eval_lo                      # shortest arm already fits
+
+    # clearance(lo) < 0 <= clearance(hi): bisect for the smallest feasible arm.
+    a, best = lo, eval_hi
+    for _ in range(40):
+        mid = 0.5 * (a + best["wing_le_m"])
+        eval_mid = evaluate(mid)
+        if eval_mid["clearance"] >= 0.0:
+            best = eval_mid
+        else:
+            a = mid
+        if (best["wing_le_m"] - a) < 1e-3:
+            break
+    return best
 
 
 # ---------------------------------------------------------------------------
@@ -598,11 +747,12 @@ def solve_wing_position(wing, canard, mission, propeller, target_x_cg_over_mac):
 # ---------------------------------------------------------------------------
 
 
-def scissor_coefficients(wing):
+def scissor_coefficients(wing, fuselage_length, lh_over_mac):
     """Course-method aerodynamic inputs for the canard scissor plot.
 
-    Computes the area-ratio-independent coefficients once (Lectures 7 & 8) and
-    is reused for every candidate area ratio. The equations and the canard sign
+    `fuselage_length` (= L_fus) and `lh_over_mac` (canard->wing arm / c_bar, < 0)
+    come from the longitudinal layout and change as the wing moves, so this is
+    re-evaluated per candidate wing station. The equations and the canard sign
     conventions live in scissor_plot.py.
     """
     cruise_speed = wing.get("cruise_true_speed_m_s", AIRCRAFT["cruise_true_speed_m_s"])
@@ -610,7 +760,6 @@ def scissor_coefficients(wing):
     wing_eta = AIRCRAFT.get("wing_datcom_eta", AIRCRAFT["datcom_eta"])
     canard_eta = AIRCRAFT.get("canard_datcom_eta", AIRCRAFT["datcom_eta"])
     fuselage_width = MASS["fuselage_width_m"]
-    fuselage_length = MASS["fuselage_length_m"]
     mac = wing["chord_m"]                          # geometric mean chord used as c_bar
     mean_geo_chord = wing["area_m2"] / wing["span_m"]
 
@@ -654,7 +803,7 @@ def scissor_coefficients(wing):
         # Canard control surface lifts up: CL_h > 0 (its usable max), not -1.
         "cl_h_control": AIRCRAFT["canard_CL_limit_fraction"] * AIRCRAFT["canard_CL_max"],
         "cl_A_h_control": cl_A_h_control,
-        "lh_over_mac": -AIRCRAFT["canard_arm_over_wing_chord"],  # < 0 for a canard
+        "lh_over_mac": lh_over_mac,                              # < 0 for a canard
         "static_margin": AIRCRAFT["static_margin"],
     }
 
@@ -688,26 +837,22 @@ def canard_and_wing_iteration(wing, mission, propeller):
     margin = AIRCRAFT["cg_margin_over_mac"]
     required_width = 2.0 * (half_width + margin)
 
-    coeffs = scissor_coefficients(wing)
     candidates = []
+    best_candidate = None
     steps = int((AIRCRAFT["canard_area_ratio_max"] - AIRCRAFT["canard_area_ratio_min"]) / AIRCRAFT["canard_area_ratio_step"]) + 1
     for i in range(steps):
         area_ratio = AIRCRAFT["canard_area_ratio_min"] + i * AIRCRAFT["canard_area_ratio_step"]
         canard = canard_geometry(area_ratio, wing)
-        scissor = scissor_limits(area_ratio, coeffs)
+
+        # Solve the wing station (canard->wing arm) that fits the CG envelope in
+        # the band; the band itself moves with the arm, so the two are solved jointly.
+        solution = solve_wing_station(wing, canard, area_ratio, mission, propeller)
+        scissor = solution["scissor"]
+        mass = solution["mass"]
         if scissor is None:
             continue
 
         band_is_wide_enough = scissor["cg_range_over_mac"] >= required_width
-        target_center = 0.5 * (
-            scissor["x_forward_over_mac"]
-            + margin
-            + half_width
-            + scissor["x_aft_over_mac"]
-            - margin
-            - half_width
-        )
-        mass = solve_wing_position(wing, canard, mission, propeller, target_center)
         x_cg = mass["x_cg_over_mac"]
         operational_fwd = x_cg - half_width
         operational_aft = x_cg + half_width
@@ -721,16 +866,30 @@ def canard_and_wing_iteration(wing, mission, propeller):
             "canard": canard,
             "scissor": scissor,
             "mass": mass,
-            "target_x_cg_over_mac": target_center,
+            "wing_le_m": solution["wing_le_m"],
+            "arm_m": solution["layout"]["arm_m"],
+            "coeffs": solution["coeffs"],
+            "target_x_cg_over_mac": solution["band_center"],
             "operational_fwd_over_mac": operational_fwd,
             "operational_aft_over_mac": operational_aft,
+            "lower_clearance_over_mac": solution["lower_clearance"],
+            "upper_clearance_over_mac": solution["upper_clearance"],
+            "clearance_over_mac": solution["clearance"],
+            "band_is_wide_enough": band_is_wide_enough,
             "feasible": fits,
         }
         candidates.append(candidate)
+        if (
+            best_candidate is None
+            or candidate["clearance_over_mac"] > best_candidate["clearance_over_mac"]
+        ):
+            best_candidate = candidate
         if fits:
             return candidate, candidates
 
-    return candidates[-1], candidates
+    if best_candidate is None:
+        raise RuntimeError("No canard/scissor candidates could be evaluated.")
+    return best_candidate, candidates
 
 
 # ---------------------------------------------------------------------------
@@ -774,7 +933,7 @@ def build_full_summary(result):
     canard = selected["canard"]
     mass = selected["mass"]
     scissor = selected["scissor"]
-    coeffs = scissor_coefficients(wing)
+    coeffs = selected["coeffs"]   # evaluated at the solved wing station
 
     return {
         "mass": {
@@ -802,9 +961,14 @@ def build_full_summary(result):
             "area_m2": canard["area_m2"],
             "span_m": canard["span_m"],
             "chord_m": canard["chord_m"],
-            "arm_m": canard["arm_m"],
+            "arm_m": selected["arm_m"],
+            "le_m_from_nose": MASS["nose_to_canard_m"],
             "aspect_ratio": aircraft["canard_aspect_ratio"],
             "CL_max": aircraft["canard_CL_max"],
+        },
+        "fuselage": {
+            "length_m": mass["fuselage_length_m"],
+            "width_m": MASS["fuselage_width_m"],
         },
         "aerodynamics_scissor": {
             "mach": coeffs["mach"],
@@ -868,9 +1032,25 @@ def write_table_csv(path, rows):
 
 
 def plot_scissor(path, wing, candidates, selected):
-    area_ratios = [item["canard"]["area_ratio"] for item in candidates]
-    x_forward = [item["scissor"]["x_forward_over_mac"] for item in candidates]
-    x_aft = [item["scissor"]["x_aft_over_mac"] for item in candidates]
+    candidate_area_ratios = [item["canard"]["area_ratio"] for item in candidates]
+    ratio_min = min(candidate_area_ratios)
+    ratio_max = max(candidate_area_ratios)
+    point_count = 100
+    if abs(ratio_max - ratio_min) < 1e-12:
+        area_ratios = [ratio_min]
+    else:
+        area_ratios = [
+            ratio_min + (ratio_max - ratio_min) * index / (point_count - 1)
+            for index in range(point_count)
+        ]
+
+    # A scissor plot is defined for one fixed geometry. The sizing loop solves a
+    # different wing station for each candidate ratio, so plotting those raw
+    # candidates connects many geometries and produces a curved sizing trace.
+    coeffs = selected["coeffs"]
+    limits = [scissor_limits(area_ratio, coeffs) for area_ratio in area_ratios]
+    x_forward = [item["x_forward_over_mac"] for item in limits]
+    x_aft = [item["x_aft_over_mac"] for item in limits]
 
     fig, ax = plt.subplots(figsize=(8.0, 5.5))
     ax.plot(x_aft, area_ratios, color="#c0392b", label="Stability")
@@ -1332,10 +1512,12 @@ def make_summary(result):
         "canard_area_ratio": selected["canard"]["area_ratio"],
         "canard_area_m2": selected["canard"]["area_m2"],
         "canard_span_m": selected["canard"]["span_m"],
+        "canard_arm_m": selected["arm_m"],
         "wing_mac_le_x_m": selected["mass"]["wing_mac_le_x_m"],
         "x_CG_over_MAC": selected["mass"]["x_cg_over_mac"],
         "scissor_forward_limit_x_over_c": selected["scissor"]["x_forward_over_mac"],
         "scissor_aft_limit_x_over_c": selected["scissor"]["x_aft_over_mac"],
+        "scissor_clearance_over_c": selected.get("clearance_over_mac", ""),
         "operational_cg_forward_x_over_c": selected["operational_fwd_over_mac"],
         "operational_cg_aft_x_over_c": selected["operational_aft_over_mac"],
         "battery_mass_kg": mission["battery_mass_kg"],
@@ -1404,6 +1586,7 @@ def sweep_wing_area(show_progress=False):
                 f"scissor={'OK' if scissor_ok else 'FAIL'}  "
                 f"stall={'OK' if stall_ok else 'FAIL'}  "
                 f"canard_ratio={result['selected']['canard']['area_ratio']:.3f}  "
+                f"arm={result['selected']['arm_m']:.2f} m  "
                 f"mass={result['selected']['mass']['total_mass_kg']:.1f} kg"
             )
 
@@ -1437,6 +1620,8 @@ def sweep_wing_area(show_progress=False):
                 "battery_mass_kg": summary["battery_mass_kg"],
                 "canard_area_ratio": summary["canard_area_ratio"],
                 "canard_area_m2": summary["canard_area_m2"],
+                "canard_arm_m": summary["canard_arm_m"],
+                "scissor_clearance_over_c": summary["scissor_clearance_over_c"],
                 "outbound_time_s": summary["outbound_time_s"],
                 "peak_electrical_power_W": summary["peak_electrical_power_W"],
                 "propeller_diameter_m": summary["propeller_diameter_m"],
@@ -1455,6 +1640,7 @@ def sweep_wing_area(show_progress=False):
                     f"Result {status}; mass={summary['MTOW_mass_estimate_kg']:.2f} kg, "
                     f"stall={summary['wing_stall_EAS_m_s']:.2f} m/s, "
                     f"Sc/Sw={summary['canard_area_ratio']:.3f}, "
+                    f"arm={summary['canard_arm_m']:.2f} m, "
                     f"time={format_duration(area_elapsed)}, "
                     f"remaining ETA={format_duration(remaining_time)}"
                 ),
@@ -1476,6 +1662,7 @@ def sweep_wing_area(show_progress=False):
                 "course_climb_thrust_limit": "", "cruise_true_speed_m_s": "",
                 "mission_energy_Wh": "", "battery_mass_kg": "",
                 "canard_area_ratio": "", "canard_area_m2": "",
+                "canard_arm_m": "", "scissor_clearance_over_c": "",
                 "outbound_time_s": "", "peak_electrical_power_W": "",
                 "sizing_iterations_used": "",
             })
@@ -1497,6 +1684,7 @@ def sweep_wing_area(show_progress=False):
                 "course_climb_thrust_limit": "", "cruise_true_speed_m_s": "",
                 "mission_energy_Wh": "", "battery_mass_kg": "",
                 "canard_area_ratio": "", "canard_area_m2": "",
+                "canard_arm_m": "", "scissor_clearance_over_c": "",
                 "outbound_time_s": "", "peak_electrical_power_W": "",
                 "sizing_iterations_used": "",
             })
@@ -1526,7 +1714,8 @@ def sweep_wing_area(show_progress=False):
             "Selected feasible point: "
             f"S={summary['wing_area_m2']:.2f} m^2, "
             f"mass={summary['MTOW_mass_estimate_kg']:.2f} kg, "
-            f"Sc/Sw={summary['canard_area_ratio']:.3f}"
+            f"Sc/Sw={summary['canard_area_ratio']:.3f}, "
+            f"arm={summary['canard_arm_m']:.2f} m"
         ),
         show_progress,
     )
