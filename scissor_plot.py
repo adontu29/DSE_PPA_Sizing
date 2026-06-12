@@ -7,8 +7,16 @@ iteration can refine wing position and canard area ratio against the curves.
 This module deliberately does NOT import simple_sizing (would be circular).
 
 Canard configuration conventions (Lecture 8, slides 32-34):
-  * (Vh/V)^2      = 1   -- the canard sees the freestream
-  * (1 - de/da)   = 1   -- a forward surface sees no main-wing downwash
+  * (Vc/V)^2     ~ 1    -- the canard is forward, in clean air (full dynamic pressure)
+  * interference        -- everything the canard does to the flow lands on the WING,
+                           which sits downstream in the canard wake (NOT the reverse):
+                             - downwash de_da (Slingerland, wing_downwash_gradient()
+                               with the canard as the generating surface), and
+                             - a wake dynamic-pressure loss (Vw/V)^2,
+                           both acting only on the inboard wing fraction within the
+                           canard span. They reduce the wing's effective
+                           C_L_alpha_{A-h}. de_da = immersed fraction = 0 recovers the
+                           clean (no-interference) case.
   * l_h          < 0    -- canard is ahead of the wing aerodynamic centre
   * C_L_h        > 0    -- the canard lifts up (use its usable/max CL, not -1)
 
@@ -135,6 +143,42 @@ def zero_lift_pitching_moment(
     return cm_ac_wing + cm_ac_fus
 
 
+def wing_downwash_gradient(
+    cl_alpha_wing, aspect_ratio, sweep_quarter_chord_rad, r, m_tv=0.0
+):
+    """Slingerland downwash gradient de/da behind a lifting surface (Lecture 7 slide 47).
+
+    Generic: pass the GENERATING surface's lift slope, aspect ratio and quarter-
+    chord sweep. For this canard layout the generating surface is the canard, so
+    the result is the downwash the wing (downstream) experiences.
+
+    Arguments (Λ in radians, evaluated at the quarter chord):
+      r    = l_h / (b/2)  -- arm to the downstream surface over the GENERATING
+             surface's semi-span; pass a positive magnitude (the 1/r and sqrt
+             terms assume r > 0).
+      m_tv = vertical offset of the downstream surface above the generating
+             surface's root-chord plane, over b/2. m_tv = 0 collapses the
+             second {.} factor to 1.
+
+    Returns de/da (dimensionless). Larger r (surfaces further apart) and higher
+    aspect ratio both reduce the downwash, as expected.
+    """
+    k_sweep = (
+        (0.1124 + 0.1265 * sweep_quarter_chord_rad + 0.1766 * sweep_quarter_chord_rad**2)
+        / r**2
+        + 0.1024 / r
+        + 2.0
+    )
+    k_sweep_zero = 0.1124 / r**2 + 0.1024 / r + 2.0
+
+    term1 = (r / (r**2 + m_tv**2)) * 0.4876 / math.sqrt(r**2 + 0.6319 + m_tv**2)
+    term2 = (
+        1.0 + (r**2 / (r**2 + 0.7915 + 5.0734 * m_tv**2)) ** 0.3113
+    ) * (1.0 - math.sqrt(m_tv**2 / (1.0 + m_tv**2)))
+
+    return (k_sweep / k_sweep_zero) * (term1 + term2) * cl_alpha_wing / (math.pi * aspect_ratio)
+
+
 def scissor_cg_limits(
     area_ratio,
     *,
@@ -146,6 +190,10 @@ def scissor_cg_limits(
     cl_A_h_control,
     cmac,
     lh_over_mac,
+    de_da=0.0,
+    wing_immersed_fraction=0.0,
+    wing_wake_dynamic_pressure_ratio=1.0,
+    canard_speed_ratio_sq=1.0,
 ):
     """Forward (controllability) and aft (stability) CG limits at one Sc/Sw.
 
@@ -153,20 +201,32 @@ def scissor_cg_limits(
     from the wing MAC leading edge. For a canard lh_over_mac < 0, so both
     curves slope down to the left and the controllability curve (steeper) opens
     the feasible band as the area ratio grows.
+
+    Canard-wing interference (the canard is forward, in clean air; the wing sits
+    in the canard wake) enters through the WING side, not the canard:
+      * canard_speed_ratio_sq = (Vc/V)^2 ~ 1 -- canard sees the freestream.
+      * the inboard wing fraction `wing_immersed_fraction` (k) within the canard
+        wake loses both lift slope (downwash de_da) and dynamic pressure
+        (wing_wake_dynamic_pressure_ratio = (Vw/V)^2); the clean outboard
+        fraction is unaffected. So the wing's effective C_L_alpha_{A-h} is scaled
+        by f_wing below, which sits in the DENOMINATOR of the canard's stability
+        term. de_da = k = 0 recovers the clean (no-interference) case.
     """
-    speed_ratio_sq = 1.0     # (Vh/V)^2 = 1 for a canard
-    downwash_factor = 1.0    # (1 - de/da) = 1 for a forward surface
+    # Effective wing lift-slope factor: clean outboard part + immersed inboard
+    # part (reduced by downwash and wake dynamic pressure).
+    k = wing_immersed_fraction
+    f_wing = (1.0 - k) + k * (1.0 - de_da) * wing_wake_dynamic_pressure_ratio
 
     # Stability / aft CG limit -- Lecture 7 slide 34, Lecture 8 slides 5 & 34.
-    # Denominator is C_L_alpha_{A-h} (aircraft-less-canard), per the detailed
-    # derivation slide; this keeps it consistent with the controllability line.
     stability_slope = (
-        (cl_alpha_canard / cl_alpha_A_h) * downwash_factor * lh_over_mac * speed_ratio_sq
+        cl_alpha_canard * canard_speed_ratio_sq / (cl_alpha_A_h * f_wing)
+        * lh_over_mac
     )
     x_aft = x_ac_over_mac + stability_slope * area_ratio - static_margin
 
-    # Controllability / forward CG limit -- Lecture 8 slides 16 & 33.
-    control_slope = (cl_h_control / cl_A_h_control) * lh_over_mac * speed_ratio_sq
+    # Controllability / forward CG limit -- Lecture 8 slides 16 & 33. The canard
+    # control surface is in clean air, so it uses (Vc/V)^2 directly.
+    control_slope = (cl_h_control / cl_A_h_control) * lh_over_mac * canard_speed_ratio_sq
     x_forward = x_ac_over_mac - cmac / cl_A_h_control + control_slope * area_ratio
 
     return x_forward, x_aft

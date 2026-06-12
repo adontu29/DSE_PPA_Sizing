@@ -19,6 +19,7 @@ from scissor_plot import (
     aircraft_less_canard_lift_slope,
     aerodynamic_centre_over_mac,
     zero_lift_pitching_moment,
+    wing_downwash_gradient,
     scissor_cg_limits,
 )
 from xfoil_wrapper import (
@@ -73,14 +74,38 @@ AIRCRAFT = {
     # Wing longitudinal position is now solved as the canard->wing arm (the
     # canard is pinned to the nose, see MASS["nose_to_canard_m"]). These bound
     # the solve; the wing MAC LE station = nose_to_canard + arm.
-    "canard_arm_min_m": 0.30,
-    "canard_arm_max_m": 4.10,
+    "canard_arm_min_m": 0,
+    "canard_arm_max_m": 2.5,
+    # Minimum clear streamwise gap between the canard root trailing edge and the
+    # wing root leading edge. Without it, minimising MTOW collapses the arm until
+    # the surfaces overlap, which is both unbuildable and breaks the scissor's
+    # (1 - de/da)=1 no-interference assumption (canard must sit clear of the wing
+    # upwash). This sets a geometry-aware floor on the wing station that adapts to
+    # the canard root chord (which grows with Sc/Sw and wing area).
+    "canard_wing_min_gap_m": 0.40,
     "canard_area_ratio_min": 0.05,
     "canard_area_ratio_max": 0.80,
     "canard_area_ratio_step": 0.005,
     "static_margin": 0.05,
     "cg_envelope_half_width_over_mac": 0.05,
     "cg_margin_over_mac": 0.02,
+    # Controllability authority of the canard in the scissor forward-CG limit.
+    # Per the course method (AE3211-I Lec 8 slide 17) C_Lh is a *configuration*
+    # constant, not the airfoil CL_max: full-moving surface |C_Lh|=1, adjustable
+    # 0.8, fixed+elevator 0.35*A_h^(1/3). This tailsitter needs a full-moving
+    # canard (fixed/adjustable cannot close the scissor), so |C_Lh|=1, capped by
+    # the canard's real CL_max so XFOIL cannot promise lift the airfoil lacks.
+    "canard_control_CLh_full_moving": 1.0,
+    # A lifting canard is destabilising (it sits ahead of the CG), so this
+    # control-canard layout cannot be made naturally statically stable at the
+    # canard size needed for controllability: the neutral point sits at/ahead of
+    # the CG and moves further forward as the canard/arm grow. The achievable
+    # static margin peaks near zero, well short of the static_margin+margin+
+    # half_width band the aft scissor limit needs. So stability is recovered by
+    # the autopilot (relaxed static stability) and only the controllability
+    # (forward-CG) limit is enforced here. Set True only if the configuration is
+    # reworked to be naturally stable (smaller canard, CG moved well forward).
+    "require_static_stability": False,
     "CD0": 0.040,
     "oswald_efficiency": 0.78,
     # --- Scissor-plot aerodynamics (TU Delft AE3211-I, Lectures 7 & 8) ---
@@ -92,6 +117,12 @@ AIRCRAFT = {
     "wing_CL0": 0.20,                     # TODO: aircraft-less-canard CL at alpha=0, from XFOIL
     "wing_datcom_eta": 0.95,
     "canard_datcom_eta": 0.95,
+    # Canard-wing interference dynamic pressures (see scissor_cg_limits). The
+    # canard is forward in clean air, so (Vc/V)^2 ~ 1. The wing sits in the
+    # canard wake over its inboard span and loses dynamic pressure there; the
+    # immersed fraction is computed from geometry (wake width = canard span).
+    "canard_speed_ratio_sq": 1.0,            # (Vc/V)^2 at the canard (clean air)
+    "wing_wake_dynamic_pressure_ratio": 0.85,  # (Vw/V)^2 over the immersed wing
     "use_xfoil_airfoil_updates": True,
     "xfoil_path": "xfoil/xfoilp4.exe",
     "xfoil_sd7037_file": "xfoil/sd7037.dat",
@@ -167,12 +198,10 @@ MASS = {
     # tail, so L_fus = nose_to_canard + arm + wing_to_tail and grows with the
     # canard->wing arm (which is the solved wing position).
     "nose_to_canard_m": 0.35,
-    "wing_to_tail_m": 0.0,            # wing essentially at the fuselage tail
+    "wing_to_tail_m": 1.0,            # wing essentially at the fuselage tail
     "fuselage_width_m": 0.30,
     "nose_bay_x_m": 0.10,             # station of nose electronics/payload
-    "boom_landing_gear_mass_kg": 2.50,   # struts/landing gear, at the wing
     "motor_mass_each_kg": 2.8,        # per motor; on struts from the wing
-    "esc_specific_mass_kg_W": 0.00008,
     "prop_mass_coeff_kg_m2": 0.10,
     "avionics_mass_kg": 0.60,         # in the nose bay
     "sensor_mass_kg": 1.00,           # sensors in the nose
@@ -550,14 +579,18 @@ def longitudinal_layout(wing, canard, wing_le_m):
     c_c = canard["chord_m"]
     nose_to_canard = MASS["nose_to_canard_m"]
     L_fus = wing_le_m + MASS["wing_to_tail_m"]
+    wing_quarter_m = wing_le_m + 0.25 * c_w               # wing MAC a.c. (1/4 chord)
+    canard_quarter_m = nose_to_canard + 0.25 * c_c        # canard MAC a.c. (1/4 chord)
     return {
         "wing_le_m": wing_le_m,
         "canard_le_m": nose_to_canard,
         "arm_m": wing_le_m - nose_to_canard,                  # canard->wing, > 0
         "L_fus_m": L_fus,
-        "wing_quarter_m": wing_le_m + 0.25 * c_w,             # mass/AC station
-        "canard_quarter_m": nose_to_canard + 0.25 * c_c,
-        "lh_over_mac": (nose_to_canard - wing_le_m) / c_w,    # < 0 (canard ahead)
+        "wing_quarter_m": wing_quarter_m,                     # mass/AC station
+        "canard_quarter_m": canard_quarter_m,
+        # Tail arm for the scissor equations: distance between the two surfaces'
+        # aerodynamic centres (each MAC quarter-chord), not LE-to-LE, over c_w.
+        "lh_over_mac": (canard_quarter_m - wing_quarter_m) / c_w,   # < 0 (canard ahead)
     }
 
 
@@ -570,7 +603,6 @@ def mass_and_cg(wing, canard, mission, propeller, wing_le_m):
       * fuselage (uniform body) .......................... centroid L_fus/2
       * reel (balloon subsystem, ~at CG) ................. mid-body
       * parachute ........................................ just ahead of wing LE
-      * wing, motors+ESCs+props (on wing struts), booms,
         battery .......................................... wing station
     L_fus = wing_le_m + wing_to_tail grows with the canard->wing arm.
     """
@@ -599,10 +631,8 @@ def mass_and_cg(wing, canard, mission, propeller, wing_le_m):
         "canard":     (MASS["canard_areal_density_kg_m2"] * canard["area_m2"],  layout["canard_quarter_m"]),
         "fuselage":   (MASS["fuselage_linear_density_kg_m"] * L_fus,            mid_x),
         "motors":     (n_rotors * MASS["motor_mass_each_kg"],                   wing_x),
-        "ESCs":       (MASS["esc_specific_mass_kg_W"] * power_for_motor_sizing, wing_x),
         "propellers": (n_rotors * MASS["prop_mass_coeff_kg_m2"]
                        * propeller["propeller_diameter_m"] ** 2,                wing_x),
-        "boom_landing_gear": (MASS["boom_landing_gear_mass_kg"],               wing_x),
         "battery":    (mission["battery_mass_kg"],                             battery_x),
         "avionics":   (MASS["avionics_mass_kg"],                               nose_x),
         "sensors":    (MASS["sensor_mass_kg"],                                 nose_x),
@@ -615,7 +645,7 @@ def mass_and_cg(wing, canard, mission, propeller, wing_le_m):
 
     # Wiring scales with the powered systems; contingency on the full subtotal.
     masses["wiring"] = MASS["wiring_fraction"] * (
-        masses["motors"] + masses["ESCs"] + masses["avionics"]
+        masses["motors"]  + masses["avionics"]
     )
     locations["wiring"] = mid_x
     subtotal = sum(masses.values())
@@ -647,18 +677,31 @@ def evaluate_wing_station(wing, canard, area_ratio, mission, propeller, wing_le_
     band (>= 0 means the envelope fits): positive is feasible, and maximising it
     is the right objective for placing the wing, because the band *width* also
     changes with the arm (merely centring the CG can land on a narrow band).
+
+    `lower_clearance` is the controllability (forward-CG) gap, `upper_clearance`
+    the static-stability (aft-CG) gap. When require_static_stability is False the
+    aft gap is dropped from `clearance`: the design only has to stay controllable
+    (the autopilot recovers stability), which lets the wing sit on a shorter arm.
     """
     half_width = AIRCRAFT["cg_envelope_half_width_over_mac"]
     margin = AIRCRAFT["cg_margin_over_mac"]
 
     layout = longitudinal_layout(wing, canard, wing_le_m)
-    coeffs = scissor_coefficients(wing, layout["L_fus_m"], layout["lh_over_mac"])
+    coeffs = scissor_coefficients(wing, canard, layout["L_fus_m"], layout["lh_over_mac"])
     scissor = scissor_limits(area_ratio, coeffs)
     mass = mass_and_cg(wing, canard, mission, propeller, wing_le_m)
 
     x_cg = mass["x_cg_over_mac"]
     lower_clear = (x_cg - half_width) - (scissor["x_forward_over_mac"] + margin)
     upper_clear = (scissor["x_aft_over_mac"] - margin) - (x_cg + half_width)
+    if AIRCRAFT["require_static_stability"]:
+        clearance = min(lower_clear, upper_clear)
+    else:
+        clearance = lower_clear
+    # Achieved static margin = neutral point - CG (negative => statically
+    # unstable, recovered by the autopilot). x_aft = NP - static_margin, so
+    # NP = x_aft + static_margin.
+    neutral_point = scissor["x_aft_over_mac"] + AIRCRAFT["static_margin"]
     return {
         "wing_le_m": wing_le_m,
         "layout": layout,
@@ -668,7 +711,8 @@ def evaluate_wing_station(wing, canard, area_ratio, mission, propeller, wing_le_
         "band_center": 0.5 * (scissor["x_forward_over_mac"] + scissor["x_aft_over_mac"]),
         "lower_clearance": lower_clear,
         "upper_clearance": upper_clear,
-        "clearance": min(lower_clear, upper_clear),
+        "clearance": clearance,
+        "achieved_static_margin_over_mac": neutral_point - x_cg,
     }
 
 
@@ -708,14 +752,24 @@ def best_wing_station_by_clearance(wing, canard, area_ratio, mission, propeller,
 def solve_wing_station(wing, canard, area_ratio, mission, propeller):
     """Solve the smallest arm (shortest, lightest fuselage) that fits the envelope.
 
-    Moving the wing aft lengthens the arm, which monotonically widens the scissor
-    band and raises the CG-envelope fit clearance. So the lightest viable design
-    is the smallest wing station whose clearance >= 0. We bisect for that lower
-    crossing. If the longest arm is still infeasible, a bounded clearance search
-    returns the closest candidate so the sweep reports a useful near miss.
+    With static stability required, moving the wing aft monotonically widens the
+    scissor band and raises the fit clearance, so the lightest viable design is
+    the smallest wing station whose clearance >= 0, found by bisecting the lower
+    crossing. With stability waived (controllability only), the clearance can be
+    non-monotonic in the arm (it humps), so when both ends are infeasible we fall
+    back to a grid+golden-section search that returns the closest candidate; that
+    handles the hump but can return its peak rather than the smallest feasible arm
+    when the feasible region is fully interior to [lo, hi].
     """
-    lo = MASS["nose_to_canard_m"] + AIRCRAFT["canard_arm_min_m"]
-    hi = MASS["nose_to_canard_m"] + AIRCRAFT["canard_arm_max_m"]
+    # Floor the wing station so the wing root LE sits at least
+    # canard_wing_min_gap_m behind the canard root TE (no overlap / interference).
+    canard_root_chord = (
+        2.0 * canard["area_m2"]
+        / (canard["span_m"] * (1.0 + AIRCRAFT["canard_taper"]))
+    )
+    lo_overlap = MASS["nose_to_canard_m"] + canard_root_chord + AIRCRAFT["canard_wing_min_gap_m"]
+    lo = max(MASS["nose_to_canard_m"] + AIRCRAFT["canard_arm_min_m"], lo_overlap)
+    hi = max(lo, MASS["nose_to_canard_m"] + AIRCRAFT["canard_arm_max_m"])
 
     def evaluate(wing_le):
         return evaluate_wing_station(wing, canard, area_ratio, mission, propeller, wing_le)
@@ -747,13 +801,14 @@ def solve_wing_station(wing, canard, area_ratio, mission, propeller):
 # ---------------------------------------------------------------------------
 
 
-def scissor_coefficients(wing, fuselage_length, lh_over_mac):
+def scissor_coefficients(wing, canard, fuselage_length, lh_over_mac):
     """Course-method aerodynamic inputs for the canard scissor plot.
 
     `fuselage_length` (= L_fus) and `lh_over_mac` (canard->wing arm / c_bar, < 0)
     come from the longitudinal layout and change as the wing moves, so this is
-    re-evaluated per candidate wing station. The equations and the canard sign
-    conventions live in scissor_plot.py.
+    re-evaluated per candidate wing station. `canard` carries the canard span at
+    the area ratio being evaluated, needed for the canard-on-wing downwash. The
+    equations and the canard sign conventions live in scissor_plot.py.
     """
     cruise_speed = wing.get("cruise_true_speed_m_s", AIRCRAFT["cruise_true_speed_m_s"])
     mach = mach_number(cruise_speed, MISSION["altitude_m"])
@@ -789,9 +844,47 @@ def scissor_coefficients(wing, fuselage_length, lh_over_mac):
     )
 
     # Controllability is sized at the most demanding wing-borne lift, i.e. the
-    # slowest wing-borne flight: CL_max limited by the stall margin. For a
-    # tailsitter there is no flaps-down approach case (VTOL handles low speed).
-    cl_A_h_control = AIRCRAFT["wing_CL_max"] / AIRCRAFT["climb_stall_margin_n"] ** 2
+    # slowest wing-borne flight. That condition must match what the aircraft
+    # actually flies: the mission climb runs at permitted_lift_coefficient() (the
+    # 0.90*CL_max / stall-margin-deg limit in mission_energy_course), which is the
+    # highest CL_{A-h} of any wing-borne phase (cruise is lower; VTOL/hover/
+    # transition are rotor-controlled). Sizing at the earlier CL_max/1.25^2 was
+    # optimistic -- it understated CL_{A-h} and so the forward (controllability)
+    # limit, hiding a slow-climb trim shortfall. For a tailsitter there is no
+    # flaps-down approach case (VTOL handles low speed).
+    cl_A_h_control = permitted_lift_coefficient(AIRCRAFT)
+
+    # Canard-on-wing downwash gradient de/da (Slingerland). The canard is the
+    # GENERATING surface (the wing sits in its wake), so use the canard's lift
+    # slope, aspect ratio and span. r = l_h / (b_canard/2); lh_over_mac is
+    # negative, so take the magnitude of the arm. m_tv = 0 (coplanar surfaces).
+    # de/da reduces the wing's effective CL_alpha_{A-h} in the stability limit.
+    lh_arm = lh_over_mac * mac                          # signed arm length [m]
+    r = 2.0 * abs(lh_arm) / canard["span_m"]
+    de_da = wing_downwash_gradient(
+        cl_alpha_canard,
+        AIRCRAFT["canard_aspect_ratio"],
+        math.radians(AIRCRAFT["canard_sweep_deg"]),
+        r,
+        m_tv=0.0,
+    )
+
+    # Fraction of the wing AREA immersed in the canard wake. The wake spans the
+    # canard span, so the wing is immersed inboard of +/- b_canard/2. For a
+    # trapezoid (taper = ct/cr), the area inboard of span fraction eta is
+    # (eta - 0.5*(1-taper)*eta^2) / (0.5*(1+taper)). Downwash and the wake
+    # dynamic-pressure loss act only on this fraction.
+    taper = AIRCRAFT["wing_taper"]
+    eta_star = min(1.0, canard["span_m"] / wing["span_m"])
+    wing_immersed_fraction = (
+        (eta_star - 0.5 * (1.0 - taper) * eta_star**2) / (0.5 * (1.0 + taper))
+    )
+    wing_lift_slope_factor = (
+        (1.0 - wing_immersed_fraction)
+        + wing_immersed_fraction
+        * (1.0 - de_da)
+        * AIRCRAFT["wing_wake_dynamic_pressure_ratio"]
+    )
 
     return {
         "mach": mach,
@@ -800,10 +893,19 @@ def scissor_coefficients(wing, fuselage_length, lh_over_mac):
         "cl_alpha_A_h": cl_alpha_A_h,
         "x_ac_over_mac": x_ac_over_mac,
         "cmac": cmac,
-        # Canard control surface lifts up: CL_h > 0 (its usable max), not -1.
-        "cl_h_control": AIRCRAFT["canard_CL_limit_fraction"] * AIRCRAFT["canard_CL_max"],
+        # Canard control authority: course-method full-moving value |C_Lh|=1
+        # (positive, the canard lifts up), capped at the canard's real CL_max so
+        # the airfoil can actually deliver it. See canard_control_CLh_full_moving.
+        "cl_h_control": min(
+            AIRCRAFT["canard_control_CLh_full_moving"], 1
+        ),
         "cl_A_h_control": cl_A_h_control,
         "lh_over_mac": lh_over_mac,                              # < 0 for a canard
+        "de_da": de_da,                                         # canard-on-wing downwash
+        "wing_immersed_fraction": wing_immersed_fraction,
+        "wing_wake_dynamic_pressure_ratio": AIRCRAFT["wing_wake_dynamic_pressure_ratio"],
+        "canard_speed_ratio_sq": AIRCRAFT["canard_speed_ratio_sq"],
+        "wing_lift_slope_factor": wing_lift_slope_factor,
         "static_margin": AIRCRAFT["static_margin"],
     }
 
@@ -822,23 +924,40 @@ def scissor_limits(area_ratio, coeffs):
         cl_A_h_control=coeffs["cl_A_h_control"],
         cmac=coeffs["cmac"],
         lh_over_mac=coeffs["lh_over_mac"],
+        de_da=coeffs["de_da"],
+        wing_immersed_fraction=coeffs["wing_immersed_fraction"],
+        wing_wake_dynamic_pressure_ratio=coeffs["wing_wake_dynamic_pressure_ratio"],
+        canard_speed_ratio_sq=coeffs["canard_speed_ratio_sq"],
     )
     return {
         "x_forward_over_mac": x_forward,
         "x_aft_over_mac": x_aft,
         "cg_range_over_mac": x_aft - x_forward,
         "CL_Ah": coeffs["cl_A_h_control"],
+        "wing_lift_slope_factor": coeffs["wing_lift_slope_factor"],
     }
 
 
 def canard_and_wing_iteration(wing, mission, propeller):
-    """Find the smallest canard area ratio that fits the operational CG envelope."""
+    """Pick the canard area ratio + wing position that minimise total mass (MTOW).
+
+    Sc/Sw and the wing station trade against each other: a smaller canard needs a
+    longer canard->wing arm to open the scissor band, and the arm sets the
+    fuselage length (L_fus = wing_le + wing_to_tail). So a small canard saves
+    canard mass but buys it back as fuselage mass. The mass build-up already
+    captures both, so the right objective is simply the lightest feasible design,
+    not the smallest area ratio. For each ratio, solve_wing_station returns the
+    lightest (shortest-arm) wing station that fits, so here we only sweep the
+    ratio and keep the minimum-mass feasible candidate. If none fit, fall back to
+    the largest-clearance candidate so the sweep still reports a useful near miss.
+    """
     half_width = AIRCRAFT["cg_envelope_half_width_over_mac"]
     margin = AIRCRAFT["cg_margin_over_mac"]
     required_width = 2.0 * (half_width + margin)
 
     candidates = []
-    best_candidate = None
+    best_candidate = None            # largest clearance (near-miss fallback)
+    best_feasible = None             # lightest feasible design (the objective)
     steps = int((AIRCRAFT["canard_area_ratio_max"] - AIRCRAFT["canard_area_ratio_min"]) / AIRCRAFT["canard_area_ratio_step"]) + 1
     for i in range(steps):
         area_ratio = AIRCRAFT["canard_area_ratio_min"] + i * AIRCRAFT["canard_area_ratio_step"]
@@ -856,11 +975,19 @@ def canard_and_wing_iteration(wing, mission, propeller):
         x_cg = mass["x_cg_over_mac"]
         operational_fwd = x_cg - half_width
         operational_aft = x_cg + half_width
-        fits = (
-            band_is_wide_enough
-            and operational_fwd >= scissor["x_forward_over_mac"] + margin
-            and operational_aft <= scissor["x_aft_over_mac"] - margin
-        )
+        # Controllability (forward CG) is always required: the canard must be
+        # able to trim at the forward-most operational CG. The aft (stability)
+        # limit and the minimum-band-width check are only enforced when natural
+        # static stability is required; otherwise the autopilot recovers it.
+        controllable = operational_fwd >= scissor["x_forward_over_mac"] + margin
+        if AIRCRAFT["require_static_stability"]:
+            stable = (
+                band_is_wide_enough
+                and operational_aft <= scissor["x_aft_over_mac"] - margin
+            )
+        else:
+            stable = True
+        fits = controllable and stable
 
         candidate = {
             "canard": canard,
@@ -875,7 +1002,9 @@ def canard_and_wing_iteration(wing, mission, propeller):
             "lower_clearance_over_mac": solution["lower_clearance"],
             "upper_clearance_over_mac": solution["upper_clearance"],
             "clearance_over_mac": solution["clearance"],
+            "achieved_static_margin_over_mac": solution["achieved_static_margin_over_mac"],
             "band_is_wide_enough": band_is_wide_enough,
+            "statically_stable": operational_aft <= scissor["x_aft_over_mac"] - margin,
             "feasible": fits,
         }
         candidates.append(candidate)
@@ -884,9 +1013,14 @@ def canard_and_wing_iteration(wing, mission, propeller):
             or candidate["clearance_over_mac"] > best_candidate["clearance_over_mac"]
         ):
             best_candidate = candidate
-        if fits:
-            return candidate, candidates
+        if fits and (
+            best_feasible is None
+            or candidate["mass"]["total_mass_kg"] < best_feasible["mass"]["total_mass_kg"]
+        ):
+            best_feasible = candidate
 
+    if best_feasible is not None:
+        return best_feasible, candidates
     if best_candidate is None:
         raise RuntimeError("No canard/scissor candidates could be evaluated.")
     return best_candidate, candidates
@@ -982,6 +1116,11 @@ def build_full_summary(result):
             "CL_h_control": coeffs["cl_h_control"],
             "CL_Ah_control": coeffs["cl_A_h_control"],
             "lh_over_mac": coeffs["lh_over_mac"],
+            "de_da": coeffs["de_da"],
+            "wing_immersed_fraction": coeffs["wing_immersed_fraction"],
+            "wing_wake_dynamic_pressure_ratio": coeffs["wing_wake_dynamic_pressure_ratio"],
+            "canard_speed_ratio_sq": coeffs["canard_speed_ratio_sq"],
+            "wing_lift_slope_factor": coeffs["wing_lift_slope_factor"],
             "static_margin": coeffs["static_margin"],
             "scissor_forward_limit_x_over_mac": scissor["x_forward_over_mac"],
             "scissor_aft_limit_x_over_mac": scissor["x_aft_over_mac"],
@@ -993,6 +1132,9 @@ def build_full_summary(result):
             "x_cg_m_from_mac_le": mass["x_cg_m"],
             "operational_fwd_over_mac": selected["operational_fwd_over_mac"],
             "operational_aft_over_mac": selected["operational_aft_over_mac"],
+            "require_static_stability": aircraft["require_static_stability"],
+            "statically_stable": selected["statically_stable"],
+            "achieved_static_margin_over_mac": selected["achieved_static_margin_over_mac"],
         },
         "mission": {
             "cruise_true_speed_m_s": mission["cruise_true_speed_m_s"],
@@ -1456,6 +1598,7 @@ def make_summary(result):
     mission = result["mission"]
     propeller = result["propeller"]
     selected = result["selected"]
+    coeffs = selected["coeffs"]
     candidates = result["candidates"]
     xfoil_update = result.get("xfoil_airfoil_update", {})
     xfoil_condition = xfoil_update.get("condition") or {}
@@ -1518,6 +1661,11 @@ def make_summary(result):
         "scissor_forward_limit_x_over_c": selected["scissor"]["x_forward_over_mac"],
         "scissor_aft_limit_x_over_c": selected["scissor"]["x_aft_over_mac"],
         "scissor_clearance_over_c": selected.get("clearance_over_mac", ""),
+        "scissor_de_da": coeffs["de_da"],
+        "scissor_wing_immersed_fraction": coeffs["wing_immersed_fraction"],
+        "scissor_wing_wake_dynamic_pressure_ratio": coeffs["wing_wake_dynamic_pressure_ratio"],
+        "scissor_canard_speed_ratio_sq": coeffs["canard_speed_ratio_sq"],
+        "scissor_wing_lift_slope_factor": coeffs["wing_lift_slope_factor"],
         "operational_cg_forward_x_over_c": selected["operational_fwd_over_mac"],
         "operational_cg_aft_x_over_c": selected["operational_aft_over_mac"],
         "battery_mass_kg": mission["battery_mass_kg"],
