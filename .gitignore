@@ -1,0 +1,21 @@
+# This branch intentionally tracks only the simple_sizing workflow.
+*
+
+!.gitignore
+!README.md
+!pytest.ini
+!simple_sizing.py
+!mission_energy_course.py
+!drag_buildup.py
+!scissor_plot.py
+!xfoil_wrapper.py
+
+!tests/
+!tests/test_simple_sizing.py
+!tests/test_xfoil_wrapper.py
+
+!xfoil/
+!xfoil/pplot.exe
+!xfoil/pxplot.exe
+!xfoil/xfoilp4.exe
+!xfoil/sd7037.dat
