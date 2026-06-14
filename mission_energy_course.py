@@ -20,6 +20,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from drag_buildup import build_drag_geometry, parasite_drag_buildup
+from xfoil_wrapper import mach_number, reynolds_number
+
 
 RHO_SEA_LEVEL = 1.225
 
@@ -68,28 +71,79 @@ def trim_lift_split(weight_N, q, wing, trim):
     return L_w, L_c
 
 
-def aero_drag_coefficient(aircraft, q, weight_N, wing):
+def _cached_drag_geometry(aircraft, wing):
+    """Build the component-drag geometry once per (aircraft, wing, trim) and reuse it.
+
+    The geometry is flow-independent, but parasite_drag_coefficient is called once
+    per mission state (tens of thousands of times per sizing pass) with the same
+    aircraft/wing/trim objects. Caching it on the aircraft dict turns those
+    rebuilds into a single build per mission. The cache key is the identity of the
+    wing and trim objects, which are replaced (not mutated) between passes.
+    """
+    trim = aircraft.get("trim_drag")
+    key = (id(wing), id(trim))
+    cache = aircraft.get("_drag_geometry_cache")
+    if cache is not None and cache[0] == key:
+        return cache[1]
+    geom = build_drag_geometry(aircraft, wing, trim)
+    aircraft["_drag_geometry_cache"] = (key, geom)
+    return geom
+
+
+def parasite_drag_coefficient(aircraft, wing, altitude_m=None, true_speed_m_s=None):
+    """Wing-area-referenced zero-lift drag coefficient (AD2 component build-up).
+
+    With drag_model == "component_build_up" and both the layout geometry (via the
+    trim descriptor) and the flow state (altitude + speed for the Reynolds number)
+    available, CD0 is built up component by component. It falls back to the fixed
+    aircraft["CD0"] when drag_model == "fixed" or that geometry/flow is missing.
+    """
+    model = setting(aircraft, "drag_model", "component_build_up")
+    if model == "component_build_up" and altitude_m is not None and true_speed_m_s is not None:
+        geom = _cached_drag_geometry(aircraft, wing)
+        if geom is not None:
+            reynolds_per_m = reynolds_number(altitude_m, true_speed_m_s, 1.0)
+            mach = mach_number(altitude_m, true_speed_m_s)
+            return parasite_drag_buildup(geom, mach, reynolds_per_m)["CD0_component"]
+    return aircraft["CD0"]
+
+
+def aero_drag_coefficient(aircraft, q, weight_N, wing, altitude_m=None, true_speed_m_s=None):
     """Total drag coefficient referenced to wing area.
 
-    With the split model on and a trim descriptor present, parasite drag is
-    decomposed per surface (each profile CD0 on its own area + a fixed
-    fuselage/misc drag area) and induced drag is summed over the wing and canard
-    at their trimmed lifts via Di = L^2 / (q*pi*b^2*e). Otherwise it falls back to
-    the legacy single lumped CD0 + wing-only induced drag.
+    Parasite drag comes from the AD2 component build-up (parasite_drag_coefficient),
+    falling back to the fixed CD0 when the model is disabled or geometry/flow is
+    missing. With the split model on and a trim descriptor present, induced drag is
+    summed over the wing and canard at their trimmed lifts via
+    Di = L^2 / (q*pi*b^2*e); otherwise it falls back to wing-only induced drag.
+
+    The total CD depends only on the flow state and the lift, not on the available
+    power, so the same (altitude, speed, lift) recurs across every power candidate
+    of a given EAS. The result is cached per mission (fresh aircraft dict per
+    mission, with a fixed wing/geometry) to avoid recomputing the build-up and the
+    induced split for each candidate.
     """
+    cd_cache = None
+    if altitude_m is not None and true_speed_m_s is not None:
+        cd_cache = aircraft.get("_cd_cache")
+        if cd_cache is None:
+            cd_cache = aircraft["_cd_cache"] = {}
+        cache_key = (altitude_m, true_speed_m_s, weight_N)
+        cached = cd_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
     S_w = wing["area_m2"]
     CL_wing_ref = weight_N / (q * S_w)
     trim = aircraft.get("trim_drag")
+    parasite = parasite_drag_coefficient(aircraft, wing, altitude_m, true_speed_m_s)
     if not setting(aircraft, "use_split_drag_model", True) or trim is None:
-        return aircraft["CD0"] + induced_drag_factor(aircraft) * CL_wing_ref**2
+        total = parasite + induced_drag_factor(aircraft) * CL_wing_ref**2
+        if cd_cache is not None:
+            cd_cache[cache_key] = total
+        return total
 
     S_c = trim["S_c"]
-    parasite = (
-        aircraft["wing_profile_CD0"]
-        + aircraft["canard_profile_CD0"] * (S_c / S_w)
-        + aircraft["fuselage_misc_drag_area_m2"] / S_w
-    )
-
     e_w = aircraft["oswald_efficiency"]
     e_c = setting(aircraft, "canard_oswald_efficiency", e_w)
     sigma = setting(aircraft, "canard_wing_induced_interference_factor", 0.0)
@@ -103,17 +157,25 @@ def aero_drag_coefficient(aircraft, q, weight_N, wing):
         + L_c**2 / (b_c**2 * e_c)
         + 2.0 * sigma * L_w * L_c / (b_w * b_c)
     ) / (q * math.pi)
-    return parasite + induced_drag_N / (q * S_w)
+    total = parasite + induced_drag_N / (q * S_w)
+    if cd_cache is not None:
+        cd_cache[cache_key] = total
+    return total
 
 
 def forward_efficiency(aircraft):
-    return setting(
+    cached = aircraft.get("_forward_efficiency")
+    if cached is not None:
+        return cached
+    value = setting(
         aircraft,
         "forward_flight_efficiency",
         setting(aircraft, "eta_prop", 0.75)
         * setting(aircraft, "eta_motor", 0.90)
         * setting(aircraft, "eta_ESC", 0.95),
     )
+    aircraft["_forward_efficiency"] = value
+    return value
 
 
 def permitted_lift_coefficient(aircraft):
@@ -153,14 +215,29 @@ def default_power_grid(aircraft):
     return [minimum_power_W + index * step_W for index in range(count)]
 
 
+_DV_DH_CACHE = {}
+
+
 def constant_eas_dv_dh(equivalent_airspeed_m_s, altitude_m, isa_density):
-    """Numerical dV_TAS/dH for constant EAS."""
+    """Numerical dV_TAS/dH for constant EAS.
+
+    Depends only on the EAS, the altitude and the (fixed) atmosphere model, but is
+    evaluated once per mission state across every power candidate, so it is
+    memoized. The atmosphere function identity is part of the key in case a
+    different ISA model is ever passed in.
+    """
+    key = (equivalent_airspeed_m_s, altitude_m, id(isa_density))
+    cached = _DV_DH_CACHE.get(key)
+    if cached is not None:
+        return cached
     step_m = 1.0
     lower_h = max(0.0, altitude_m - step_m)
     upper_h = altitude_m + step_m
     lower_v = true_airspeed_from_eas(equivalent_airspeed_m_s, isa_density(lower_h))
     upper_v = true_airspeed_from_eas(equivalent_airspeed_m_s, isa_density(upper_h))
-    return (upper_v - lower_v) / (upper_h - lower_h)
+    result = (upper_v - lower_v) / (upper_h - lower_h)
+    _DV_DH_CACHE[key] = result
+    return result
 
 
 def climb_state_from_power_available(
@@ -181,7 +258,7 @@ def climb_state_from_power_available(
     # excess power by the actual weight, not n*W.
     lift_N = load_factor * weight_N
     CL = lift_N / (q * wing["area_m2"])
-    CD = aero_drag_coefficient(aircraft, q, lift_N, wing)
+    CD = aero_drag_coefficient(aircraft, q, lift_N, wing, altitude_m, true_speed)
     drag_N = q * wing["area_m2"] * CD
     bank_angle_deg = math.degrees(math.acos(min(1.0, 1.0 / load_factor))) if load_factor > 1.0 else 0.0
 
@@ -471,7 +548,9 @@ def estimate_level_cruise(weight_N, wing, mission, aircraft, isa_density, distan
     density = isa_density(mission["altitude_m"])
     q = 0.5 * density * true_speed_m_s**2
     CL = weight_N / (q * wing["area_m2"])
-    CD = aero_drag_coefficient(aircraft, q, weight_N, wing)
+    CD = aero_drag_coefficient(
+        aircraft, q, weight_N, wing, mission["altitude_m"], true_speed_m_s
+    )
     drag_N = q * wing["area_m2"] * CD
     electrical_power = drag_N * true_speed_m_s / forward_efficiency(aircraft)
     time_s = distance_m / true_speed_m_s

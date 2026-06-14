@@ -1,0 +1,140 @@
+{
+  "drag": {
+    "drag_model": "component_build_up",
+    "CD0_component": 0.013444711284744847,
+    "CD0_fixed": 0.04,
+    "CD0_wing": 0.007341610534798823,
+    "CD0_canard": 0.0009378580731221482,
+    "CD0_fuselage": 0.00358938423938481,
+    "CD0_hardware": 0.00035361195700771584,
+    "CD0_misc": 0.0012222464804313498,
+    "oswald_wing": 0.78,
+    "oswald_canard": 0.7,
+    "trim_drag_CD": 0.031939770136580795,
+    "wing_CL_trim": 0.2808041788343407,
+    "canard_CL_trim": 0.7765584678557683
+  },
+  "mass": {
+    "MTOW_estimate_kg": 46.69346450239675,
+    "MTOW_used_for_final_pass_kg": 46.69256187559428,
+    "mass_closure_error_kg": 0.0009026268024712181,
+    "breakdown_kg": {
+      "wing": 7.56,
+      "canard": 0.73125,
+      "fuselage": 7.647911771722345,
+      "motors": 11.2,
+      "propellers": 0.4458337358898624,
+      "battery": 10.741693846458862,
+      "avionics": 0.6,
+      "sensors": 1.0,
+      "net_gun": 1.5,
+      "reel": 0.5,
+      "parachute": 0.6,
+      "wiring": 0.708,
+      "contingency": 3.4587751483256852
+    }
+  },
+  "wing": {
+    "area_m2": 2.25,
+    "span_m": 3.968626966596886,
+    "mean_chord_m": 0.5669467095138409,
+    "root_chord_m": 0.8099238707340584,
+    "tip_chord_m": 0.32396954829362334,
+    "aspect_ratio": 7.0,
+    "taper": 0.4,
+    "x_ac_m_from_mac_le": 0.1417366773784602,
+    "stall_EAS_m_s": 16.11146005419225,
+    "CL_max": 1.28,
+    "CL_trim_cruise": 0.38175677965559063,
+    "mac_le_x_m_from_nose": 1.7203105245618593
+  },
+  "canard": {
+    "area_ratio_Sc_Sw": 0.13,
+    "area_m2": 0.2925,
+    "span_m": 1.2093386622447824,
+    "chord_m": 0.24186773244895649,
+    "arm_m": 1.3703105245618592,
+    "le_m_from_nose": 0.35,
+    "aspect_ratio": 5.0,
+    "CL_max": 1.02
+  },
+  "stall_requirement": {
+    "source": "transition-sim (forward binding)",
+    "stall_EAS_max_m_s": 16.20703125,
+    "stall_EAS_actual_m_s": 16.11146005419225,
+    "stall_margin_m_s": 0.09557119580775009,
+    "safety_factor_R": null,
+    "vertical_arm_m": null,
+    "thrust_N": null,
+    "rho_kg_m3": null,
+    "canard_arm_to_cg_m": null,
+    "wing_arm_to_cg_m": null,
+    "canard_lift_moment_term_m3": null,
+    "wing_lift_moment_term_m3": null,
+    "lift_moment_term_m3": null
+  },
+  "fuselage": {
+    "length_m": 2.930234395295918,
+    "width_m": 0.3
+  },
+  "aerodynamics_scissor": {
+    "mach": 0.12704886333673543,
+    "wing_datcom_eta": 0.95,
+    "canard_datcom_eta": 0.95,
+    "CL_alpha_wing_per_rad": 4.592292033262004,
+    "CL_alpha_canard_per_rad": 4.138847606793578,
+    "CL_alpha_aircraft_less_canard_per_rad": 4.824964542371903,
+    "x_ac_over_mac": 0.1941921103365536,
+    "Cmac": -0.04790292295492132,
+    "CL_h_control": 1,
+    "CL_Ah_control": 0.48653126372880595,
+    "CL_Ah_control_source": "mission_max",
+    "CL_Ah_control_mission_max": 0.4230706641120052,
+    "CL_Ah_control_margin_factor": 1.15,
+    "CL_Ah_control_permitted": 1.0318141803664063,
+    "lh_over_mac": -2.5603469329115898,
+    "de_da": 0.5377904758357551,
+    "wing_immersed_fraction": 0.39552508178982737,
+    "wing_wake_dynamic_pressure_ratio": 0.85,
+    "canard_speed_ratio_sq": 1.0,
+    "wing_lift_slope_factor": 0.7598680590819078,
+    "static_margin": 0.05,
+    "scissor_forward_limit_x_over_mac": -0.39146846189424356,
+    "scissor_aft_limit_x_over_mac": -0.2315494978521319,
+    "scissor_cg_range_over_mac": 0.15991896404211164,
+    "CD_trim": 0.031939770136580795
+  },
+  "cg": {
+    "x_cg_over_mac": -0.3015835478211661,
+    "x_cg_m_from_mac_le": -0.17098180008072017,
+    "operational_fwd_over_mac": -0.3515835478211661,
+    "operational_aft_over_mac": -0.2515835478211661,
+    "require_static_stability": true,
+    "statically_stable": true,
+    "achieved_static_margin_over_mac": 0.12003404996903416
+  },
+  "mission": {
+    "cruise_true_speed_m_s": 40.20166341063754,
+    "CL_cruise": 0.38175677965559063,
+    "optimized_climb_EAS_m_s": 29.567214442785144,
+    "optimized_climb_angle_deg": 24.48122175499698,
+    "total_energy_Wh": 2688.9145121148144,
+    "installed_battery_energy_Wh": 3329.925092402247,
+    "battery_mass_kg": 10.741693846458862,
+    "peak_electrical_power_W": 14353.407930474772,
+    "total_mission_time_s": 754.9317696868096,
+    "climb_horizontal_distance_m": 6120.518235834951,
+    "level_cruise_distance_m": 0.0
+  },
+  "propeller": {
+    "diameter_m": 1.0557387649057204,
+    "propeller_diameter_m": 1.0557387649057204,
+    "n_rotors": 4
+  },
+  "airfoil_xfoil": {
+    "enabled": false,
+    "changed": false,
+    "condition": null
+  },
+  "selected_wing_area_m2": 2.25
+}

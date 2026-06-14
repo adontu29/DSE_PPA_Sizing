@@ -62,6 +62,139 @@ def datcom_lift_slope(aspect_ratio, mach, sweep_half_chord_rad, eta=0.95):
     )
 
 
+# ---------------------------------------------------------------------------
+# Finite-wing maximum lift (DATCOM / Raymer high-aspect-ratio method)
+# AircraftDesign2 (AD2) slides 16-24.
+# ---------------------------------------------------------------------------
+#
+# The 2D section c_lmax overestimates what a finite wing reaches: the wing must
+# fly at a higher angle than the airfoil (finite span), and tip-region effects
+# trigger stall before every section is at its own maximum. AD2 slide 22 gives
+# the Raymer/DATCOM high-aspect-ratio estimate
+#
+#     CL_max = (CL_max / cl_max) * cl_max + dCL_max(Mach)
+#
+# where the ratio (CL_max / cl_max) is read from Raymer Fig. 12.8 as a function
+# of the leading-edge sharpness parameter dY [% chord] and the leading-edge
+# sweep, and dCL_max is a Mach-number correction (Raymer Fig. 12.9) that AD2
+# slide 22 states is "not relevant" at the low speeds where CL_max actually
+# matters (take-off / landing / stall, M < 0.2). We therefore evaluate the ratio
+# from the section c_lmax taken at the right (low-speed) Reynolds number and set
+# the Mach term to zero below M = 0.2.
+#
+# This method is only valid for HIGH aspect-ratio wings (slide 20). Low-AR wings
+# develop leading-edge vortices that *raise* CL_max and need the separate slide
+# 26 method; that is out of scope here (the wing AR = 7, canard AR = 5 both sit
+# well above the high-AR boundary for an unswept planform).
+
+# Raymer Fig. 12.8: (CL_max / cl_max) for high-aspect-ratio wings, digitized on a
+# grid of LE sharpness dY [% chord] x leading-edge sweep [deg]. Bilinearly
+# interpolated; inputs are clamped to the table range.
+_CLMAX_RATIO_DY_PCT = (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
+_CLMAX_RATIO_SWEEP_DEG = (0.0, 10.0, 20.0, 30.0, 40.0, 50.0)
+_CLMAX_RATIO_TABLE = {
+    # sweep_deg: ratios at dY = 1,2,3,4,5,6 % chord
+    0.0:  (0.70, 0.84, 0.90, 0.93, 0.95, 0.955),
+    10.0: (0.68, 0.81, 0.875, 0.905, 0.925, 0.93),
+    20.0: (0.62, 0.75, 0.82, 0.86, 0.885, 0.895),
+    30.0: (0.53, 0.66, 0.74, 0.79, 0.825, 0.84),
+    40.0: (0.43, 0.555, 0.635, 0.69, 0.73, 0.755),
+    50.0: (0.33, 0.44, 0.525, 0.585, 0.625, 0.65),
+}
+
+
+def leading_edge_sweep_deg(quarter_chord_sweep_deg, aspect_ratio, taper):
+    """Leading-edge sweep [deg] from the quarter-chord sweep and planform.
+
+    Standard sweep-conversion identity
+        tan(L_LE) = tan(L_c/4) + (1/A) * (1 - taper) / (1 + taper).
+    For a straight (unswept-c/4) tapered wing this returns the small positive LE
+    sweep the taper introduces, which the DATCOM CL_max method needs.
+    """
+    tan_le = math.tan(math.radians(quarter_chord_sweep_deg)) + (
+        (1.0 - taper) / (aspect_ratio * (1.0 + taper))
+    )
+    return math.degrees(math.atan(tan_le))
+
+
+def le_sharpness_parameter(thickness_ratio, dy_per_thickness=26.0):
+    """LE sharpness parameter dY [% chord] (AD2 slide 19).
+
+    dY is the ordinate difference between 0.15% and 6% chord on the upper
+    surface; when the exact airfoil ordinates are not used it is estimated as
+    dY = k * (t/c), with k ~= 26 for round-nosed (NACA 4-/5-digit-like) sections
+    and ~21.3 for the sharper 6-series. The sharper the nose (smaller dY), the
+    weaker the LE vortices and the lower the wing CL_max.
+    """
+    return dy_per_thickness * thickness_ratio
+
+
+def _interpolate_1d(xs, ys, x):
+    """Linear interpolation with clamping at the table ends."""
+    if x <= xs[0]:
+        return ys[0]
+    if x >= xs[-1]:
+        return ys[-1]
+    for i in range(1, len(xs)):
+        if x <= xs[i]:
+            span = xs[i] - xs[i - 1]
+            frac = (x - xs[i - 1]) / span if span else 0.0
+            return ys[i - 1] + frac * (ys[i] - ys[i - 1])
+    return ys[-1]
+
+
+def datcom_clmax_ratio(delta_y_pct, sweep_le_deg):
+    """(CL_max / cl_max) for a high-AR wing (Raymer Fig. 12.8, AD2 slide 22)."""
+    # Ratio versus dY at each tabulated sweep, then interpolate across sweep.
+    ratios_at_sweeps = [
+        _interpolate_1d(_CLMAX_RATIO_DY_PCT, _CLMAX_RATIO_TABLE[sweep], delta_y_pct)
+        for sweep in _CLMAX_RATIO_SWEEP_DEG
+    ]
+    return _interpolate_1d(_CLMAX_RATIO_SWEEP_DEG, ratios_at_sweeps, sweep_le_deg)
+
+
+def datcom_clmax_mach_correction(mach):
+    """dCL_max Mach correction (Raymer Fig. 12.9, AD2 slides 22-23).
+
+    Zero up to M = 0.2 (where CL_max is evaluated for take-off/landing), then a
+    mild reduction at higher subsonic Mach. Kept as a small linear fit so the
+    method stays valid if a non-low-speed condition is ever passed in.
+    """
+    if mach <= 0.2:
+        return 0.0
+    return -0.4 * (mach - 0.2)
+
+
+def finite_wing_clmax(
+    section_clmax,
+    thickness_ratio,
+    sweep_le_deg=0.0,
+    mach=0.0,
+    delta_y_pct=None,
+    dy_per_thickness=26.0,
+):
+    """High-AR finite-wing CL_max from the 2D section c_lmax (AD2 slides 16-24).
+
+    section_clmax must be the airfoil c_lmax at the *low-speed* Reynolds number of
+    the stall condition (slide 22). Returns a dict with the CL_max and the
+    intermediate DATCOM terms for reporting.
+    """
+    if delta_y_pct is None:
+        delta_y_pct = le_sharpness_parameter(thickness_ratio, dy_per_thickness)
+    ratio = datcom_clmax_ratio(delta_y_pct, sweep_le_deg)
+    mach_term = datcom_clmax_mach_correction(mach)
+    cl_max = ratio * section_clmax + mach_term
+    return {
+        "CL_max": cl_max,
+        "section_clmax": section_clmax,
+        "clmax_ratio": ratio,
+        "delta_y_pct": delta_y_pct,
+        "mach_correction": mach_term,
+        "sweep_le_deg": sweep_le_deg,
+        "mach": mach,
+    }
+
+
 def aircraft_less_canard_lift_slope(
     cl_alpha_wing, fuselage_width_m, span_m, wing_area_m2, root_chord_m
 ):

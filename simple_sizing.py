@@ -5,6 +5,7 @@ import csv
 import json
 import math
 import time
+from functools import lru_cache
 from pathlib import Path
 
 import matplotlib
@@ -18,10 +19,14 @@ from mission_energy_course import (
     optimize_course_climb,
     permitted_lift_coefficient,
     aero_drag_coefficient,
+    trim_lift_split,
 )
+from drag_buildup import build_drag_geometry, parasite_drag_buildup
 from scissor_plot import (
     mach_number,
     datcom_lift_slope,
+    finite_wing_clmax,
+    leading_edge_sweep_deg,
     aircraft_less_canard_lift_slope,
     aerodynamic_centre_over_mac,
     zero_lift_pitching_moment,
@@ -97,7 +102,7 @@ AIRCRAFT = {
     # (1 - de/da)=1 no-interference assumption (canard must sit clear of the wing
     # upwash). This sets a geometry-aware floor on the wing station that adapts to
     # the canard root chord (which grows with Sc/Sw and wing area).
-    "canard_wing_min_gap_m": 0.40,
+    "canard_wing_min_gap_m": 0,
     "canard_area_ratio_min": 0.05,
     "canard_area_ratio_max": 0.80,
     "canard_area_ratio_step": 0.005,
@@ -110,26 +115,26 @@ AIRCRAFT = {
     # 0.8, fixed+elevator 0.35*A_h^(1/3). This tailsitter needs a full-moving
     # canard (fixed/adjustable cannot close the scissor), so |C_Lh|=1, capped by
     # the canard's real CL_max so XFOIL cannot promise lift the airfoil lacks.
-    "canard_control_CLh_full_moving": 1.0,
-    # A lifting canard is destabilising (it sits ahead of the CG), so this
-    # control-canard layout cannot be made naturally statically stable at the
-    # canard size needed for controllability: the neutral point sits at/ahead of
-    # the CG and moves further forward as the canard/arm grow. The achievable
-    # static margin peaks near zero, well short of the static_margin+margin+
-    # half_width band the aft scissor limit needs. So stability is recovered by
-    # the autopilot (relaxed static stability) and only the controllability
-    # (forward-CG) limit is enforced here. Set True only if the configuration is
-    # reworked to be naturally stable (smaller canard, CG moved well forward).
-    "require_static_stability": False,
+    "canard_control_CLh_full_moving": 1,
+    # Enforce the aft-CG/static-stability side of the scissor plot. A canard
+    # becomes destabilising quickly if the controllability case is sized at the
+    # absolute CL limit, so the control CL below is taken from the mission with
+    # margin rather than from the stall boundary by default.
+    "require_static_stability": True,
+    # Scissor controllability lift condition for C_L_A-h. "mission_max" uses the
+    # largest wing-borne mission CL (plus the margin factor) and caps it by the
+    # permitted CL limit; "permitted_limit" uses the old conservative stall-limit
+    # value directly.
+    "scissor_control_CL_Ah_source": "mission_max",
+    "scissor_control_CL_Ah_margin_factor": 1.15,
     "CD0": 0.040,
     "oswald_efficiency": 0.78,
-    # --- Two-surface (wing + canard) drag model ---
-    # When True, lift and drag are split between the wing and the canard from
-    # longitudinal trim instead of being charged entirely to the wing. The single
-    # lumped CD0 above is replaced by a parasite decomposition (each profile CD0 on
-    # its own area + a fixed fuselage/misc drag area), and induced drag is summed
-    # over both surfaces at their trimmed lifts. Set False to fall back to the old
-    # wing-only model. CD0/oswald_efficiency above are the wing-only fallback.
+    # --- Two-surface (wing + canard) induced-drag split ---
+    # When True, induced drag is split between the wing and the canard from
+    # longitudinal trim (Munk tandem theory) instead of being charged entirely to
+    # the wing. Parasite drag itself comes from the component build-up below (or
+    # the fixed CD0 fallback), not from this flag. Set False to fall back to the
+    # old wing-only induced drag. CD0/oswald_efficiency above are that fallback.
     "use_split_drag_model": True,
     "canard_oswald_efficiency": 0.70,   # lower than the wing (low-AR canard)
     # Mutual induced-drag interference between the two lifting surfaces (Munk):
@@ -139,14 +144,40 @@ AIRCRAFT = {
     # This is the term that makes the canard actually cost induced drag, so it is
     # the dominant modelling assumption here -- calibrate against CFD/wind tunnel.
     "canard_wing_induced_interference_factor": 0.80,
-    # Profile CD0 of each surface, referenced to that surface's own area.
+    # Legacy fixed profile/parasite inputs. Superseded by the component build-up
+    # below (drag_model == "component_build_up") and now inactive; retained for
+    # reference and for reverting to the old hand-calibrated parasite if needed.
     "wing_profile_CD0": 0.0110,
     "canard_profile_CD0": 0.0120,
-    # Fuselage + miscellaneous parasite as an equivalent flat-plate drag AREA (m^2)
-    # so it does not scale with wing area. Calibrated with the two profile CD0s
-    # above to reproduce ~0.040 wing-referenced CD0 at the baseline (S_w~3 m^2,
-    # S_c/S_w~0.34).
     "fuselage_misc_drag_area_m2": 0.075,
+    # --- Component drag build-up (AircraftDesign2, AD2 slides 42-60) ---
+    # Replaces the fixed/profile parasite CD0 with a per-component build-up:
+    #   CD0 = sum(Cf * FF * IF * Swet / Sref) + CD_misc (excrescence/leakage).
+    # Reynolds number is evaluated per component at each mission state. Set
+    # "fixed" (or run before any canard/fuselage geometry exists) to fall back to
+    # the lumped CD0 above. e_w/e_c for the induced split stay oswald_efficiency /
+    # canard_oswald_efficiency.
+    "drag_model": "component_build_up",        # "component_build_up" | "fixed"
+    "excrescence_fraction": 0.10,              # AD2 slide 60 (prop aircraft 5-10%)
+    "wing_thickness_ratio": 0.092,            # SD7037 t/c
+    "canard_thickness_ratio": 0.12,           # NACA0012 t/c
+    "wing_max_thickness_x_c": 0.30,           # (x/c) of max thickness
+    "canard_max_thickness_x_c": 0.30,
+    # Assumed laminar-flow fractions (AD2 slide 50, smooth molded composite).
+    "wing_laminar_fraction": 0.35,
+    "canard_laminar_fraction": 0.35,
+    "fuselage_laminar_fraction": 0.10,
+    "hardware_laminar_fraction": 0.0,
+    # Component interference factors (AD2 slide 53).
+    "wing_interference_factor": 1.0,
+    "canard_interference_factor": 1.0,
+    "fuselage_interference_factor": 1.0,
+    "hardware_interference_factor": 1.2,
+    # Surface roughness for the cut-off Reynolds number (AD2 slide 51).
+    "surface_roughness_k_m": 0.052e-5,        # smooth molded composite
+    # Exposed rotor/strut/nacelle hardware (placeholder lumped wetted area).
+    "exposed_hardware_wetted_area_m2": 0.10,
+    "exposed_hardware_form_factor": 1.30,
     # --- Scissor-plot aerodynamics (TU Delft AE3211-I, Lectures 7 & 8) ---
     "datcom_eta": 0.95,                   # DATCOM airfoil efficiency (0.90-1.0)
     "wing_sweep_quarter_chord_deg": 0.0,  # straight wing for this UAV
@@ -174,7 +205,31 @@ AIRCRAFT = {
     "xfoil_alpha_end_deg": 18.0,
     "xfoil_alpha_step_deg": 1.0,
     "xfoil_timeout_s": 30.0,
-    "xfoil_clmax_to_aircraft_factor": 0.90,
+    # --- Finite-wing CL_max (AircraftDesign2, AD2 slides 16-24) ---
+    # "finite_wing_datcom": Raymer/DATCOM high-AR method -- the aircraft CL_max is
+    #   (CL_max/cl_max)(dY, sweep) * cl_max, with the section cl_max read at the
+    #   low-speed stall Reynolds number (a second XFOIL condition, see below) and
+    #   the Mach term = 0 below M=0.2. "calibration_factor": legacy behaviour,
+    #   CL_max = finite_wing_clmax_calibration * (climb-condition cl_max).
+    "clmax_model": "finite_wing_datcom",        # "finite_wing_datcom" | "calibration_factor"
+    # Multiplicative tuning/calibration on the resulting CL_max. 1.0 leaves the
+    # DATCOM estimate untouched; in "calibration_factor" mode this is the old flat
+    # XFOIL->aircraft factor (set it to 0.90 to reproduce the legacy number).
+    "finite_wing_clmax_calibration": 1.0,
+    # LE sharpness parameter dY [% chord] per surface (AD2 slide 19). None -> from
+    # t/c via dY = le_sharpness_dy_per_tc * (t/c). The SD7037/NACA0012 here are
+    # round-nosed, so the default 26 applies; lower it (~21.3) for 6-series.
+    "wing_le_sharpness_dY_pct": None,
+    "canard_le_sharpness_dY_pct": None,
+    "le_sharpness_dy_per_tc": 26.0,
+    # Second XFOIL condition for the section cl_max feeding the finite-wing CL_max.
+    # AD2 slide 22 requires cl_max at the low-speed (stall) Reynolds number, which
+    # is lower than the climb condition the linear-range coefficients use. The
+    # stall speed is taken at sea level from the current CL_max and MTOW (it
+    # converges in the XFOIL outer loop). If this run fails, fall back to the
+    # climb-condition cl_max with a warning.
+    "clmax_stall_xfoil_altitude_m": 0.0,
+    "clmax_stall_speed_margin": 1.0,            # V used = margin * V_stall
     # Full update step: XFOIL now runs in the OUTER loop (no oscillation risk),
     # so relaxing is unnecessary and only forces extra full sweeps before the
     # coefficients settle. 1.0 = converge in ~2 outer passes.
@@ -209,10 +264,12 @@ AIRCRAFT = {
     # --- Maximum stall speed (the wing-area lower bound) ---
     # Manual override for sensitivity studies. The default derives the cap from
     # the transition requirement (forward and back, whichever is more demanding).
-    "max_stall_EAS_m_s": 16,
+    "max_stall_EAS_m_s": None,
     # "transition" = binding (most demanding) of forward and back transition;
     # "back_transition" / "forward_transition" = that leg only; "pitch_moment" = legacy.
-    "stall_limit_method": "transition",
+    # "transition_sim" / "transition_simulation" = reduced-order point-mass transition
+    # simulation (Stone & Clarke inspired); see the transition_sim_* block below.
+    "stall_limit_method": "transition_sim",
     # Legacy pitch-moment method knobs (only used when stall_limit_method=pitch_moment).
     "stall_pitch_moment_R": 1,
     "stall_pitch_moment_vertical_arm_m": 0.70,
@@ -250,6 +307,63 @@ AIRCRAFT = {
     "forward_transition_time_budget_s": None,
     "forward_transition_energy_budget_Wh": 8.0,
 
+    # --- Reduced-order transition simulation (stall_limit_method="transition_sim") ---
+    # A 2-DOF point-mass vertical-plane transition model inspired by Stone & Clarke,
+    # "Optimization of Transition Manoeuvres for a Tail-Sitter UAV" (DSTO/RMIT). The
+    # vehicle is a point mass with a *prescribed* pitch-attitude schedule (constant
+    # pitch rate toward a target attitude); thrust acts along the body axis and is
+    # held constant; wing+canard aerodynamics use a Viterna full-range CL/CD so the
+    # back transition can pitch up through stall. For each leg the model bisects the
+    # stall speed (EAS) to find the largest Vs whose trajectory still satisfies the
+    # time / distance / height / angle-of-attack limits, i.e. it *generates* the
+    # maximum allowable stall-speed cap rather than only checking one candidate.
+    # The cap is mass- and size-independent (the translational accelerations depend
+    # only on T/W, CL_max, drag, altitude, the canard ratio and the speed factors,
+    # not on absolute weight or wing area), which is what makes it a clean generator.
+    # Active only when max_stall_EAS_m_s is None and stall_limit_method is one of
+    # {"transition_sim", "transition_simulation"}; the algebraic modes are untouched.
+    "transition_sim_time_step_s": 0.05,
+    "transition_sim_max_time_s": 40.0,
+    "transition_sim_pitch_rate_deg_s": 12.0,
+    "transition_sim_bisection_iterations": 24,
+    "transition_sim_stall_EAS_lo_m_s": 3.0,
+    "transition_sim_stall_EAS_hi_m_s": 45.0,
+    "transition_sim_velocity_epsilon_m_s": 0.5,
+    # Altitude-hold gain (1/s) for the thrust controller. During transition the
+    # commanded thrust is throttled (within the available T/W) to drive the vertical
+    # speed back to zero -- this is how a tail-sitter brakes in the back transition
+    # (throttle to ~hover, let wing drag bleed the speed) and holds height while
+    # accelerating in the forward transition, instead of climbing away on full thrust.
+    "transition_sim_altitude_hold_gain": 1.5,
+    # Separate transition altitudes (set the air density per leg). Forward happens
+    # near the take-off site; back near the mission/recovery altitude. None on the
+    # back leg resolves to MISSION["altitude_m"].
+    "forward_transition_altitude_m": 0.0,
+    "back_transition_altitude_m": None,
+    # Forward leg (hover -> wing-borne climb-out): target speed V_co = climbout
+    # factor * Vs, plus the dynamic-corridor limits.
+    "forward_transition_start_height_m": 20.0,        # height AGL at hover entry
+    "forward_transition_min_height_m": 0.0,           # ground-clearance floor (AGL)
+    "forward_transition_final_pitch_min_deg": 0.0,    # attitude the pitch-down stops at
+    "forward_transition_final_pitch_max_deg": 30.0,   # max acceptable attitude at completion
+    # Flight-path angle accepted at climb-out handover. A small settle below level is
+    # allowed: the altitude-hold controller lags slightly as the wing takes over, and
+    # a forward transition only needs to hand over to a (subsequent) climb, not climb
+    # during the manoeuvre itself.
+    "forward_transition_final_climb_angle_min_deg": 0,
+    "forward_transition_sim_time_limit_s": 25.0,
+    "forward_transition_sim_distance_limit_m": 250.0,
+    "forward_transition_max_alpha_deg": None,         # None -> wing stall alpha
+    # Back leg (wing-borne -> near hover): entry speed V_app = approach factor * Vs,
+    # pitch up to vertical, capture when |V| <= the capture speed.
+    "back_transition_capture_speed_m_s": 2.0,
+    "back_transition_pitch_max_deg": 110.0,            # attitude the pitch-up stops at
+    "back_transition_height_band_up_m": 100.0,         # max altitude gain (balloon-up)
+    "back_transition_height_band_down_m": 100.0,       # max altitude loss (sink)
+    "back_transition_sim_time_limit_s": 20.0,
+    "back_transition_sim_distance_limit_m": 3000.0,
+    "back_transition_max_alpha_deg": 120.0,            # pitch-up through stall is allowed
+
     "battery_cg_offset_over_mac": -0.25,   # battery CG as fraction of MAC, measured from wing MAC LE
                                        # 0.0 = at MAC LE, 0.25 = at quarter-chord, negative = forward
 }
@@ -260,11 +374,13 @@ MASS = {
     "canard_areal_density_kg_m2": 2.50,  # 2 kg @ 2 m span, AR 5 (0.80 m^2)
     "fuselage_linear_density_kg_m": 2.61,  # 6 kg @ 2.30 m
     # Fuselage length is DERIVED from the layout, not fixed: the canard sits
-    # nose_to_canard behind the nose, the wing sits wing_to_tail ahead of the
-    # tail, so L_fus = nose_to_canard + arm + wing_to_tail and grows with the
-    # canard->wing arm (which is the solved wing position).
+    # nose_to_canard behind the nose, the wing station is solved, and the tail
+    # sits a fixed margin behind the wing root trailing edge:
+    #   L_fus = wing_LE + wing_root_chord + wing_te_to_tail.
+    # This keeps a real aft body behind the wing instead of accidentally making
+    # the tail almost coincident with the wing TE when the root chord is large.
     "nose_to_canard_m": 0.35,
-    "wing_to_tail_m": 1.0,            # wing essentially at the fuselage tail
+    "wing_te_to_tail_m": 0.4,         # aft body length behind wing root TE
     "fuselage_width_m": 0.30,
     "nose_bay_x_m": 0.10,             # station of nose electronics/payload
     "motor_mass_each_kg": 2.8,        # per motor; on struts from the wing
@@ -320,6 +436,13 @@ def format_duration(seconds):
     return f"{hours:.0f}h {rem_minutes:.0f}m"
 
 
+def _fmt(value, spec=".1f"):
+    """Format a number, or pass through "" / None for missing optional fields."""
+    if value is None or value == "":
+        return "n/a"
+    return format(value, spec)
+
+
 def progress(message, enabled=True, indent=0):
     if enabled:
         print(f"{'  ' * indent}{message}", flush=True)
@@ -330,8 +453,15 @@ def progress(message, enabled=True, indent=0):
 # ---------------------------------------------------------------------------
 
 
+@lru_cache(maxsize=4096)
 def isa_density(altitude_m):
-    """Troposphere ISA density."""
+    """Troposphere ISA density.
+
+    Memoized: the climb integration evaluates it (and dV/dH, which calls it twice
+    more) on a fixed altitude grid that repeats across every power/EAS candidate
+    and mass iteration, so the same handful of altitudes recur hundreds of
+    thousands of times. g is constant for a run, so caching on altitude is exact.
+    """
     rho0 = 1.225
     temperature0 = 288.15
     lapse = -0.0065
@@ -374,6 +504,29 @@ def representative_xfoil_condition(mission):
         "mach": xfoil_mach_number(altitude, speed),
         "unit_re_per_m": reynolds_number(altitude, speed, 1.0),
         "CL": mission.get("CL_cruise"),
+    }
+
+
+def representative_stall_xfoil_condition(wing):
+    """Low-speed stall condition for the finite-wing CL_max section c_lmax.
+
+    AD2 slide 22 requires the section c_lmax at the stall Reynolds number, which
+    is lower (and gives a lower c_lmax) than the climb condition used for the
+    linear-range coefficients. The stall speed comes from the current CL_max and
+    MTOW at sea level; it converges in the XFOIL outer feedback loop.
+    """
+    altitude = AIRCRAFT["clmax_stall_xfoil_altitude_m"]
+    # wing["stall_EAS_m_s"] is the sea-level stall EAS for the current CL_max.
+    speed = AIRCRAFT["clmax_stall_speed_margin"] * wing["stall_EAS_m_s"]
+    if altitude > 0.0:
+        speed *= math.sqrt(isa_density(0.0) / isa_density(altitude))
+    return {
+        "source": "stall_low_speed",
+        "altitude_m": altitude,
+        "true_speed_m_s": speed,
+        "mach": xfoil_mach_number(altitude, speed),
+        "unit_re_per_m": reynolds_number(altitude, speed, 1.0),
+        "CL": AIRCRAFT["wing_CL_max"],
     }
 
 
@@ -436,14 +589,111 @@ def update_airfoil_aerodynamics_from_xfoil(
     update["canard"] = analysis["canard"]
     update["warnings"] = analysis["warnings"]
 
+    # --- Finite-wing CL_max (AD2 slides 16-24) ---
+    # The aircraft CL_max comes from the section c_lmax at the low-speed stall
+    # Reynolds number (a second XFOIL condition), corrected to a finite wing by
+    # the DATCOM high-AR method. The climb condition above still supplies the
+    # linear-range coefficients (slope, CL0, Cm0).
+    clmax_model = AIRCRAFT.get("clmax_model", "finite_wing_datcom")
+    calibration = AIRCRAFT["finite_wing_clmax_calibration"]
+    stall_analysis = {"wing": None, "canard": None}
+    stall_condition = None
+    have_section = analysis["wing"] is not None or analysis["canard"] is not None
+    if clmax_model == "finite_wing_datcom" and have_section:
+        stall_condition = representative_stall_xfoil_condition(wing)
+        stall_wing_re = stall_condition["unit_re_per_m"] * wing["chord_m"]
+        stall_canard_re = stall_condition["unit_re_per_m"] * canard["chord_m"]
+        stall_condition = dict(stall_condition)
+        stall_condition["wing_reynolds"] = stall_wing_re
+        stall_condition["canard_reynolds"] = stall_canard_re
+        progress(
+            (
+                "XFOIL CL_max (stall): "
+                f"Re_w={stall_wing_re / 1e6:.3f}e6, "
+                f"Re_c={stall_canard_re / 1e6:.3f}e6, "
+                f"V={stall_condition['true_speed_m_s']:.1f} m/s, "
+                f"M={stall_condition['mach']:.3f}"
+            ),
+            show_progress,
+            progress_indent,
+        )
+        stall_pair = analyze_airfoil_pair(
+            xfoil_path=AIRCRAFT["xfoil_path"],
+            sd7037_file=AIRCRAFT["xfoil_sd7037_file"],
+            wing_reynolds=stall_wing_re,
+            canard_reynolds=stall_canard_re,
+            mach=stall_condition["mach"],
+            x_transition=AIRCRAFT["xfoil_transition_x_c"],
+            reynolds_rounding=AIRCRAFT["xfoil_reynolds_rounding"],
+            reynolds_update_threshold=AIRCRAFT["xfoil_reynolds_update_threshold"],
+            mach_rounding=AIRCRAFT["xfoil_mach_rounding"],
+            alpha_start_deg=AIRCRAFT["xfoil_alpha_start_deg"],
+            alpha_end_deg=AIRCRAFT["xfoil_alpha_end_deg"],
+            alpha_step_deg=AIRCRAFT["xfoil_alpha_step_deg"],
+            mach_command_min=AIRCRAFT["xfoil_mach_command_min"],
+            timeout_s=AIRCRAFT["xfoil_timeout_s"],
+        )
+        stall_analysis = {"wing": stall_pair["wing"], "canard": stall_pair["canard"]}
+        update["warnings"] = update["warnings"] + stall_pair["warnings"]
+    update["clmax_stall_condition"] = stall_condition
+
+    clmax_diag = {}
+
+    def aircraft_clmax(name, surface_geometry):
+        """Aircraft CL_max for one surface, per the active clmax_model."""
+        aspect_ratio, taper, thickness, sweep_c4_deg, dy_override = surface_geometry
+        climb_section = analysis[name]
+        if clmax_model != "finite_wing_datcom":
+            if climb_section is None:
+                return None
+            cl_max = calibration * climb_section["cl_max"]
+            clmax_diag[name] = {
+                "model": clmax_model,
+                "section_clmax": climb_section["cl_max"],
+                "section_source": "climb_reynolds",
+                "CL_max": cl_max,
+            }
+            return cl_max
+        # DATCOM finite-wing: prefer the stall-Re section, fall back to climb.
+        stall_section = stall_analysis[name]
+        if stall_section is not None:
+            section_clmax = stall_section["cl_max"]
+            section_mach = stall_section["mach"]
+            section_source = "stall_reynolds"
+        elif climb_section is not None:
+            section_clmax = climb_section["cl_max"]
+            section_mach = climb_section["mach"]
+            section_source = "climb_reynolds_fallback"
+            update["warnings"].append(
+                f"{name} stall-Re XFOIL failed; CL_max uses climb-Re c_lmax"
+            )
+        else:
+            return None
+        sweep_le_deg = leading_edge_sweep_deg(sweep_c4_deg, aspect_ratio, taper)
+        result = finite_wing_clmax(
+            section_clmax=section_clmax,
+            thickness_ratio=thickness,
+            sweep_le_deg=sweep_le_deg,
+            mach=section_mach,
+            delta_y_pct=dy_override,
+            dy_per_thickness=AIRCRAFT["le_sharpness_dy_per_tc"],
+        )
+        cl_max = calibration * result["CL_max"]
+        clmax_diag[name] = {
+            "model": clmax_model,
+            "section_source": section_source,
+            "calibration": calibration,
+            "CL_max": cl_max,
+            **result,
+        }
+        return cl_max
+
     values = {}
-    clmax_factor = AIRCRAFT["xfoil_clmax_to_aircraft_factor"]
     if analysis["wing"] is not None:
         wing_eta = datcom_efficiency_from_section_slope(
             analysis["wing"]["cl_alpha_per_rad"]
         )
         values.update({
-            "wing_CL_max": clmax_factor * analysis["wing"]["cl_max"],
             "wing_CL0": analysis["wing"]["cl_at_alpha0"],
             "wing_airfoil_cm0": analysis["wing"]["cm_at_zero_lift"],
             "wing_datcom_eta": wing_eta,
@@ -460,7 +710,6 @@ def update_airfoil_aerodynamics_from_xfoil(
             analysis["canard"]["cl_alpha_per_rad"]
         )
         values.update({
-            "canard_CL_max": clmax_factor * analysis["canard"]["cl_max"],
             "canard_datcom_eta": canard_eta,
             "canard_CL_alpha_per_rad": datcom_lift_slope(
                 AIRCRAFT["canard_aspect_ratio"],
@@ -469,6 +718,32 @@ def update_airfoil_aerodynamics_from_xfoil(
                 canard_eta,
             ),
         })
+
+    wing_clmax = aircraft_clmax(
+        "wing",
+        (
+            AIRCRAFT["wing_aspect_ratio"],
+            AIRCRAFT["wing_taper"],
+            AIRCRAFT["wing_thickness_ratio"],
+            AIRCRAFT["wing_sweep_quarter_chord_deg"],
+            AIRCRAFT["wing_le_sharpness_dY_pct"],
+        ),
+    )
+    if wing_clmax is not None:
+        values["wing_CL_max"] = wing_clmax
+    canard_clmax = aircraft_clmax(
+        "canard",
+        (
+            AIRCRAFT["canard_aspect_ratio"],
+            AIRCRAFT["canard_taper"],
+            AIRCRAFT["canard_thickness_ratio"],
+            AIRCRAFT.get("canard_sweep_quarter_chord_deg", 0.0),
+            AIRCRAFT["canard_le_sharpness_dY_pct"],
+        ),
+    )
+    if canard_clmax is not None:
+        values["canard_CL_max"] = canard_clmax
+    update["clmax"] = clmax_diag
 
     tolerance = AIRCRAFT["xfoil_update_tolerance_fraction"]
     relaxation = AIRCRAFT["xfoil_update_relaxation"]
@@ -495,6 +770,18 @@ def update_airfoil_aerodynamics_from_xfoil(
                 f"eta_w={AIRCRAFT['wing_datcom_eta']:.3f}, "
                 f"eta_c={AIRCRAFT['canard_datcom_eta']:.3f}, "
                 f"changed={update['changed']}"
+            ),
+            show_progress,
+            progress_indent,
+        )
+    if clmax_model == "finite_wing_datcom" and clmax_diag.get("wing"):
+        wd = clmax_diag["wing"]
+        progress(
+            (
+                "Finite-wing CLmax: "
+                f"cl_max_w={wd['section_clmax']:.3f} ({wd['section_source']}), "
+                f"dY={wd['delta_y_pct']:.2f}%, "
+                f"CLmax/cl_max={wd['clmax_ratio']:.3f}"
             ),
             show_progress,
             progress_indent,
@@ -663,6 +950,493 @@ def transition_stall_limit(propeller):
     return binding
 
 
+# ---------------------------------------------------------------------------
+# Reduced-order transition simulation (Stone & Clarke inspired)
+# ---------------------------------------------------------------------------
+#
+# A 2-DOF point-mass model in the vertical plane. State = (u, w, x, h): horizontal
+# and vertical velocity, downrange and height. The body (= thrust = rotor) axis is
+# held at a prescribed pitch attitude theta(t) above the horizon; thrust T = (T/W)W
+# acts along it and is constant. The angle of attack is alpha = theta - gamma with
+# the flight-path angle gamma = atan2(w, u); lift and drag follow from a Viterna
+# full-range CL/CD so the back transition can pitch up through the stall. The model
+# is integrated forward (explicit Euler, small step) and the stall speed is bisected
+# to find the largest Vs for which the leg still meets its limits.
+#
+# Why the cap is size-independent: dividing the equations of motion by the mass, the
+# thrust term is (T/W)*g and every aerodynamic term carries S_w/m = 2*g/(rho0*Vs^2*
+# CL_max) (from the EAS stall definition). Neither depends on the absolute weight or
+# wing area, so for fixed T/W, CL_max, drag, altitude, canard ratio and the speed
+# factors the trajectory -- and hence the cap -- is a pure function of Vs. That makes
+# the simulation a genuine *generator* of the maximum allowable stall speed, directly
+# comparable to the candidate's actual wing["stall_EAS_m_s"], exactly like the
+# algebraic caps above.
+
+
+def _viterna_full_range(alpha, cl_alpha, cl_max, alpha0L, aspect_ratio, oswald, cd0_profile):
+    """Section-to-surface CL, CD over the full alpha range (attached + post-stall).
+
+    Below the stall angle the surface is linear (CL = CL_alpha*(alpha-alpha0L)) with
+    induced drag CL^2/(pi*AR*e) on top of cd0_profile. Beyond the stall angle the
+    Viterna-Corrigan flat-plate extrapolation is used, which is the standard way to
+    carry a wing model smoothly into deep stall (CD_max ~ 1.1 for a finite plate).
+    Only the positive-alpha branch is modelled in detail; transition manoeuvres stay
+    at alpha >= 0, and the linear law is used for the rare small negative excursions.
+    """
+    alpha_stall = alpha0L + cl_max / cl_alpha
+    if alpha <= alpha_stall:
+        cl = cl_alpha * (alpha - alpha0L)
+        cd = cd0_profile + cl * cl / (math.pi * aspect_ratio * oswald)
+        return cl, cd
+
+    cd_max = 1.11 + 0.018 * aspect_ratio
+    sin_a, cos_a = math.sin(alpha), math.cos(alpha)
+    sin_s, cos_s = math.sin(alpha_stall), math.cos(alpha_stall)
+    cos_s = cos_s if abs(cos_s) > 1e-6 else 1e-6
+    sin_a = sin_a if abs(sin_a) > 1e-6 else 1e-6
+    cl_stall = cl_max
+    cd_stall = cd0_profile + cl_stall * cl_stall / (math.pi * aspect_ratio * oswald)
+    a1 = cd_max / 2.0
+    a2 = (cl_stall - cd_max * sin_s * cos_s) * sin_s / (cos_s * cos_s)
+    b1 = cd_max
+    b2 = (cd_stall - cd_max * sin_s * sin_s) / cos_s
+    cl = a1 * math.sin(2.0 * alpha) + a2 * cos_a * cos_a / sin_a
+    cd = b1 * sin_a * sin_a + b2 * cos_a
+    return cl, cd
+
+
+def _transition_sim_context(leg, area_ratio):
+    """Hashable bundle of every constant the leg simulation needs (the cache key).
+
+    Everything here is fixed within an XFOIL outer pass except the canard area ratio,
+    so caching the cap on this tuple collapses the per-candidate calls to a handful
+    of unique evaluations. The canard ratio is rounded coarsely (its effect on the
+    transition is second order) to keep the cache small.
+    """
+    g = AIRCRAFT["g_m_s2"]
+    rho0 = isa_density(0.0)
+    if leg == "forward":
+        altitude = AIRCRAFT["forward_transition_altitude_m"]
+        thrust_to_weight = AIRCRAFT["forward_transition_thrust_to_weight"]
+    else:
+        altitude = AIRCRAFT["back_transition_altitude_m"]
+        if altitude is None:
+            altitude = MISSION["altitude_m"]
+        thrust_to_weight = AIRCRAFT["thrust_to_weight"]
+
+    cl_max_w = AIRCRAFT["wing_CL_max"]
+    cl_alpha_w = AIRCRAFT["wing_CL_alpha_per_rad"]
+    alpha0L_w = -AIRCRAFT["wing_CL0"] / cl_alpha_w
+    cl_max_c = AIRCRAFT["canard_CL_max"]
+    cl_alpha_c = AIRCRAFT["canard_CL_alpha_per_rad"]
+    alpha0L_c = 0.0          # canard airfoil assumed symmetric (NACA0012)
+
+    return (
+        leg,
+        round(AIRCRAFT["transition_sim_time_step_s"], 6),
+        round(AIRCRAFT["transition_sim_max_time_s"], 3),
+        round(g, 6),
+        round(rho0, 6),
+        round(isa_density(altitude), 6),
+        round(math.radians(AIRCRAFT["transition_sim_pitch_rate_deg_s"]), 6),
+        round(AIRCRAFT["transition_sim_velocity_epsilon_m_s"], 4),
+        round(cl_max_w, 5), round(cl_alpha_w, 5), round(alpha0L_w, 6),
+        round(AIRCRAFT["wing_aspect_ratio"], 4), round(AIRCRAFT["oswald_efficiency"], 4),
+        round(AIRCRAFT["CD0"], 5),
+        round(cl_max_c, 5), round(cl_alpha_c, 5), round(alpha0L_c, 6),
+        round(AIRCRAFT["canard_aspect_ratio"], 4),
+        round(AIRCRAFT.get("canard_oswald_efficiency", AIRCRAFT["oswald_efficiency"]), 4),
+        round(area_ratio, 2),
+        round(thrust_to_weight, 4),
+        round(AIRCRAFT["transition_sim_altitude_hold_gain"], 4),
+        round(AIRCRAFT["forward_transition_climbout_factor"], 4),
+        round(AIRCRAFT["forward_transition_final_pitch_min_deg"], 3),
+        round(AIRCRAFT["forward_transition_final_pitch_max_deg"], 3),
+        round(AIRCRAFT["forward_transition_final_climb_angle_min_deg"], 3),
+        round(AIRCRAFT["forward_transition_start_height_m"], 3),
+        round(AIRCRAFT["forward_transition_min_height_m"], 3),
+        None if AIRCRAFT["forward_transition_max_alpha_deg"] is None
+        else round(AIRCRAFT["forward_transition_max_alpha_deg"], 3),
+        round(AIRCRAFT["forward_transition_sim_time_limit_s"], 3),
+        round(AIRCRAFT["forward_transition_sim_distance_limit_m"], 3),
+        round(AIRCRAFT["back_transition_approach_speed_factor"], 4),
+        round(AIRCRAFT["back_transition_pitch_max_deg"], 3),
+        round(AIRCRAFT["back_transition_capture_speed_m_s"], 3),
+        round(AIRCRAFT["back_transition_max_alpha_deg"], 3),
+        round(AIRCRAFT["back_transition_height_band_up_m"], 3),
+        round(AIRCRAFT["back_transition_height_band_down_m"], 3),
+        round(AIRCRAFT["back_transition_sim_time_limit_s"], 3),
+        round(AIRCRAFT["back_transition_sim_distance_limit_m"], 3),
+    )
+
+
+# Layout of the aero sub-tuple sliced out of the context for the coefficient call.
+_AERO_SLICE = slice(8, 20)   # cl_max_w ... area_ratio (see _transition_sim_context)
+
+
+def _transition_system_coefficients(alpha, aero):
+    """Aircraft-level CL, CD referenced to the wing area (wing + canard).
+
+    `aero` = (cl_max_w, cl_alpha_w, alpha0L_w, ar_w, e_w, cd0, cl_max_c, cl_alpha_c,
+    alpha0L_c, ar_c, e_c, area_ratio). All parasite drag is charged once to the wing
+    term; the canard term carries induced/post-stall drag only (cd0_profile = 0),
+    scaled by the area ratio.
+    """
+    (
+        cl_max_w, cl_alpha_w, alpha0L_w, ar_w, e_w, cd0,
+        cl_max_c, cl_alpha_c, alpha0L_c, ar_c, e_c, area_ratio,
+    ) = aero
+    cl_w, cd_w = _viterna_full_range(alpha, cl_alpha_w, cl_max_w, alpha0L_w, ar_w, e_w, cd0)
+    cl_c, cd_c = _viterna_full_range(alpha, cl_alpha_c, cl_max_c, alpha0L_c, ar_c, e_c, 0.0)
+    cl = cl_w + area_ratio * cl_c
+    cd = cd_w + area_ratio * cd_c
+    return cl, cd
+
+
+@lru_cache(maxsize=8192)
+def _simulate_transition_leg(ctx, vs_eas_m_s):
+    """Integrate one transition leg at a trial stall speed; return a result dict.
+
+    `ctx` is the constant bundle from _transition_sim_context; `vs_eas_m_s` is the
+    trial stall speed (EAS). The leg ("forward"/"back") is ctx[0]. The result holds
+    success, the failure reasons, and every requested diagnostic (time, distance,
+    max alpha, min height, final speed/pitch/flight-path angle).
+    """
+    (
+        leg, dt, max_time, g, rho0, rho, pitch_rate, v_eps,
+        cl_max_w, cl_alpha_w, alpha0L_w, ar_w, e_w, cd0,
+        cl_max_c, cl_alpha_c, alpha0L_c, ar_c, e_c, area_ratio,
+        thrust_to_weight, altitude_gain,
+        *_cache_key_settings,
+    ) = ctx
+    aero = ctx[_AERO_SLICE]
+
+    # S_w/m from the EAS stall definition (mass/size independent). All aerodynamic
+    # accelerations are q * coeff * (S_w/m); thrust acceleration is (T/W)*g.
+    s_over_m = 2.0 * g / (rho0 * vs_eas_m_s * vs_eas_m_s * cl_max_w)
+    thrust_acc_max = thrust_to_weight * g
+    vs_tas = vs_eas_m_s * math.sqrt(rho0 / rho)
+    wing_stall_alpha = alpha0L_w + cl_max_w / cl_alpha_w
+    half_pi = 0.5 * math.pi
+    sin_floor = math.sin(math.radians(3.0))   # guard the 1/sin(theta) thrust solve
+
+    if leg == "forward":
+        target_speed = AIRCRAFT["forward_transition_climbout_factor"] * vs_tas
+        theta = half_pi                                  # start vertical (hover)
+        theta_end = math.radians(AIRCRAFT["forward_transition_final_pitch_min_deg"])
+        u, w = 0.0, 0.0                                   # from a stationary hover
+        h0 = AIRCRAFT["forward_transition_start_height_m"]
+        max_alpha_limit = AIRCRAFT["forward_transition_max_alpha_deg"]
+        max_alpha_limit = (
+            wing_stall_alpha if max_alpha_limit is None else math.radians(max_alpha_limit)
+        )
+        time_limit = AIRCRAFT["forward_transition_sim_time_limit_s"]
+        distance_limit = AIRCRAFT["forward_transition_sim_distance_limit_m"]
+    else:
+        approach_speed = AIRCRAFT["back_transition_approach_speed_factor"] * vs_tas
+        # Trim alpha at entry (level wing-borne flight). The required system CL is
+        # CL_max_w / approach_factor^2, independent of Vs; invert the linear law.
+        cl_req = cl_max_w / AIRCRAFT["back_transition_approach_speed_factor"] ** 2
+        denom = cl_alpha_w + area_ratio * cl_alpha_c
+        alpha_trim = (
+            cl_req + cl_alpha_w * alpha0L_w + area_ratio * cl_alpha_c * alpha0L_c
+        ) / denom
+        theta = alpha_trim                               # start level (gamma = 0)
+        theta_end = math.radians(AIRCRAFT["back_transition_pitch_max_deg"])
+        u, w = approach_speed, 0.0
+        h0 = 0.0
+        capture_speed = AIRCRAFT["back_transition_capture_speed_m_s"]
+        max_alpha_limit = math.radians(AIRCRAFT["back_transition_max_alpha_deg"])
+        time_limit = AIRCRAFT["back_transition_sim_time_limit_s"]
+        distance_limit = AIRCRAFT["back_transition_sim_distance_limit_m"]
+
+    x, h, t = 0.0, h0, 0.0
+    max_alpha = 0.0
+    min_height = h0
+    max_height = h0
+    alpha = theta
+    gamma = 0.0
+    thrust_saturated = False
+    captured = False
+    n_steps = int(max_time / dt) + 1
+
+    for _ in range(n_steps):
+        speed = math.hypot(u, w)
+        if speed > v_eps:
+            gamma = math.atan2(w, u)
+            alpha = theta - gamma
+            ux, wz = u / speed, w / speed
+            cl, cd = _transition_system_coefficients(alpha, aero)
+            q_dyn = 0.5 * rho * speed * speed
+            lift_acc = q_dyn * cl * s_over_m            # = L/m
+            drag_acc = q_dyn * cd * s_over_m            # = D/m
+        else:
+            gamma = half_pi if leg == "forward" else 0.0
+            alpha = 0.0
+            ux, wz = (0.0, 1.0) if leg == "forward" else (1.0, 0.0)
+            lift_acc = drag_acc = 0.0
+
+        # Thrust controller: throttle (within the available T/W) to hold altitude,
+        # i.e. command the vertical acceleration toward -gain*w (drive w -> 0). Solve
+        # the vertical EOM az = T*sin(theta) - D*wz + L*ux - g for the thrust needed.
+        az_target = -altitude_gain * w
+        thrust_acc = (
+            az_target + g + drag_acc * wz - lift_acc * ux
+        ) / max(math.sin(theta), sin_floor)
+        if thrust_acc < 0.0:
+            thrust_acc = 0.0
+        if thrust_acc > thrust_acc_max:
+            thrust_acc = thrust_acc_max
+            thrust_saturated = True
+
+        ax = thrust_acc * math.cos(theta) - drag_acc * ux - lift_acc * wz
+        az = thrust_acc * math.sin(theta) - drag_acc * wz + lift_acc * ux - g
+
+        # The wing is "aerodynamically engaged" once it carries a fair share of the
+        # weight; max alpha is tracked over that regime (forward) or whenever there is
+        # appreciable airspeed (back), so the near-hover geometric alpha at V~0 (where
+        # the wing sees no dynamic pressure) does not pollute the reported maximum.
+        engaged = lift_acc > 0.2 * g
+        if speed > v_eps and (leg == "back" or engaged):
+            max_alpha = max(max_alpha, alpha)
+
+        u += ax * dt
+        w += az * dt
+        x += u * dt
+        h += w * dt
+        t += dt
+        min_height = min(min_height, h)
+        max_height = max(max_height, h)
+
+        # Pitch schedule (constant rate toward the target attitude). The 4-rotor
+        # differential thrust (square layout, ~0.7 m arm) supplies this pitch rate.
+        if leg == "forward":
+            theta = max(theta_end, theta - pitch_rate * dt)
+        else:
+            theta = min(theta_end, theta + pitch_rate * dt)
+
+        speed = math.hypot(u, w)
+        if leg == "forward":
+            if speed >= target_speed:
+                captured = True
+                break
+        else:
+            if speed <= capture_speed:
+                captured = True
+                break
+        if t > time_limit or x > distance_limit:
+            break
+
+    final_speed = math.hypot(u, w)
+    final_gamma = math.degrees(math.atan2(w, u)) if final_speed > v_eps else 0.0
+    final_theta = theta
+    final_alpha = math.degrees(final_theta) - final_gamma
+
+    reasons = []
+    if leg == "forward":
+        # During the forward transition the rotors carry and control the aircraft;
+        # the wing only unloads them as speed builds, so a transient high (post-stall)
+        # alpha is expected and not a failure. What matters is that the climb-out
+        # state is reached with the wing *attached* (final alpha below stall) inside
+        # the ground-clearance / distance / time corridor. max_alpha is reported for
+        # information; a transient limit is applied only if explicitly configured.
+        if not captured:
+            reasons.append(
+                f"did not reach climb-out speed {target_speed:.1f} m/s within limits"
+            )
+        if min_height < AIRCRAFT["forward_transition_min_height_m"]:
+            reasons.append(
+                f"ground clearance lost (h_min={min_height:.1f} m)"
+            )
+        if AIRCRAFT["forward_transition_max_alpha_deg"] is not None and (
+            max_alpha > max_alpha_limit
+        ):
+            reasons.append(
+                f"transient alpha exceeded limit ({math.degrees(max_alpha):.1f} deg)"
+            )
+        if captured and final_alpha > math.degrees(wing_stall_alpha):
+            reasons.append(
+                f"wing not attached at climb-out (alpha={final_alpha:.1f} deg)"
+            )
+        if captured and final_gamma < AIRCRAFT["forward_transition_final_climb_angle_min_deg"]:
+            reasons.append(
+                f"final flight-path angle too low ({final_gamma:.1f} deg)"
+            )
+        if captured and math.degrees(final_theta) > AIRCRAFT["forward_transition_final_pitch_max_deg"]:
+            reasons.append(
+                f"final pitch attitude too high ({math.degrees(final_theta):.1f} deg)"
+            )
+        if t > time_limit and not captured:
+            reasons.append(f"time limit exceeded ({t:.1f}>{time_limit:.1f} s)")
+        if x > distance_limit:
+            reasons.append(f"distance limit exceeded ({x:.1f}>{distance_limit:.1f} m)")
+    else:
+        if not captured:
+            reasons.append(
+                f"did not decelerate to capture speed {AIRCRAFT['back_transition_capture_speed_m_s']:.1f} m/s within limits"
+            )
+        if max_alpha > max_alpha_limit:
+            reasons.append(
+                f"alpha exceeded limit ({math.degrees(max_alpha):.1f} deg)"
+            )
+        if (max_height - h0) > AIRCRAFT["back_transition_height_band_up_m"]:
+            reasons.append(
+                f"ballooned above height band (+{max_height - h0:.1f} m)"
+            )
+        if (h0 - min_height) > AIRCRAFT["back_transition_height_band_down_m"]:
+            reasons.append(
+                f"sank below height band (-{h0 - min_height:.1f} m)"
+            )
+        if t > time_limit and not captured:
+            reasons.append(f"time limit exceeded ({t:.1f}>{time_limit:.1f} s)")
+        if x > distance_limit:
+            reasons.append(f"distance limit exceeded ({x:.1f}>{distance_limit:.1f} m)")
+
+    return {
+        "leg": leg,
+        "vs_eas_m_s": vs_eas_m_s,
+        "vs_tas_m_s": vs_tas,
+        "success": len(reasons) == 0,
+        "failure_reasons": reasons,
+        "time_s": t,
+        "distance_m": x,
+        "max_alpha_deg": math.degrees(max_alpha),
+        "min_height_m": min_height,
+        "max_height_m": max_height,
+        "final_speed_m_s": final_speed,
+        "final_pitch_deg": math.degrees(final_theta),
+        "final_flight_path_angle_deg": final_gamma,
+        "captured": captured,
+        "thrust_saturated": thrust_saturated,
+    }
+
+
+def _transition_sim_leg_cap(leg, area_ratio):
+    """Largest stall speed (EAS) for which one leg simulation still succeeds.
+
+    The back-transition leg is close to monotone in Vs, but the forward leg can
+    fail at *low* Vs by reaching the target speed before the pitch schedule has
+    tipped down into the accepted handover attitude. So sample the interval first,
+    find the highest feasible region, then bisect that region's upper edge.
+    Returns the cap and the simulation result evaluated at the cap for reporting.
+    """
+    ctx = _transition_sim_context(leg, area_ratio)
+    lo = AIRCRAFT["transition_sim_stall_EAS_lo_m_s"]
+    hi = AIRCRAFT["transition_sim_stall_EAS_hi_m_s"]
+    iterations = int(AIRCRAFT["transition_sim_bisection_iterations"])
+
+    sample_count = max(9, int(AIRCRAFT.get("transition_sim_cap_sample_count", 33)))
+    samples = []
+    for index in range(sample_count):
+        vs = lo + (hi - lo) * index / (sample_count - 1)
+        result = _simulate_transition_leg(ctx, round(vs, 2))
+        samples.append((vs, result))
+
+    feasible_indices = [
+        index for index, (_, result) in enumerate(samples) if result["success"]
+    ]
+    if not feasible_indices:
+        # No sampled point can transition; report the lowest-speed result as the
+        # nearest useful failure diagnostic.
+        return samples[0][0], samples[0][1], ctx
+
+    best_index = feasible_indices[-1]
+    feasible, best_result = samples[best_index]
+    if best_index == sample_count - 1:
+        return feasible, best_result, ctx
+
+    # The next higher sample failed, so refine the upper edge of the highest
+    # feasible region. If the real feasible region has small holes, this still
+    # gives the largest sampled feasible branch rather than being trapped by a
+    # low-speed forward-transition failure.
+    infeasible = samples[best_index + 1][0]
+    for _ in range(iterations):
+        mid = 0.5 * (feasible + infeasible)
+        result = _simulate_transition_leg(ctx, round(mid, 2))
+        if result["success"]:
+            feasible = mid
+            best_result = result
+        else:
+            infeasible = mid
+        if (infeasible - feasible) < 0.05:
+            break
+    return feasible, best_result, ctx
+
+
+def _leg_limit_dict(leg, source_label, cap_eas, cap_result, actual_result):
+    """Assemble the stall-limit dict for one simulated transition leg."""
+    density_ratio = (cap_result["vs_tas_m_s"] / cap_eas) ** 2 if cap_eas > 0 else 1.0
+    return {
+        "source": source_label,
+        "stall_EAS_max_m_s": cap_eas,
+        "stall_TAS_m_s": cap_eas * math.sqrt(density_ratio),
+        "a_max_m_s2": None,
+        "entry_TAS_m_s": None,
+        "transition_time_s": cap_result["time_s"],
+        "transition_distance_m": cap_result["distance_m"],
+        "sim_leg": leg,
+        "sim_cap_time_s": cap_result["time_s"],
+        "sim_cap_distance_m": cap_result["distance_m"],
+        "sim_cap_max_alpha_deg": cap_result["max_alpha_deg"],
+        "sim_cap_min_height_m": cap_result["min_height_m"],
+        "sim_cap_final_speed_m_s": cap_result["final_speed_m_s"],
+        "sim_cap_final_pitch_deg": cap_result["final_pitch_deg"],
+        "sim_cap_final_flight_path_angle_deg": cap_result["final_flight_path_angle_deg"],
+        "sim_actual_success": actual_result["success"],
+        "sim_actual_failure_reasons": actual_result["failure_reasons"],
+        "sim_actual_time_s": actual_result["time_s"],
+        "sim_actual_distance_m": actual_result["distance_m"],
+        "sim_actual_max_alpha_deg": actual_result["max_alpha_deg"],
+        "sim_actual_min_height_m": actual_result["min_height_m"],
+        "sim_actual_final_speed_m_s": actual_result["final_speed_m_s"],
+        "sim_actual_final_pitch_deg": actual_result["final_pitch_deg"],
+        "sim_actual_final_flight_path_angle_deg": actual_result["final_flight_path_angle_deg"],
+    }
+
+
+def forward_transition_sim_stall_limit(wing, canard):
+    """Forward-transition (hover -> wing-borne) simulated stall-speed cap."""
+    if AIRCRAFT["max_stall_EAS_m_s"] is not None:
+        return _user_specified_stall_limit()
+    area_ratio = canard["area_ratio"]
+    cap, cap_result, ctx = _transition_sim_leg_cap("forward", area_ratio)
+    actual_result = _simulate_transition_leg(ctx, round(wing["stall_EAS_m_s"], 2))
+    return _leg_limit_dict("forward", "transition-sim (forward)", cap, cap_result, actual_result)
+
+
+def back_transition_sim_stall_limit(wing, canard):
+    """Back-transition (wing-borne -> hover) simulated stall-speed cap."""
+    if AIRCRAFT["max_stall_EAS_m_s"] is not None:
+        return _user_specified_stall_limit()
+    area_ratio = canard["area_ratio"]
+    cap, cap_result, ctx = _transition_sim_leg_cap("back", area_ratio)
+    actual_result = _simulate_transition_leg(ctx, round(wing["stall_EAS_m_s"], 2))
+    return _leg_limit_dict("back", "transition-sim (back)", cap, cap_result, actual_result)
+
+
+def transition_sim_stall_limit(wing, canard):
+    """Binding (most demanding) of the simulated forward and back transition caps.
+
+    Mirrors transition_stall_limit but uses the reduced-order point-mass simulation
+    for each leg. The smaller EAS cap forces the larger wing, so it binds; the other
+    leg's cap and both legs' actual-Vs success flags are carried along for reporting.
+    """
+    if AIRCRAFT["max_stall_EAS_m_s"] is not None:
+        return _user_specified_stall_limit()
+
+    forward = forward_transition_sim_stall_limit(wing, canard)
+    back = back_transition_sim_stall_limit(wing, canard)
+    binding = dict(min(forward, back, key=lambda r: r["stall_EAS_max_m_s"]))
+    binding_leg = binding["sim_leg"]
+    binding["source"] = f"transition-sim ({binding_leg} binding)"
+    binding["forward_stall_EAS_max_m_s"] = forward["stall_EAS_max_m_s"]
+    binding["back_stall_EAS_max_m_s"] = back["stall_EAS_max_m_s"]
+    binding["forward_sim"] = forward
+    binding["back_sim"] = back
+    binding["binding_leg"] = binding_leg
+    return binding
+
+
 def pitch_moment_stall_limit(wing, canard, mass, propeller):
     """Largest EAS allowed by the thrust pitch-moment requirement.
 
@@ -734,6 +1508,12 @@ def stall_speed_limit(wing, canard, mass, propeller):
         return forward_transition_stall_limit(propeller)
     if method == "transition":
         return transition_stall_limit(propeller)
+    if method in {"transition_sim", "transition_simulation"}:
+        return transition_sim_stall_limit(wing, canard)
+    if method in {"forward_transition_sim", "forward_transition_simulation"}:
+        return forward_transition_sim_stall_limit(wing, canard)
+    if method in {"back_transition_sim", "back_transition_simulation"}:
+        return back_transition_sim_stall_limit(wing, canard)
     raise ValueError(f"Unknown stall_limit_method: {method}")
 
 
@@ -811,13 +1591,15 @@ def longitudinal_layout(wing, canard, wing_le_m):
 
     x is measured aft from the nose. The canard MAC LE is pinned at
     nose_to_canard; the wing MAC LE is at wing_le_m; the fuselage tail is
-    wing_to_tail behind the wing, so L_fus = wing_le_m + wing_to_tail and the
-    arm (and fuselage length) grow as the wing moves aft.
+    wing_te_to_tail behind the wing root trailing edge, so
+    L_fus = wing_le_m + c_root_w + wing_te_to_tail and the arm (and fuselage
+    length) grow as the wing moves aft.
     """
     c_w = wing["chord_m"]
     c_c = canard["chord_m"]
     nose_to_canard = MASS["nose_to_canard_m"]
-    L_fus = wing_le_m + MASS["wing_to_tail_m"]
+    wing_root_te_m = wing_le_m + wing["root_chord_m"]
+    L_fus = wing_root_te_m + MASS["wing_te_to_tail_m"]
     wing_quarter_m = wing_le_m + 0.25 * c_w               # wing MAC a.c. (1/4 chord)
     canard_quarter_m = nose_to_canard + 0.25 * c_c        # canard MAC a.c. (1/4 chord)
     return {
@@ -825,6 +1607,7 @@ def longitudinal_layout(wing, canard, wing_le_m):
         "canard_le_m": nose_to_canard,
         "arm_m": wing_le_m - nose_to_canard,                  # canard->wing, > 0
         "L_fus_m": L_fus,
+        "wing_root_te_m": wing_root_te_m,
         "wing_quarter_m": wing_quarter_m,                     # mass/AC station
         "canard_quarter_m": canard_quarter_m,
         # Tail arm for the scissor equations: distance between the two surfaces'
@@ -843,7 +1626,8 @@ def mass_and_cg(wing, canard, mission, propeller, wing_le_m):
       * reel (balloon subsystem, ~at CG) ................. mid-body
       * parachute ........................................ just ahead of wing LE
         battery .......................................... wing station
-    L_fus = wing_le_m + wing_to_tail grows with the canard->wing arm.
+    L_fus = wing_le_m + wing root chord + wing_te_to_tail grows with the
+    canard->wing arm.
     """
     layout = longitudinal_layout(wing, canard, wing_le_m)
     L_fus = layout["L_fus_m"]
@@ -926,7 +1710,9 @@ def evaluate_wing_station(wing, canard, area_ratio, mission, propeller, wing_le_
     margin = AIRCRAFT["cg_margin_over_mac"]
 
     layout = longitudinal_layout(wing, canard, wing_le_m)
-    coeffs = scissor_coefficients(wing, canard, layout["L_fus_m"], layout["lh_over_mac"])
+    coeffs = scissor_coefficients(
+        wing, canard, layout["L_fus_m"], layout["lh_over_mac"], mission
+    )
     scissor = scissor_limits(area_ratio, coeffs)
     mass = mass_and_cg(wing, canard, mission, propeller, wing_le_m)
 
@@ -1040,14 +1826,63 @@ def solve_wing_station(wing, canard, area_ratio, mission, propeller):
 # ---------------------------------------------------------------------------
 
 
-def scissor_coefficients(wing, canard, fuselage_length, lh_over_mac):
+def scissor_control_lift_condition(mission=None):
+    """Return the C_L_A-h value used for the controllability scissor line."""
+    permitted_cl = permitted_lift_coefficient(AIRCRAFT)
+    source = AIRCRAFT.get("scissor_control_CL_Ah_source", "mission_max")
+
+    if source == "permitted_limit" or mission is None:
+        return {
+            "CL_Ah_control": permitted_cl,
+            "source": "permitted_limit",
+            "mission_max_CL": None,
+            "margin_factor": None,
+            "permitted_CL": permitted_cl,
+        }
+    if source != "mission_max":
+        raise ValueError(
+            "scissor_control_CL_Ah_source must be 'mission_max' or 'permitted_limit'"
+        )
+
+    mission_cls = [
+        state["CL"]
+        for state in mission.get("states", [])
+        if state.get("segment") == "wing_borne_climb" and state.get("CL") is not None
+    ]
+    if mission.get("CL_cruise") is not None:
+        mission_cls.append(mission["CL_cruise"])
+
+    if not mission_cls:
+        return {
+            "CL_Ah_control": permitted_cl,
+            "source": "permitted_limit",
+            "mission_max_CL": None,
+            "margin_factor": None,
+            "permitted_CL": permitted_cl,
+        }
+
+    margin_factor = AIRCRAFT.get("scissor_control_CL_Ah_margin_factor", 1.0)
+    mission_max_cl = max(mission_cls)
+    control_cl = min(permitted_cl, margin_factor * mission_max_cl)
+    return {
+        "CL_Ah_control": control_cl,
+        "source": "mission_max",
+        "mission_max_CL": mission_max_cl,
+        "margin_factor": margin_factor,
+        "permitted_CL": permitted_cl,
+    }
+
+
+def scissor_coefficients(wing, canard, fuselage_length, lh_over_mac, mission=None):
     """Course-method aerodynamic inputs for the canard scissor plot.
 
     `fuselage_length` (= L_fus) and `lh_over_mac` (canard->wing arm / c_bar, < 0)
     come from the longitudinal layout and change as the wing moves, so this is
     re-evaluated per candidate wing station. `canard` carries the canard span at
-    the area ratio being evaluated, needed for the canard-on-wing downwash. The
-    equations and the canard sign conventions live in scissor_plot.py.
+    the area ratio being evaluated, needed for the canard-on-wing downwash.
+    `mission`, when supplied, sets the controllability CL from the actual
+    wing-borne mission envelope. The equations and the canard sign conventions
+    live in scissor_plot.py.
     """
     cruise_speed = wing.get("cruise_true_speed_m_s", AIRCRAFT["cruise_true_speed_m_s"])
     mach = mach_number(cruise_speed, MISSION["altitude_m"])
@@ -1082,16 +1917,13 @@ def scissor_coefficients(wing, canard, fuselage_length, lh_over_mac):
         fuselage_width, fuselage_length, wing["area_m2"], mac, AIRCRAFT["wing_CL0"],
     )
 
-    # Controllability is sized at the most demanding wing-borne lift, i.e. the
-    # slowest wing-borne flight. That condition must match what the aircraft
-    # actually flies: the mission climb runs at permitted_lift_coefficient() (the
-    # 0.90*CL_max / stall-margin-deg limit in mission_energy_course), which is the
-    # highest CL_{A-h} of any wing-borne phase (cruise is lower; VTOL/hover/
-    # transition are rotor-controlled). Sizing at the earlier CL_max/1.25^2 was
-    # optimistic -- it understated CL_{A-h} and so the forward (controllability)
-    # limit, hiding a slow-climb trim shortfall. For a tailsitter there is no
-    # flaps-down approach case (VTOL handles low speed).
-    cl_A_h_control = permitted_lift_coefficient(AIRCRAFT)
+    # Controllability is sized at the most demanding wing-borne lift condition
+    # that the mission actually flies, with a configurable margin and a cap at
+    # the permitted CL limit. For this tailsitter, VTOL/transition handle the
+    # very-low-speed cases, so using the stall-boundary CL here can force an
+    # unnecessarily large destabilising canard.
+    control_condition = scissor_control_lift_condition(mission)
+    cl_A_h_control = control_condition["CL_Ah_control"]
 
     # Canard-on-wing downwash gradient de/da (Slingerland). The canard is the
     # GENERATING surface (the wing sits in its wake), so use the canard's lift
@@ -1136,9 +1968,13 @@ def scissor_coefficients(wing, canard, fuselage_length, lh_over_mac):
         # (positive, the canard lifts up), capped at the canard's real CL_max so
         # the airfoil can actually deliver it. See canard_control_CLh_full_moving.
         "cl_h_control": min(
-            AIRCRAFT["canard_control_CLh_full_moving"], 1
+            AIRCRAFT["canard_control_CLh_full_moving"], AIRCRAFT["canard_CL_max"]
         ),
         "cl_A_h_control": cl_A_h_control,
+        "cl_A_h_control_source": control_condition["source"],
+        "cl_A_h_control_mission_max": control_condition["mission_max_CL"],
+        "cl_A_h_control_margin_factor": control_condition["margin_factor"],
+        "cl_A_h_control_permitted": control_condition["permitted_CL"],
         "lh_over_mac": lh_over_mac,                              # < 0 for a canard
         "de_da": de_da,                                         # canard-on-wing downwash
         "wing_immersed_fraction": wing_immersed_fraction,
@@ -1182,8 +2018,8 @@ def canard_and_wing_iteration(wing, mission, propeller):
 
     Sc/Sw and the wing station trade against each other: a smaller canard needs a
     longer canard->wing arm to open the scissor band, and the arm sets the
-    fuselage length (L_fus = wing_le + wing_to_tail). So a small canard saves
-    canard mass but buys it back as fuselage mass. The mass build-up already
+    fuselage length (L_fus = wing_le + wing root chord + wing_te_to_tail).
+    So a small canard saves canard mass but buys it back as fuselage mass. The mass build-up already
     captures both, so the right objective is simply the lightest feasible design,
     not the smallest area ratio. Feasibility includes the scissor band and the
     active maximum-stall-speed requirement. For each ratio, solve_wing_station
@@ -1318,8 +2154,24 @@ def build_full_summary(result):
     scissor = selected["scissor"]
     coeffs = selected["coeffs"]   # evaluated at the solved wing station
     stall_limit = result["stall_limit"]
+    drag_fields = drag_buildup_summary(result, aircraft)
 
     return {
+        "drag": {
+            "drag_model": drag_fields["drag_model"],
+            "CD0_component": drag_fields["CD0_component"],
+            "CD0_fixed": drag_fields["CD0_fixed"],
+            "CD0_wing": drag_fields["CD0_wing"],
+            "CD0_canard": drag_fields["CD0_canard"],
+            "CD0_fuselage": drag_fields["CD0_fuselage"],
+            "CD0_hardware": drag_fields["CD0_hardware"],
+            "CD0_misc": drag_fields["CD0_misc"],
+            "oswald_wing": drag_fields["oswald_wing"],
+            "oswald_canard": drag_fields["oswald_canard"],
+            "trim_drag_CD": drag_fields["trim_drag_CD"],
+            "wing_CL_trim": drag_fields["wing_CL_trim"],
+            "canard_CL_trim": drag_fields["canard_CL_trim"],
+        },
         "mass": {
             "MTOW_estimate_kg": mass["total_mass_kg"],
             "MTOW_used_for_final_pass_kg": result["final_mass_used_kg"],
@@ -1380,6 +2232,10 @@ def build_full_summary(result):
             "Cmac": coeffs["cmac"],
             "CL_h_control": coeffs["cl_h_control"],
             "CL_Ah_control": coeffs["cl_A_h_control"],
+            "CL_Ah_control_source": coeffs["cl_A_h_control_source"],
+            "CL_Ah_control_mission_max": coeffs["cl_A_h_control_mission_max"],
+            "CL_Ah_control_margin_factor": coeffs["cl_A_h_control_margin_factor"],
+            "CL_Ah_control_permitted": coeffs["cl_A_h_control_permitted"],
             "lh_over_mac": coeffs["lh_over_mac"],
             "de_da": coeffs["de_da"],
             "wing_immersed_fraction": coeffs["wing_immersed_fraction"],
@@ -1799,7 +2655,9 @@ def course_method_mission_energy(weight_N, wing, trim_drag=None):
     rho_cruise = isa_density(MISSION["altitude_m"])
     q_cruise = 0.5 * rho_cruise * final_speed**2
     CL_cruise = weight_N / (q_cruise * wing["area_m2"])
-    CD_cruise = aero_drag_coefficient(aircraft, q_cruise, weight_N, wing)
+    CD_cruise = aero_drag_coefficient(
+        aircraft, q_cruise, weight_N, wing, MISSION["altitude_m"], final_speed
+    )
 
     states = []
     for state in climb_states:
@@ -1886,12 +2744,21 @@ def trim_drag_descriptor(result):
     x_cg = mass["x_cg_fuselage_m"]
     canard_ac_x = MASS["nose_to_canard_m"] + 0.25 * canard["chord_m"]
     wing_ac_x = mass["wing_mac_le_x_m"] + wing["x_ac_m"]
+    canard_root_chord = (
+        2.0 * canard["area_m2"]
+        / (canard["span_m"] * (1.0 + AIRCRAFT["canard_taper"]))
+    )
     return {
         "S_c": canard["area_m2"],
         "b_c": canard["span_m"],
         "l_w": abs(wing_ac_x - x_cg),
         "l_c": abs(x_cg - canard_ac_x),
         "Cm_ac": coeffs.get("cmac", AIRCRAFT.get("wing_airfoil_cm0", 0.0)),
+        # Geometry for the component drag build-up (canard planform + fuselage).
+        "c_c": canard["chord_m"],
+        "c_c_root": canard_root_chord,
+        "L_fus": mass["fuselage_length_m"],
+        "fus_width": MASS["fuselage_width_m"],
     }
 
 
@@ -2032,6 +2899,70 @@ def wing_area_sweep_values():
     return values
 
 
+def drag_buildup_summary(result, aircraft):
+    """Component drag build-up breakdown and trimmed lift split at cruise.
+
+    Evaluates the AD2 parasite build-up and the wing/canard lift split at the
+    converged cruise condition so the summary can report CD0_component alongside
+    the fixed CD0 and the per-surface trim lift coefficients. Returns "" for any
+    field that needs geometry the build-up could not assemble (early fallback).
+    """
+    wing = result["wing"]
+    mission = result["mission"]
+    trim = trim_drag_descriptor(result)
+    weight_N = result["final_mass_used_kg"] * aircraft["g_m_s2"]
+    altitude_m = MISSION["altitude_m"]
+    true_speed = mission["cruise_true_speed_m_s"]
+    q = 0.5 * isa_density(altitude_m) * true_speed**2
+    S_w = wing["area_m2"]
+    S_c = trim["S_c"]
+
+    L_w, L_c = trim_lift_split(weight_N, q, wing, trim)
+    fields = {
+        "drag_model": aircraft.get("drag_model", "component_build_up"),
+        "CD0_fixed": aircraft["CD0"],
+        "oswald_wing": aircraft["oswald_efficiency"],
+        "oswald_canard": aircraft.get("canard_oswald_efficiency", aircraft["oswald_efficiency"]),
+        "trim_drag_CD": mission["CD_trim"],
+        "wing_CL_trim": L_w / (q * S_w),
+        "canard_CL_trim": L_c / (q * S_c) if S_c > 0.0 else "",
+    }
+
+    geom = build_drag_geometry(aircraft, wing, trim)
+    if geom is not None:
+        breakdown = parasite_drag_buildup(
+            geom,
+            xfoil_mach_number(altitude_m, true_speed),
+            reynolds_number(altitude_m, true_speed, 1.0),
+        )
+        fields.update({
+            "CD0_component": breakdown["CD0_component"],
+            "CD0_wing": breakdown["CD0_wing"],
+            "CD0_canard": breakdown["CD0_canard"],
+            "CD0_fuselage": breakdown["CD0_fuselage"],
+            "CD0_hardware": breakdown["CD0_hardware"],
+            "CD0_misc": breakdown["CD0_misc"],
+        })
+    else:
+        for key in (
+            "CD0_component", "CD0_wing", "CD0_canard",
+            "CD0_fuselage", "CD0_hardware", "CD0_misc",
+        ):
+            fields[key] = ""
+    return fields
+
+
+def _sim_leg_field(stall_limit, leg_key, field):
+    """Read a per-leg field from a transition-sim stall limit, or "" if absent."""
+    leg = stall_limit.get(leg_key)
+    if not leg:
+        return ""
+    value = leg.get(field, "")
+    if isinstance(value, list):
+        return "; ".join(value)
+    return value
+
+
 def make_summary(result):
     wing = result["wing"]
     mission = result["mission"]
@@ -2039,8 +2970,13 @@ def make_summary(result):
     selected = result["selected"]
     coeffs = selected["coeffs"]
     candidates = result["candidates"]
+    drag_fields = drag_buildup_summary(result, result.get("aircraft", AIRCRAFT))
     xfoil_update = result.get("xfoil_airfoil_update", {})
     xfoil_condition = xfoil_update.get("condition") or {}
+    clmax_stall_condition = xfoil_update.get("clmax_stall_condition") or {}
+    clmax_diag = xfoil_update.get("clmax") or {}
+    wing_clmax_diag = clmax_diag.get("wing") or {}
+    canard_clmax_diag = clmax_diag.get("canard") or {}
     wingborne_states = [state for state in mission["states"] if state["segment"] == "wing_borne_climb"]
     max_climb_CL = max([state["CL"] for state in wingborne_states] or [0.0])
     climb_CL_limit = AIRCRAFT["wing_CL_max"] / AIRCRAFT["climb_stall_margin_n"]**2
@@ -2071,9 +3007,29 @@ def make_summary(result):
         "xfoil_condition_mach": xfoil_condition.get("mach", ""),
         "xfoil_wing_Re": xfoil_condition.get("wing_reynolds", ""),
         "xfoil_canard_Re": xfoil_condition.get("canard_reynolds", ""),
+        "clmax_model": AIRCRAFT.get("clmax_model", "finite_wing_datcom"),
+        "clmax_calibration": AIRCRAFT["finite_wing_clmax_calibration"],
+        "clmax_stall_Re_wing": clmax_stall_condition.get("wing_reynolds", ""),
+        "clmax_stall_Re_canard": clmax_stall_condition.get("canard_reynolds", ""),
+        "clmax_stall_true_speed_m_s": clmax_stall_condition.get("true_speed_m_s", ""),
+        "wing_section_clmax": wing_clmax_diag.get("section_clmax", ""),
+        "wing_clmax_section_source": wing_clmax_diag.get("section_source", ""),
+        "wing_clmax_delta_y_pct": wing_clmax_diag.get("delta_y_pct", ""),
+        "wing_clmax_ratio": wing_clmax_diag.get("clmax_ratio", ""),
+        "wing_clmax_le_sweep_deg": wing_clmax_diag.get("sweep_le_deg", ""),
+        "canard_section_clmax": canard_clmax_diag.get("section_clmax", ""),
+        "canard_clmax_section_source": canard_clmax_diag.get("section_source", ""),
+        "canard_clmax_delta_y_pct": canard_clmax_diag.get("delta_y_pct", ""),
+        "canard_clmax_ratio": canard_clmax_diag.get("clmax_ratio", ""),
         "wing_area_m2": wing["area_m2"],
         "wing_span_m": wing["span_m"],
         "wing_chord_m": wing["chord_m"],
+        "wing_mean_chord_m": wing["area_m2"] / wing["span_m"],
+        "wing_mac_m": (
+            (2.0 / 3.0) * wing["root_chord_m"]
+            * (1.0 + AIRCRAFT["wing_taper"] + AIRCRAFT["wing_taper"]**2)
+            / (1.0 + AIRCRAFT["wing_taper"])
+        ),
         "wing_stall_EAS_m_s": wing["stall_EAS_m_s"],
         "max_stall_EAS_m_s": stall_limit["stall_EAS_max_m_s"],
         "stall_margin_m_s": stall_limit["stall_EAS_max_m_s"] - wing["stall_EAS_m_s"],
@@ -2090,10 +3046,38 @@ def make_summary(result):
         "back_transition_a_max_m_s2": stall_limit.get("a_max_m_s2"),
         "back_transition_time_s": stall_limit.get("transition_time_s"),
         "back_transition_distance_m": stall_limit.get("transition_distance_m"),
+        # Reduced-order transition-simulation diagnostics ("" for non-sim methods).
+        "transition_sim_binding_leg": stall_limit.get("binding_leg", ""),
+        "transition_sim_forward_cap_EAS_m_s": stall_limit.get("forward_stall_EAS_max_m_s", ""),
+        "transition_sim_back_cap_EAS_m_s": stall_limit.get("back_stall_EAS_max_m_s", ""),
+        "transition_sim_cap_time_s": stall_limit.get("sim_cap_time_s", ""),
+        "transition_sim_cap_distance_m": stall_limit.get("sim_cap_distance_m", ""),
+        "transition_sim_cap_max_alpha_deg": stall_limit.get("sim_cap_max_alpha_deg", ""),
+        "transition_sim_cap_min_height_m": stall_limit.get("sim_cap_min_height_m", ""),
+        "transition_sim_cap_final_speed_m_s": stall_limit.get("sim_cap_final_speed_m_s", ""),
+        "transition_sim_cap_final_pitch_deg": stall_limit.get("sim_cap_final_pitch_deg", ""),
+        "transition_sim_cap_final_gamma_deg": stall_limit.get("sim_cap_final_flight_path_angle_deg", ""),
+        "transition_sim_forward_actual_success": _sim_leg_field(stall_limit, "forward_sim", "sim_actual_success"),
+        "transition_sim_forward_actual_reasons": _sim_leg_field(stall_limit, "forward_sim", "sim_actual_failure_reasons"),
+        "transition_sim_back_actual_success": _sim_leg_field(stall_limit, "back_sim", "sim_actual_success"),
+        "transition_sim_back_actual_reasons": _sim_leg_field(stall_limit, "back_sim", "sim_actual_failure_reasons"),
         "minimum_climb_EAS_m_s": mission["mission_grid"]["aerodynamic_speed_limits"]["minimum_climb_EAS_m_s"],
         "cruise_true_speed_m_s": mission["cruise_true_speed_m_s"],
         "CL_trim": wing["CL_trim"],
         "CD_trim": mission["CD_trim"],
+        "drag_model": drag_fields["drag_model"],
+        "CD0_component": drag_fields["CD0_component"],
+        "CD0_fixed": drag_fields["CD0_fixed"],
+        "CD0_wing": drag_fields["CD0_wing"],
+        "CD0_canard": drag_fields["CD0_canard"],
+        "CD0_fuselage": drag_fields["CD0_fuselage"],
+        "CD0_hardware": drag_fields["CD0_hardware"],
+        "CD0_misc": drag_fields["CD0_misc"],
+        "oswald_wing": drag_fields["oswald_wing"],
+        "oswald_canard": drag_fields["oswald_canard"],
+        "trim_drag_CD": drag_fields["trim_drag_CD"],
+        "wing_CL_trim": drag_fields["wing_CL_trim"],
+        "canard_CL_trim": drag_fields["canard_CL_trim"],
         "optimized_climb_EAS_m_s": mission["optimized_climb_EAS_m_s"],
         "optimized_climb_angle_deg": mission["optimized_climb_angle_deg"],
         "course_climb_available_power_W": mission["course_climb_available_power_W"],
@@ -2111,6 +3095,11 @@ def make_summary(result):
         "scissor_forward_limit_x_over_c": selected["scissor"]["x_forward_over_mac"],
         "scissor_aft_limit_x_over_c": selected["scissor"]["x_aft_over_mac"],
         "scissor_clearance_over_c": selected.get("clearance_over_mac", ""),
+        "scissor_CL_Ah_control": coeffs["cl_A_h_control"],
+        "scissor_CL_Ah_control_source": coeffs["cl_A_h_control_source"],
+        "scissor_CL_Ah_control_mission_max": coeffs["cl_A_h_control_mission_max"],
+        "scissor_CL_Ah_control_margin_factor": coeffs["cl_A_h_control_margin_factor"],
+        "scissor_CL_Ah_control_permitted": coeffs["cl_A_h_control_permitted"],
         "scissor_de_da": coeffs["de_da"],
         "scissor_wing_immersed_fraction": coeffs["wing_immersed_fraction"],
         "scissor_wing_wake_dynamic_pressure_ratio": coeffs["wing_wake_dynamic_pressure_ratio"],
@@ -2454,6 +3443,22 @@ def main():
         print(
             "  Stall cap: "
             f"stall EAS limit={summary['max_stall_EAS_m_s']:.1f} m/s (user-specified)"
+        )
+    elif summary["stall_limit_source"].startswith("transition-sim"):
+        print(
+            f"  Stall cap ({summary['stall_limit_source']}): "
+            f"stall EAS limit={summary['max_stall_EAS_m_s']:.1f} m/s "
+            f"(forward {_fmt(summary['transition_sim_forward_cap_EAS_m_s'])} / "
+            f"back {_fmt(summary['transition_sim_back_cap_EAS_m_s'])} m/s; "
+            f"binding={summary['transition_sim_binding_leg']}, "
+            f"t={_fmt(summary['transition_sim_cap_time_s'])} s, "
+            f"d={_fmt(summary['transition_sim_cap_distance_m'], '.0f')} m, "
+            f"alpha_max={_fmt(summary['transition_sim_cap_max_alpha_deg'])} deg)"
+        )
+        print(
+            "    At actual stall speed: "
+            f"forward={'OK' if summary['transition_sim_forward_actual_success'] else 'FAIL'}, "
+            f"back={'OK' if summary['transition_sim_back_actual_success'] else 'FAIL'}"
         )
     else:
         print(
