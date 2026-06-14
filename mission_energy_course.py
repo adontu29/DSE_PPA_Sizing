@@ -47,6 +47,65 @@ def induced_drag_factor(aircraft):
     )
 
 
+def trim_lift_split(weight_N, q, wing, trim):
+    """Split the total lift between the wing and the canard from trim.
+
+    Moment balance about the CG (nose-up positive), with the wing free pitching
+    moment M_ac = Cm_ac * q * S_w * c_w:
+        L_c * l_c - L_w * l_w + M_ac = 0,     L_w + L_c = W
+    The canard sits ahead of the CG (arm l_c, nose-up when lifting) and the wing
+    behind it (arm l_w, nose-down). Returns (L_w, L_c); either may go negative
+    (a download) if trim demands it. Total lift is taken as the weight.
+    """
+    S_w = wing["area_m2"]
+    c_w = wing["chord_m"]
+    arm_sum = trim["l_w"] + trim["l_c"]
+    if arm_sum <= 1e-6:
+        return weight_N, 0.0
+    M_ac = trim.get("Cm_ac", 0.0) * q * S_w * c_w
+    L_c = (weight_N * trim["l_w"] - M_ac) / arm_sum
+    L_w = weight_N - L_c
+    return L_w, L_c
+
+
+def aero_drag_coefficient(aircraft, q, weight_N, wing):
+    """Total drag coefficient referenced to wing area.
+
+    With the split model on and a trim descriptor present, parasite drag is
+    decomposed per surface (each profile CD0 on its own area + a fixed
+    fuselage/misc drag area) and induced drag is summed over the wing and canard
+    at their trimmed lifts via Di = L^2 / (q*pi*b^2*e). Otherwise it falls back to
+    the legacy single lumped CD0 + wing-only induced drag.
+    """
+    S_w = wing["area_m2"]
+    CL_wing_ref = weight_N / (q * S_w)
+    trim = aircraft.get("trim_drag")
+    if not setting(aircraft, "use_split_drag_model", True) or trim is None:
+        return aircraft["CD0"] + induced_drag_factor(aircraft) * CL_wing_ref**2
+
+    S_c = trim["S_c"]
+    parasite = (
+        aircraft["wing_profile_CD0"]
+        + aircraft["canard_profile_CD0"] * (S_c / S_w)
+        + aircraft["fuselage_misc_drag_area_m2"] / S_w
+    )
+
+    e_w = aircraft["oswald_efficiency"]
+    e_c = setting(aircraft, "canard_oswald_efficiency", e_w)
+    sigma = setting(aircraft, "canard_wing_induced_interference_factor", 0.0)
+    b_w = wing["span_m"]
+    b_c = trim["b_c"]
+    L_w, L_c = trim_lift_split(weight_N, q, wing, trim)
+    # Munk tandem induced drag: each surface's own induced drag plus the mutual
+    # interference cross term (positive when both surfaces lift the same way).
+    induced_drag_N = (
+        L_w**2 / (b_w**2 * e_w)
+        + L_c**2 / (b_c**2 * e_c)
+        + 2.0 * sigma * L_w * L_c / (b_w * b_c)
+    ) / (q * math.pi)
+    return parasite + induced_drag_N / (q * S_w)
+
+
 def forward_efficiency(aircraft):
     return setting(
         aircraft,
@@ -112,13 +171,19 @@ def climb_state_from_power_available(
     altitude_m,
     equivalent_airspeed_m_s,
     available_electrical_power_W,
+    load_factor=1.0,
 ):
     density = isa_density(altitude_m)
     true_speed = true_airspeed_from_eas(equivalent_airspeed_m_s, density)
     q = 0.5 * density * true_speed**2
-    CL = weight_N / (q * wing["area_m2"])
-    CD = aircraft["CD0"] + induced_drag_factor(aircraft) * CL**2
+    # In a banked climbing turn the wings carry n*W, so the operating CL and the
+    # induced drag are scaled by the load factor; the climb rate still divides the
+    # excess power by the actual weight, not n*W.
+    lift_N = load_factor * weight_N
+    CL = lift_N / (q * wing["area_m2"])
+    CD = aero_drag_coefficient(aircraft, q, lift_N, wing)
     drag_N = q * wing["area_m2"] * CD
+    bank_angle_deg = math.degrees(math.acos(min(1.0, 1.0 / load_factor))) if load_factor > 1.0 else 0.0
 
     power_required_propulsive_W = drag_N * true_speed
     selected_power_available_propulsive_W = (
@@ -161,40 +226,56 @@ def climb_state_from_power_available(
         "steady_rate_of_climb_m_s": steady_rate_of_climb_m_s,
         "rate_of_climb_m_s": rate_of_climb_m_s,
         "acceleration_correction": acceleration_correction,
+        "load_factor": load_factor,
+        "bank_angle_deg": bank_angle_deg,
     }
 
 
-def simulate_course_climb(
+def _integrate_climb(
     weight_N,
     wing,
     mission,
     aircraft,
     isa_density,
     equivalent_airspeed_m_s,
-    available_electrical_power_W=None,
+    available_electrical_power_W,
+    spiral_radius_m=None,
+    spiral_below_altitude_m=None,
 ):
-    """Integrate the lecture RC equation through altitude."""
-    if available_electrical_power_W is None:
-        available_electrical_power_W = setting(
-            aircraft,
-            "course_climb_available_power_W",
-            setting(aircraft, "max_affordable_electrical_power_W", 20000.0),
-        )
+    """Integrate the lecture RC equation through altitude.
 
+    Steps below spiral_below_altitude_m (the crossover) are flown as a coordinated
+    turn of radius spiral_radius_m, carrying load factor n = sqrt(1 + (V^2/(g*R))^2)
+    -- this is the in-place spiral, which makes no progress toward the target but
+    pays higher induced drag and a tighter stall (CL) margin. Steps at or above the
+    crossover are the straight climb-out toward the target and count as ground-track
+    progress. With no radius set the whole climb is straight (load factor 1).
+    """
     start_altitude = mission["vertical_takeoff_height_m"]
     target_altitude = mission["altitude_m"]
     altitude_step = setting(mission, "altitude_step_m", 100.0)
     CL_allowed = permitted_lift_coefficient(aircraft)
+    g = aircraft["g_m_s2"]
 
     states = []
     time_s = 0.0
-    distance_m = 0.0
+    distance_m = 0.0       # ground-track progress toward the target (straight steps)
+    spiral_arc_m = 0.0     # horizontal arc flown while circling in place
     energy_Wh = 0.0
     altitude = start_altitude
 
     while altitude < target_altitude - 1e-9:
         next_altitude = min(altitude + altitude_step, target_altitude)
         mid_altitude = 0.5 * (altitude + next_altitude)
+        spiral_step = (
+            bool(spiral_radius_m) and spiral_radius_m > 0.0
+            and (spiral_below_altitude_m is None or mid_altitude < spiral_below_altitude_m)
+        )
+        if spiral_step:
+            true_speed = true_airspeed_from_eas(equivalent_airspeed_m_s, isa_density(mid_altitude))
+            load_factor = math.sqrt(1.0 + (true_speed**2 / (g * spiral_radius_m))**2)
+        else:
+            load_factor = 1.0
         state = climb_state_from_power_available(
             weight_N,
             wing,
@@ -203,17 +284,18 @@ def simulate_course_climb(
             mid_altitude,
             equivalent_airspeed_m_s,
             available_electrical_power_W,
+            load_factor=load_factor,
         )
         if state["CL"] > CL_allowed:
             return {
                 "feasible": False,
-                "failure_reason": f"CL limit exceeded at {mid_altitude:.0f} m.",
+                "failure_reason": f"CL limit exceeded at {mid_altitude:.0f} m (n={load_factor:.2f}).",
                 "states": states,
             }
         if state["rate_of_climb_m_s"] <= 0.0:
             return {
                 "feasible": False,
-                "failure_reason": f"No positive climb rate at {mid_altitude:.0f} m.",
+                "failure_reason": f"No positive climb rate at {mid_altitude:.0f} m (n={load_factor:.2f}).",
                 "states": states,
             }
 
@@ -226,7 +308,10 @@ def simulate_course_climb(
         delta_energy = state["electrical_power_used_W"] * delta_t / 3600.0
 
         time_s += delta_t
-        distance_m += delta_x
+        if spiral_step:
+            spiral_arc_m += delta_x      # circling, no net progress
+        else:
+            distance_m += delta_x        # straight climb-out toward the target
         energy_Wh += delta_energy
         state.update({
             "altitude_start_m": altitude,
@@ -235,6 +320,7 @@ def simulate_course_climb(
             "delta_t_s": delta_t,
             "delta_x_m": delta_x,
             "delta_energy_Wh": delta_energy,
+            "spiral_step": spiral_step,
             "thrust_to_weight": state["usable_thrust_N"] / weight_N,
             "time_s": time_s,
             "distance_m": distance_m,
@@ -254,9 +340,88 @@ def simulate_course_climb(
         "max_thrust_to_weight": max(state["thrust_to_weight"] for state in states),
         "time_s": time_s,
         "distance_m": distance_m,
+        "spiral_arc_m": spiral_arc_m,
         "energy_Wh": energy_Wh,
         "states": states,
+        "max_load_factor": max(state["load_factor"] for state in states),
+        "max_bank_angle_deg": max(state["bank_angle_deg"] for state in states),
     }
+
+
+def _spiral_crossover_altitude(straight_states, range_m):
+    """Altitude above which the straight climb-out covers exactly range_m.
+
+    Walking down from the top of the straight climb, accumulate ground track until
+    it reaches the range; the start altitude of that step is the crossover. Below
+    it the aircraft spirals up in place; from it, the straight climb-out to the
+    target consumes the allowed ground track and arrives at the target altitude.
+    """
+    cumulative = 0.0
+    crossover = straight_states[0]["altitude_start_m"]
+    for state in reversed(straight_states):
+        cumulative += state["delta_x_m"]
+        crossover = state["altitude_start_m"]
+        if cumulative >= range_m:
+            break
+    return crossover
+
+
+def simulate_course_climb(
+    weight_N,
+    wing,
+    mission,
+    aircraft,
+    isa_density,
+    equivalent_airspeed_m_s,
+    available_electrical_power_W=None,
+):
+    """Course-method climb, straight or spiral-then-straight if it would overshoot.
+
+    A straight climb is integrated first. If spiralling is allowed and that climb's
+    ground track would overrun the mission range, the aircraft cannot fly straight
+    to the target without overshooting, so it spirals up in place over the launch
+    point until only `range` of ground track remains, then climbs straight out to
+    the target. The in-place spiral (below the crossover altitude) carries the turn
+    load factor -- higher induced drag and a tighter stall margin -- while the
+    straight climb-out delivers the ground-track progress, so no level cruise is
+    needed.
+    """
+    if available_electrical_power_W is None:
+        available_electrical_power_W = setting(
+            aircraft,
+            "course_climb_available_power_W",
+            setting(aircraft, "max_affordable_electrical_power_W", 20000.0),
+        )
+
+    straight = _integrate_climb(
+        weight_N, wing, mission, aircraft, isa_density,
+        equivalent_airspeed_m_s, available_electrical_power_W,
+        spiral_radius_m=None,
+    )
+    straight["spiral_used"] = False
+    straight["spiral_radius_m"] = None
+    straight["spiral_crossover_altitude_m"] = None
+
+    spiral_radius_m = setting(mission, "spiral_turn_radius_m", 0.0)
+    spiral_allowed = setting(mission, "allow_spiral_climb", False) and spiral_radius_m > 0.0
+    if not spiral_allowed or not straight["feasible"]:
+        return straight
+    if straight["distance_m"] <= mission["range_m"]:
+        return straight  # fits within range flying straight; no spiral needed
+
+    crossover_m = _spiral_crossover_altitude(straight["states"], mission["range_m"])
+    spiral = _integrate_climb(
+        weight_N, wing, mission, aircraft, isa_density,
+        equivalent_airspeed_m_s, available_electrical_power_W,
+        spiral_radius_m=spiral_radius_m,
+        spiral_below_altitude_m=crossover_m,
+    )
+    if not spiral["feasible"]:
+        return spiral
+    spiral["spiral_used"] = True
+    spiral["spiral_radius_m"] = spiral_radius_m
+    spiral["spiral_crossover_altitude_m"] = crossover_m
+    return spiral
 
 
 def estimate_takeoff_transition(weight_N, wing, mission, aircraft, isa_density):
@@ -306,7 +471,7 @@ def estimate_level_cruise(weight_N, wing, mission, aircraft, isa_density, distan
     density = isa_density(mission["altitude_m"])
     q = 0.5 * density * true_speed_m_s**2
     CL = weight_N / (q * wing["area_m2"])
-    CD = aircraft["CD0"] + induced_drag_factor(aircraft) * CL**2
+    CD = aero_drag_coefficient(aircraft, q, weight_N, wing)
     drag_N = q * wing["area_m2"] * CD
     electrical_power = drag_N * true_speed_m_s / forward_efficiency(aircraft)
     time_s = distance_m / true_speed_m_s

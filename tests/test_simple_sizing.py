@@ -67,6 +67,7 @@ def test_simple_sizing_runs_and_creates_outputs(tmp_path):
     assert (tmp_path / "wing_area_sweep.csv").exists()
     assert (tmp_path / "scissor_plot.png").exists()
     assert (tmp_path / "mission_profile.png").exists()
+    assert (tmp_path / "mission_trajectory.png").exists()
     assert (tmp_path / "wing_area_sweep.png").exists()
     assert result["mission"]["segment_summaries"]["wing_borne_climb"]["energy_Wh"] > 0.0
     assert result["mission"]["mission_grid"]["climb_EAS_m_s"]
