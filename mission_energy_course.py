@@ -93,13 +93,12 @@ def _cached_drag_geometry(aircraft, wing):
 def parasite_drag_coefficient(aircraft, wing, altitude_m=None, true_speed_m_s=None):
     """Wing-area-referenced zero-lift drag coefficient (AD2 component build-up).
 
-    With drag_model == "component_build_up" and both the layout geometry (via the
-    trim descriptor) and the flow state (altitude + speed for the Reynolds number)
-    available, CD0 is built up component by component. It falls back to the fixed
-    aircraft["CD0"] when drag_model == "fixed" or that geometry/flow is missing.
+    CD0 is built up component by component once the layout geometry (via the trim
+    descriptor) and the flow state (altitude + speed for the Reynolds number) are
+    available. On the first mass iteration -- before any canard geometry exists, so
+    the build-up cannot run -- it falls back to the fixed aircraft["CD0"].
     """
-    model = setting(aircraft, "drag_model", "component_build_up")
-    if model == "component_build_up" and altitude_m is not None and true_speed_m_s is not None:
+    if altitude_m is not None and true_speed_m_s is not None:
         geom = _cached_drag_geometry(aircraft, wing)
         if geom is not None:
             reynolds_per_m = reynolds_number(altitude_m, true_speed_m_s, 1.0)
@@ -112,10 +111,11 @@ def aero_drag_coefficient(aircraft, q, weight_N, wing, altitude_m=None, true_spe
     """Total drag coefficient referenced to wing area.
 
     Parasite drag comes from the AD2 component build-up (parasite_drag_coefficient),
-    falling back to the fixed CD0 when the model is disabled or geometry/flow is
-    missing. With the split model on and a trim descriptor present, induced drag is
-    summed over the wing and canard at their trimmed lifts via
-    Di = L^2 / (q*pi*b^2*e); otherwise it falls back to wing-only induced drag.
+    falling back to the fixed CD0 before the canard geometry exists. With a trim
+    descriptor present, induced drag is summed over the wing and canard at their
+    trimmed lifts via Di = L^2 / (q*pi*b^2*e) (Munk tandem, plus the mutual
+    interference cross term); on the first iteration (no trim) it falls back to
+    wing-only induced drag.
 
     The total CD depends only on the flow state and the lift, not on the available
     power, so the same (altitude, speed, lift) recurs across every power candidate
@@ -137,7 +137,7 @@ def aero_drag_coefficient(aircraft, q, weight_N, wing, altitude_m=None, true_spe
     CL_wing_ref = weight_N / (q * S_w)
     trim = aircraft.get("trim_drag")
     parasite = parasite_drag_coefficient(aircraft, wing, altitude_m, true_speed_m_s)
-    if not setting(aircraft, "use_split_drag_model", True) or trim is None:
+    if trim is None:
         total = parasite + induced_drag_factor(aircraft) * CL_wing_ref**2
         if cd_cache is not None:
             cd_cache[cache_key] = total

@@ -1,6 +1,8 @@
 import csv
 import math
 
+import pytest
+
 import simple_sizing
 from scissor_plot import scissor_cg_limits
 
@@ -61,9 +63,9 @@ def test_simple_sizing_runs_and_creates_outputs(tmp_path):
             - selected["mass"]["x_cg_over_mac"]
         )
 
+    # Report-oriented output set (concise tables + figures; no JSON / per-iteration CSV).
     assert (tmp_path / "summary.csv").exists()
     assert (tmp_path / "mass_breakdown.csv").exists()
-    assert (tmp_path / "iteration_history.csv").exists()
     assert (tmp_path / "wing_area_sweep.csv").exists()
     assert (tmp_path / "scissor_plot.png").exists()
     assert (tmp_path / "mission_profile.png").exists()
@@ -71,7 +73,16 @@ def test_simple_sizing_runs_and_creates_outputs(tmp_path):
     assert (tmp_path / "wing_area_sweep.png").exists()
     assert result["mission"]["segment_summaries"]["wing_borne_climb"]["energy_Wh"] > 0.0
     assert result["mission"]["mission_grid"]["climb_EAS_m_s"]
+    # Iteration history stays on the in-memory result (used for the convergence check)
+    # even though it is no longer written to a CSV.
     assert abs(result["iteration_history"][-1]["mass_change_kg"]) < abs(result["iteration_history"][0]["mass_change_kg"])
+
+    # Regression guard: pins the current converged sizing point (use_xfoil=False).
+    # The stall cap selects the wing area on a 0.05 m^2 grid; MTOW closes near 46 kg.
+    assert summary["wing_area_m2"] == pytest.approx(2.25, abs=0.05)
+    assert summary["MTOW_mass_estimate_kg"] == pytest.approx(46.38, rel=0.02)
+    assert summary["canard_area_ratio"] == pytest.approx(0.13, abs=0.01)
+    assert summary["stall_limit_source"].startswith("transition-sim")
 
 
 def test_summary_table_contains_main_report_values(tmp_path):

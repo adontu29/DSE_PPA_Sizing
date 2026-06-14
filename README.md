@@ -1,11 +1,9 @@
 # Bellona Simplified Sizing Code
 
-This branch contains the report-readable Bellona sizing script. It is meant to
-be easy to inspect, present, and explain to aerospace engineers who want the
-equations and assumptions in one place.
-
-This branch intentionally contains only the `simple_sizing.py` workflow and the
-small helper modules it imports.
+This branch contains the report-readable Bellona sizing code. It is meant to be
+easy to inspect, present, and explain to aerospace engineers who want the
+equations and assumptions in one place. The sizing method is split into one short
+module per physical step, with a single linear workflow and no optional branches.
 
 ## Run
 
@@ -15,53 +13,54 @@ From the repository root:
 python simple_sizing.py
 ```
 
-The script writes:
+It writes a small, report-oriented output set:
 
-- `outputs/summary.csv`
-- `outputs/mass_breakdown.csv`
-- `outputs/iteration_history.csv`
-- `outputs/wing_area_sweep.csv`
-- `outputs/aircraft_summary.json`
-- `outputs/scissor_plot.png`
-- `outputs/mission_profile.png`
+- `outputs/summary.csv` — concise design summary (the values quoted in a report)
+- `outputs/mass_breakdown.csv` — component masses and stations
+- `outputs/wing_area_sweep.csv` — the wing-area trade table
+- `outputs/scissor_plot.png` — canard scissor plot
+- `outputs/mission_profile.png` — mission profile and energy sizing
+- `outputs/mission_trajectory.png` — 3D / side-view trajectory to interception
+- `outputs/wing_area_sweep.png` — wing-area mass/stall/energy trade
 
 ## Change Inputs
 
-Open `simple_sizing.py` and edit the input block at the top. The main values are:
+All knobs live in `sizing/inputs.py`, in three dictionaries:
 
-- mission altitude, range, and hover time
-- mission climb, transition, and power limits
-- MTOW estimate
-- wing area, aspect ratio, and aerodynamic coefficients
-- canard arm and canard area-ratio sweep
-- mass coefficients
-- output folder
+- `MISSION` — altitude, range, hover time, take-off/spiral assumptions
+- `AIRCRAFT` — MTOW estimate, wing/canard planform and aerodynamics, the
+  wing-area and canard-area sweeps, drag build-up, transition/stall, propulsion,
+  battery, and XFOIL settings
+- `MASS` — areal/linear densities, component masses, and layout stations
 
 ## Code Layout
 
-The script is organized like a sizing calculation:
+`simple_sizing.py` is just the entry point. The method lives in the `sizing/`
+package, one module per step (read top to bottom):
 
-1. Inputs
-2. Atmosphere and aircraft equations
-3. Mass and CG equations
-4. Canard scissor equations
-5. Canard/wing-position iteration
-6. Output tables and plots
+1. `inputs.py` — mission, aircraft, and mass assumptions (the only knobs)
+2. `atmosphere.py` — ISA density
+3. `geometry.py` — wing / canard planforms and the rotor disc
+4. `transition.py` — reduced-order tail-sitter transition sim -> max stall speed
+5. `mass.py` — component mass build-up and CG
+6. `scissor.py` — canard sizing and the static-stability / control CG band
+7. `mission.py` — course-method climb energy and battery sizing
+8. `airfoil.py` — optional XFOIL Reynolds-feedback refinement of section data
+9. `loop.py` — the mass / wing-area sizing loops
+10. `report.py` — concise tables and the report figures
+11. `workflow.py` — `run_sizing()` and `main()`, the top-level spine
 
-`mission_energy_course.py` contains the course-method mission profile model
-used by the main script. It uses an altitude-stepped constant-EAS climb,
-transition-speed limits, a coarse climb/cruise grid search, segment powers, and
-battery sizing from the selected mission segments.
+The supporting helper modules (shared, lower-level equations) are:
 
-The other helper files are:
+- `mission_energy_course.py` — course-method mission profile model: an
+  altitude-stepped constant-EAS climb (`RC_s = (P_a - P_r)/W`), transition-speed
+  limits, a coarse climb grid search, segment powers, and battery sizing
+- `drag_buildup.py` — AD2 component parasite-drag build-up
+- `scissor_plot.py` — canard sizing and static-stability relations
+- `xfoil_wrapper.py` — XFOIL airfoil analysis
+- `xfoil/` — the local XFOIL executable/data files
 
-- `drag_buildup.py` for parasite-drag buildup
-- `scissor_plot.py` for canard sizing and static-stability relations
-- `xfoil_wrapper.py` for optional XFOIL airfoil analysis
-- `xfoil/` for the local XFOIL executable/data files
-
-Comments are kept short and equation-focused. The bottom of the file contains
-the workflow that runs the complete sizing calculation.
+Comments are kept short and equation-focused.
 
 ## Tests
 

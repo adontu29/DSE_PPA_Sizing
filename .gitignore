@@ -10,6 +10,9 @@
 !scissor_plot.py
 !xfoil_wrapper.py
 
+!sizing/
+!sizing/*.py
+
 !tests/
 !tests/test_simple_sizing.py
 !tests/test_xfoil_wrapper.py
