@@ -54,7 +54,7 @@ AIRCRAFT = {
     "wing_taper": 0.40,
     "wing_CL_max": 1.28,
     "wing_CL_alpha_per_rad": 4.74,
-    "canard_CL_max": 1.02,
+    "canard_CL_max": 1,
     "canard_CL_alpha_per_rad": 4.25,
     "canard_aspect_ratio": 5.0,
     "canard_taper": 0.50,
